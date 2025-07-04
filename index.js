@@ -32,7 +32,7 @@ client.on("ready", () => {
   // 啟動时立即執行
   triggerStockCommand(channel);
 
-  // 每5分鐘自動查價
+  // 每5分鐘自動查價與推播新聞
   setInterval(() => {
     triggerStockCommand(channel);
   }, 5 * 60 * 1000);
