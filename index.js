@@ -7,12 +7,10 @@ const {
   handleConfigCommand,
 } = require("./commands");
 const { handleStockMessage } = require("./stock");
-const { loadConfig } = require("./config");
 
 const client = new Client();
 
 const CHANNEL_ID = "1386235399172522035"; // 更換為你的頻道 ID
-const USER_ID = "586502118530351114"; // 更換為你要提醒的用戶 ID
 const TOKEN = process.env.TOKEN;
 
 function triggerStockCommand(channel) {

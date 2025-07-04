@@ -93,7 +93,7 @@ async function handleReportCommand(message) {
   if (!content.startsWith("&report")) return;
   const args = content.split(/\s+/);
   if (args[1] === "list") {
-    const all = loadAllStockHistory();
+    const all = await loadAllStockHistory();
     const symbols = [...new Set(all.map((d) => d.symbol))];
     const names = {};
     all.forEach((d) => {
@@ -111,8 +111,11 @@ async function handleReportCommand(message) {
     return;
   }
   const symbol = args[1].toUpperCase();
-  const all = loadAllStockHistory();
-  const data = all.filter((d) => d.symbol === symbol);
+  const data = await loadAllStockHistory(symbol); // 直接查詢單一股票
+  if (!Array.isArray(data)) {
+    message.reply("查詢失敗，API 回傳格式錯誤");
+    return;
+  }
   if (data.length === 0) {
     message.reply(`查無 ${symbol} 的資料`);
     return;

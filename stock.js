@@ -1,10 +1,48 @@
 const dayjs = require("dayjs");
 const fs = require("fs");
+let fetch;
+try {
+  fetch = global.fetch || require("node-fetch");
+  if (fetch.default) fetch = fetch.default;
+} catch (e) {
+  fetch = require("node-fetch");
+  if (fetch.default) fetch = fetch.default;
+}
 const { getAutoNotifySymbols } = require("./config");
 const { addAllStocksToSleepTracking } = require("./sleep");
 
 const ALL_STOCK_DATA_PATH = "./allStockData.json";
 const USER_ID = "586502118530351114";
+const API_URL = "https://cwds.taivs.tp.edu.tw/~cbs21/db/api.php"; // 請依實際部署位置調整
+
+async function insertStocksViaAPI(stocks) {
+  for (const stock of stocks) {
+    const payload = {
+      time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+      ...stock,
+    };
+    await fetch(`${API_URL}?action=insert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+}
+
+async function queryAllStockHistoryViaAPI() {
+  const res = await fetch(`${API_URL}?action=query`);
+  if (!res.ok) throw new Error("API 查詢失敗");
+  const data = await res.json();
+  console.log("API 回傳資料型態:", Array.isArray(data), data);
+  return data;
+}
+
+async function getLatestTimeFromAPI() {
+  const res = await fetch(`${API_URL}?action=latest_time`);
+  if (!res.ok) throw new Error("API 查詢失敗");
+  const data = await res.json();
+  return data.latest_time;
+}
 
 function parseStockField(rawValue) {
   const lines = rawValue.split("\n");
@@ -23,12 +61,40 @@ function parseStockField(rawValue) {
   return { symbol, name, price, changePercent, volume };
 }
 
-function loadAllStockHistory() {
-  if (!fs.existsSync(ALL_STOCK_DATA_PATH)) return [];
+async function queryStockHistoryBySymbol(symbol, limit = 1000, offset = 0) {
+  const url = `${API_URL}?action=query&symbol=${encodeURIComponent(
+    symbol
+  )}&limit=${limit}&offset=${offset}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("API 查詢失敗");
+  const data = await res.json();
+  if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
+  return data;
+}
+
+async function loadAllStockHistory(symbol = null) {
+  // 若有 symbol，則查詢該股票；否則查詢全部
   try {
-    return JSON.parse(fs.readFileSync(ALL_STOCK_DATA_PATH, "utf8"));
+    if (symbol) {
+      return await queryStockHistoryBySymbol(symbol);
+    } else {
+      const data = await queryAllStockHistoryViaAPI();
+      if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
+      return data;
+    }
   } catch (e) {
-    console.error("❌ 無法讀取 allStockData.json", e);
+    if (fs.existsSync(ALL_STOCK_DATA_PATH)) {
+      try {
+        const localData = JSON.parse(
+          fs.readFileSync(ALL_STOCK_DATA_PATH, "utf8")
+        );
+        if (symbol) return localData.filter((d) => d.symbol === symbol);
+        return localData;
+      } catch (e) {
+        console.error("❌ 無法讀取 allStockData.json", e);
+        return [];
+      }
+    }
     return [];
   }
 }
@@ -37,8 +103,11 @@ function saveAllStockHistory(history) {
   fs.writeFileSync(ALL_STOCK_DATA_PATH, JSON.stringify(history, null, 2));
 }
 
-function addAllStocksToHistory(stocks) {
-  const history = loadAllStockHistory();
+async function addAllStocksToHistory(stocks) {
+  // 寫入 JSON
+  const history = fs.existsSync(ALL_STOCK_DATA_PATH)
+    ? JSON.parse(fs.readFileSync(ALL_STOCK_DATA_PATH, "utf8"))
+    : [];
   const now = dayjs();
   stocks.forEach((stock) => {
     history.push({
@@ -47,11 +116,14 @@ function addAllStocksToHistory(stocks) {
     });
   });
   saveAllStockHistory(history);
+  // 寫入 API
+  await insertStocksViaAPI(stocks);
 }
 
 async function sendStockNotify(symbol, channel) {
-  const all = loadAllStockHistory();
-  const data = all.filter((d) => d.symbol === symbol);
+  const all = await loadAllStockHistory(symbol); // 直接查詢該股票
+  if (!Array.isArray(all)) return;
+  const data = all;
   if (data.length === 0) return;
   const latest = data[data.length - 1];
   const now = dayjs();
@@ -123,4 +195,6 @@ module.exports = {
   addAllStocksToHistory,
   handleStockMessage,
   sendStockNotify,
+  getLatestTimeFromAPI,
+  queryStockHistoryBySymbol, // 新增: 可查詢單一股票
 };
