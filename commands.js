@@ -168,7 +168,7 @@ function handleConfigCommand(message) {
   if (content !== "&config") return;
   const config = loadConfig();
   let msg = `**目前設定**\n`;
-  msg += `• 頻道ID：\`1386235399172522035\`\n`;
+  msg += `• 頻道ID：\`1390554923862720572\`\n`;
   msg += `• 用戶ID：\`586502118530351114\`\n`;
   msg += `• 自動推播清單：`;
   if (config.autoNotifySymbols && config.autoNotifySymbols.length > 0) {

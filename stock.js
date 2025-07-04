@@ -165,7 +165,7 @@ async function sendStockNotify(symbol, channel) {
 }
 
 function handleStockMessage(message) {
-  const CHANNEL_ID = "1386235399172522035";
+  const CHANNEL_ID = "1390554923862720572";
   if (message.channelId !== CHANNEL_ID) return;
   if (!message.embeds || message.embeds.length === 0) return;
   const embed = message.embeds[0];
