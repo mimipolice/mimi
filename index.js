@@ -10,7 +10,7 @@ const { handleStockMessage } = require("./stock");
 
 const client = new Client();
 
-const CHANNEL_ID = "1386235399172522035"; // 更換為你的頻道 ID
+const CHANNEL_ID = "1390554923862720572"; // 更換為你的頻道 ID
 const TOKEN = process.env.TOKEN;
 
 function triggerStockCommand(channel) {
