@@ -53,22 +53,3 @@ client.on("messageUpdate", (_, newMessage) => {
 });
 
 client.login(TOKEN);
-
-// 查詢目前設定
-function handleConfigCommand(message) {
-  //if (message.channelId !== CHANNEL_ID) return;
-  if (message.author.id !== USER_ID) return;
-  const content = message.content.trim();
-  if (content !== "&config") return;
-  const config = loadConfig();
-  let msg = `**目前設定**\n`;
-  msg += `• 頻道ID：\`${CHANNEL_ID}\`\n`;
-  msg += `• 用戶ID：\`${USER_ID}\`\n`;
-  msg += `• 自動推播清單：`;
-  if (config.autoNotifySymbols && config.autoNotifySymbols.length > 0) {
-    msg += config.autoNotifySymbols.map((s) => `\`${s}\``).join(", ");
-  } else {
-    msg += "(無)";
-  }
-  message.reply(msg);
-}

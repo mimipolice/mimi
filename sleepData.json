@@ -1,0 +1,886 @@
+{
+  "isTracking": true,
+  "startTime": "2025-07-04T04:29:57.496Z",
+  "data": [
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.49,
+      "changePercent": 1.61,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41158.36,
+      "changePercent": 0.03,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.6,
+      "changePercent": 0.69,
+      "volume": 4586
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2761.74,
+      "changePercent": 5,
+      "volume": 896
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 37.36,
+      "changePercent": -0.12,
+      "volume": 10533
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 947.16,
+      "changePercent": 1.26,
+      "volume": 1434
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.43,
+      "changePercent": -2.71,
+      "volume": 429321
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3019.98,
+      "changePercent": -0.5,
+      "volume": 499
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.7,
+      "changePercent": 0.22,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 53.27,
+      "changePercent": 2.6,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:30:58.701Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 212.08,
+      "changePercent": -4.81,
+      "volume": 4280
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.49,
+      "changePercent": 1.61,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41158.36,
+      "changePercent": 0.03,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.6,
+      "changePercent": 0.69,
+      "volume": 4136
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2761.74,
+      "changePercent": 5,
+      "volume": 951
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 37.36,
+      "changePercent": -0.12,
+      "volume": 10533
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 947.16,
+      "changePercent": 1.26,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.43,
+      "changePercent": -2.71,
+      "volume": 429321
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3019.98,
+      "changePercent": -0.5,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.7,
+      "changePercent": 0.22,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 53.27,
+      "changePercent": 2.6,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:35:58.701Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 212.08,
+      "changePercent": -4.81,
+      "volume": 4280
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.47,
+      "changePercent": -0.3,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41376.1,
+      "changePercent": 0.53,
+      "volume": 64
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.97,
+      "changePercent": 0.38,
+      "volume": 4086
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2791.17,
+      "changePercent": 1.07,
+      "volume": 951
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 36.55,
+      "changePercent": -2.17,
+      "volume": 10533
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 957.2,
+      "changePercent": 1.06,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.48,
+      "changePercent": 1.47,
+      "volume": 429321
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3013.18,
+      "changePercent": -0.23,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 46.09,
+      "changePercent": 0.84,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 54.25,
+      "changePercent": 1.85,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:40:58.821Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 212.38,
+      "changePercent": 0.14,
+      "volume": 4280
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.47,
+      "changePercent": -0.3,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41376.1,
+      "changePercent": 0.53,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.97,
+      "changePercent": 0.38,
+      "volume": 4086
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2791.17,
+      "changePercent": 1.07,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 36.55,
+      "changePercent": -2.17,
+      "volume": 10533
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 957.2,
+      "changePercent": 1.06,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.48,
+      "changePercent": 1.47,
+      "volume": 429321
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3013.18,
+      "changePercent": -0.23,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 46.09,
+      "changePercent": 0.84,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 54.25,
+      "changePercent": 1.85,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:45:58.734Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 212.38,
+      "changePercent": 0.14,
+      "volume": 4435
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.43,
+      "changePercent": -1.3,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41787.77,
+      "changePercent": 0.99,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 101.26,
+      "changePercent": 1.29,
+      "volume": 4086
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2803.77,
+      "changePercent": 0.45,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.32,
+      "changePercent": -3.38,
+      "volume": 10633
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 915.12,
+      "changePercent": -4.4,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.35,
+      "changePercent": -3.59,
+      "volume": 429321
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 2972.13,
+      "changePercent": -1.36,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 46.85,
+      "changePercent": 1.65,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 55.33,
+      "changePercent": 1.99,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:49:50.114Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 211.85,
+      "changePercent": -0.25,
+      "volume": 4435
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.43,
+      "changePercent": -1.3,
+      "volume": 612709
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41787.77,
+      "changePercent": 0.99,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 101.26,
+      "changePercent": 1.29,
+      "volume": 4086
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2803.77,
+      "changePercent": 0.45,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.32,
+      "changePercent": -3.38,
+      "volume": 10633
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 915.12,
+      "changePercent": -4.4,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.35,
+      "changePercent": -3.59,
+      "volume": 428721
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 2972.13,
+      "changePercent": -1.36,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 46.85,
+      "changePercent": 1.65,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 55.33,
+      "changePercent": 1.99,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:54:50.947Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 211.85,
+      "changePercent": -0.25,
+      "volume": 4435
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.49,
+      "changePercent": 1.62,
+      "volume": 612727
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41017.68,
+      "changePercent": -1.84,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 100.2,
+      "changePercent": -1.05,
+      "volume": 4105
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2735.6,
+      "changePercent": -2.43,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.08,
+      "changePercent": -0.66,
+      "volume": 10633
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 908.82,
+      "changePercent": -0.69,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.4,
+      "changePercent": 1.34,
+      "volume": 427596
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 2969.59,
+      "changePercent": -0.09,
+      "volume": 634
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.92,
+      "changePercent": -1.98,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 55.44,
+      "changePercent": 0.2,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T04:59:50.297Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 204.03,
+      "changePercent": -3.69,
+      "volume": 4385
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.49,
+      "changePercent": 1.62,
+      "volume": 620527
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41017.68,
+      "changePercent": -1.84,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 100.2,
+      "changePercent": -1.05,
+      "volume": 4105
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2735.6,
+      "changePercent": -2.43,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.08,
+      "changePercent": -0.66,
+      "volume": 10633
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 908.82,
+      "changePercent": -0.69,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.4,
+      "changePercent": 1.34,
+      "volume": 418896
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 2969.59,
+      "changePercent": -0.09,
+      "volume": 635
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.92,
+      "changePercent": -1.98,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 55.44,
+      "changePercent": 0.2,
+      "volume": 33471
+    },
+    {
+      "time": "2025-07-04T05:04:50.126Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 204.03,
+      "changePercent": -3.69,
+      "volume": 4385
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.47,
+      "changePercent": -0.5,
+      "volume": 620527
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41757.02,
+      "changePercent": 1.8,
+      "volume": 65
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.96,
+      "changePercent": -0.24,
+      "volume": 4105
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2651.57,
+      "changePercent": -3.07,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.31,
+      "changePercent": 0.63,
+      "volume": 10633
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 945.7,
+      "changePercent": 4.06,
+      "volume": 1481
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.41,
+      "changePercent": 0.23,
+      "volume": 418896
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3071.72,
+      "changePercent": 3.44,
+      "volume": 635
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.54,
+      "changePercent": -0.83,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 54.55,
+      "changePercent": -1.61,
+      "volume": 33474
+    },
+    {
+      "time": "2025-07-04T05:09:50.260Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 202.33,
+      "changePercent": -0.83,
+      "volume": 4385
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 3.47,
+      "changePercent": -0.5,
+      "volume": 620527
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 41757.02,
+      "changePercent": 1.8,
+      "volume": 66
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 99.96,
+      "changePercent": -0.24,
+      "volume": 4105
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2651.57,
+      "changePercent": -3.07,
+      "volume": 956
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 35.31,
+      "changePercent": 0.63,
+      "volume": 10746
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 945.7,
+      "changePercent": 4.06,
+      "volume": 1681
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 3.41,
+      "changePercent": 0.23,
+      "volume": 418896
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3071.72,
+      "changePercent": 3.44,
+      "volume": 643
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 45.54,
+      "changePercent": -0.83,
+      "volume": 6435
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 54.55,
+      "changePercent": -1.61,
+      "volume": 33474
+    },
+    {
+      "time": "2025-07-04T05:14:50.569Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 202.33,
+      "changePercent": -0.83,
+      "volume": 4465
+    }
+  ]
+}

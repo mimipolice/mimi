@@ -23,8 +23,20 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
+function getAutoNotifySymbols() {
+  return loadConfig().autoNotifySymbols || [];
+}
+
+function setAutoNotifySymbols(symbols) {
+  const config = loadConfig();
+  config.autoNotifySymbols = symbols;
+  saveConfig(config);
+}
+
 module.exports = {
   CONFIG_PATH,
   loadConfig,
   saveConfig,
+  getAutoNotifySymbols,
+  setAutoNotifySymbols,
 };
