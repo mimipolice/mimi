@@ -17,7 +17,7 @@ if ($action === 'insert' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['success' => $ok]);
     $stmt->close();
 } elseif ($action === 'query') {
-    // 支援 symbol、limit、offset 查詢，預設回傳指定 symbol 的歷史資料
+    // 支援 symbol、limit、offset 查詢，並支援分頁查詢
     $symbol = $_GET['symbol'] ?? '';
     $limit = intval($_GET['limit'] ?? 1000);
     $offset = intval($_GET['offset'] ?? 0);
@@ -29,6 +29,9 @@ if ($action === 'insert' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $params[] = $symbol;
         $types .= 's';
     }
+    // limit <= 0 則查全部（但最多 10000 筆防呆）
+    $maxLimit = 10000;
+    if ($limit <= 0) $limit = $maxLimit;
     $sql = "SELECT * FROM mimi_data $where ORDER BY time ASC LIMIT ? OFFSET ?";
     $params[] = $limit;
     $params[] = $offset;
@@ -43,7 +46,23 @@ if ($action === 'insert' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $stmt->get_result();
     $rows = [];
     while ($row = $result->fetch_assoc()) $rows[] = $row;
-    echo json_encode($rows);
+    // 回傳分頁資訊
+    $countSql = $where ? "SELECT COUNT(*) as cnt FROM mimi_data $where" : "SELECT COUNT(*) as cnt FROM mimi_data";
+    $countStmt = $mysqli->prepare($countSql);
+    if ($where) {
+        $countStmt->bind_param('s', $symbol);
+    }
+    $countStmt->execute();
+    $countResult = $countStmt->get_result();
+    $total = $countResult ? intval($countResult->fetch_assoc()['cnt']) : 0;
+    $countStmt->close();
+    echo json_encode([
+        'data' => $rows,
+        'total' => $total,
+        'limit' => $limit,
+        'offset' => $offset,
+        'pages' => $limit > 0 ? ceil($total / $limit) : 1
+    ]);
     $stmt->close();
 } elseif ($action === 'latest_time') {
     $result = $mysqli->query("SELECT time FROM mimi_data ORDER BY time DESC LIMIT 1");

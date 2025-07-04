@@ -33,7 +33,7 @@ async function queryAllStockHistoryViaAPI() {
   const res = await fetch(`${API_URL}?action=query`);
   if (!res.ok) throw new Error("API 查詢失敗");
   const data = await res.json();
-  console.log("API 回傳資料型態:", Array.isArray(data), data);
+  //console.log("API 回傳資料型態:", Array.isArray(data), data);
   return data;
 }
 
