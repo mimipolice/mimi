@@ -46,12 +46,83 @@
 - `&listkw`：列出所有關鍵字
 
 ### 自動回應
-- `&ar <emojiID> <channelID>`：設定對指定頻道自動回應
 - `&ar`：顯示當前自動回應設定
+- `&ar <emoji> <channel>`：設定對指定頻道自動回應
 - `&ar remove <channelID>`：移除指定頻道的自動回應
+
+**支援格式：**
+- `&ar <:frogfire:1390753587444977714> 1372931999701926001`
+- `&ar <:frogfire:1390753587444977714> <#1372931999701926001>`
+- `&ar 1390753587444977714 <#1372931999701926001>`
 
 ### 其他
 - `&config`：查詢目前設定
+
+---
+
+## 開發指南
+
+### 新增指令
+
+1. **在 `src/features/` 建立新的功能模組**
+   ```javascript
+   // src/features/newFeature.js
+   async function handleNewCommand(message, client) {
+     if (!message.content.startsWith("&new")) return false;
+     
+     // 處理指令邏輯
+     message.reply("新功能回應");
+     return true;
+   }
+   
+   module.exports = {
+     handleNewCommand,
+   };
+   ```
+
+2. **在 `src/core/index.js` 中引入並註冊**
+   ```javascript
+   const { handleNewCommand } = require("../features/newFeature");
+   
+   client.on("messageCreate", async (message) => {
+     // 其他指令處理...
+     if (await handleNewCommand(message, client)) return;
+     // 其他功能...
+   });
+   ```
+
+### 新增自動回應格式
+
+在 `src/features/autoReact.js` 的 `parseEmojiAndChannel` 函數中新增支援格式：
+
+```javascript
+// 新增格式支援
+const newFormatMatch = emojiArg.match(/^新的格式正則表達式$/);
+if (newFormatMatch) {
+  emojiId = newFormatMatch[1];
+}
+```
+
+### 資料儲存
+
+- **JSON 檔案**：存放在 `data/json/` 目錄
+- **設定檔**：存放在 `data/config/` 目錄
+- **API 端點**：存放在 `src/web/` 目錄
+
+### 環境變數
+
+新增環境變數時，在 `src/core/config.js` 中新增對應的 getter/setter 函數：
+
+```javascript
+function getNewConfig() {
+  return process.env.NEW_CONFIG || "default_value";
+}
+
+module.exports = {
+  // 其他 exports...
+  getNewConfig,
+};
+```
 
 ---
 

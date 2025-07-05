@@ -14,11 +14,11 @@ const fs = require("fs");
 const path = require("path");
 const { MessageEmbed } = require("discord.js-selfbot-v13");
 const { WebEmbed } = require("discord.js-selfbot-v13");
+const { handleOdogMessage, handleOdogCommand } = require("../features/odog");
 const {
-  handleOdogMessage,
-  handleOdogCommand,
+  handleAutoReactCommand,
   handleAutoReactMessage,
-} = require("../features/odog");
+} = require("../features/autoReact");
 
 const client = new Client();
 
@@ -230,7 +230,8 @@ client.on("messageCreate", async (message) => {
   await handleOdogMessage(message);
   if (await handleOdogCommand(message, client)) return;
 
-  // 處理自動回應
+  // 處理自動回應指令和訊息
+  if (await handleAutoReactCommand(message, client)) return;
   await handleAutoReactMessage(message, client);
 
   handleStockMessage(message);
