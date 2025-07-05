@@ -145,7 +145,7 @@ async function fetchOdogHistory({
   // 合併到原有 stats
   console.log("[ODOG歷史統計-新統計]", stats);
   const oldStats = loadOdogStats();
-  console.log("[ODOG歷史統計-原有]", oldStats);
+  //console.log("[ODOG歷史統計-原有]", oldStats);
   for (const date in stats) {
     if (!oldStats[date]) oldStats[date] = {};
     for (const user in stats[date]) {
@@ -172,7 +172,7 @@ async function fetchOdogHistory({
       }
     }
   }
-  console.log("[ODOG歷史統計-合併後]", oldStats);
+  //console.log("[ODOG歷史統計-合併後]", oldStats);
   saveOdogStats(oldStats);
   return oldStats;
 }
@@ -329,7 +329,10 @@ async function handleOdogCommand(message, client) {
       return true;
     }
     if (message.content.trim() === "&zz") {
-      await message.reply("開始爬取全部歷史紀錄，請稍候...");
+      const reply = await message.reply("開始爬取全部歷史紀錄，請稍候...");
+      setTimeout(() => {
+        reply.delete();
+      }, 5000); //然後刪除自己
       stats = await fetchOdogHistory({
         days: null,
         sinceNoon: false,
@@ -337,7 +340,12 @@ async function handleOdogCommand(message, client) {
         client,
       });
     } else if (message.content.trim() === "&zz 1d") {
-      await message.reply("開始爬取今日 12:00 以後紀錄，請稍候...");
+      const reply = await message.reply(
+        "開始爬取今日 12:00 以後紀錄，請稍候..."
+      );
+      setTimeout(() => {
+        reply.delete();
+      }, 5000); //然後刪除自己
       stats = await fetchOdogHistory({
         days: null,
         sinceNoon: true,
@@ -345,7 +353,10 @@ async function handleOdogCommand(message, client) {
         client,
       });
     } else if (message.content.trim() === "&zz 7d") {
-      await message.reply("開始爬取過去 7 天紀錄，請稍候...");
+      const reply = await message.reply("開始爬取過去 7 天紀錄，請稍候...");
+      setTimeout(() => {
+        reply.delete();
+      }, 5000); //然後刪除自己
       stats = await fetchOdogHistory({
         days: 7,
         sinceNoon: false,
@@ -353,10 +364,18 @@ async function handleOdogCommand(message, client) {
         client,
       });
     } else {
-      await message.reply("用法：&zz、&zz 1d、&zz 7d");
+      const reply = await message.reply("用法：&zz、&zz 1d、&zz 7d");
+      setTimeout(() => {
+        reply.delete();
+      }, 5000); //然後刪除自己
       return true;
     }
-    await message.reply("歷史紀錄統計完成！可用 &odog 查詢結果。");
+    const reply = await message.reply(
+      "歷史紀錄更新完成！可用 &odog 查詢結果。"
+    );
+    setTimeout(() => {
+      reply.delete();
+    }, 5000); //然後刪除自己
     return true;
   }
   return false;

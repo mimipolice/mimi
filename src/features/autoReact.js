@@ -93,8 +93,7 @@ async function handleAutoReactCommand(message, client) {
       const emojiId = config[channelId];
       try {
         const channel = client.channels.cache.get(channelId);
-        const channelName = channel ? channel.name : `未知頻道 (${channelId})`;
-        msg += `頻道: **${channelName}**\n`;
+        msg += `頻道: **<#${channelId}>**\n`;
         msg += `Emoji: <:emoji:${emojiId}>\n\n`;
       } catch (e) {
         msg += `頻道: **${channelId}** (無法取得名稱)\n`;
@@ -107,11 +106,21 @@ async function handleAutoReactCommand(message, client) {
 
   // 移除設定
   if (args[1] === "remove" && args.length === 3) {
-    const channelId = args[2];
+    let channelId = args[2];
+
+    // 支援 <#channelId> 格式
+    const channelMatch = channelId.match(/^<#(\d+)>$/);
+    if (channelMatch) {
+      channelId = channelMatch[1];
+    }
+
     const config = loadAutoReact();
 
     if (!config[channelId]) {
-      message.reply("該頻道沒有設定自動回應");
+      const reply = await message.reply("該頻道沒有設定自動回應");
+      setTimeout(() => {
+        reply.delete();
+      }, 5000); //然後刪除自己
       return true;
     }
 
@@ -120,8 +129,7 @@ async function handleAutoReactCommand(message, client) {
 
     try {
       const channel = client.channels.cache.get(channelId);
-      const channelName = channel ? channel.name : channelId;
-      message.reply(`已移除頻道 **${channelName}** 的自動回應設定`);
+      message.reply(`已移除頻道 **<#${channelId}>** 的自動回應設定`);
     } catch (e) {
       message.reply(`已移除頻道 **${channelId}** 的自動回應設定`);
     }
@@ -129,7 +137,7 @@ async function handleAutoReactCommand(message, client) {
   }
 
   // 新增設定
-  if (args.length === 2) {
+  if (args.length === 3) {
     const parseResult = parseEmojiAndChannel(content);
 
     if (parseResult.error) {
@@ -152,7 +160,7 @@ async function handleAutoReactCommand(message, client) {
     saveAutoReact(config);
 
     message.reply(
-      `已設定對頻道 **${channel.name}** 自動回應 <:emoji:${emojiId}>`
+      `已設定對頻道 **<#${channelId}>** 自動回應 <:emoji:${emojiId}>`
     );
     return true;
   }
@@ -164,6 +172,9 @@ async function handleAutoReactCommand(message, client) {
 }
 
 async function handleAutoReactMessage(message, client) {
+  // 跳過自己的訊息
+  if (message.author.id === client.user.id) return;
+
   const config = loadAutoReact();
   const channelId = message.channelId;
 
@@ -189,7 +200,7 @@ async function applyAutoReactToHistory(channel, client) {
   let before = undefined;
   let processedCount = 0;
 
-  console.log(`[AUTO REACT] 開始處理頻道 ${channel.name} 的歷史訊息`);
+  console.log(`[AUTO REACT] 開始處理頻道 <#${channelId}> 的歷史訊息`);
 
   while (true) {
     const options = { limit: 100 };
