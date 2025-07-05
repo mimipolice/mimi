@@ -38,11 +38,11 @@ async function insertStocksViaAPI(stocks) {
 }
 
 async function queryAllStockHistoryViaAPI() {
-  const res = await fetch(`${API_URL}?action=query`);
+  const res = await fetch(`${API_URL}?action=query&limit=10000`);
   if (!res.ok) throw new Error("API 查詢失敗");
   const data = await res.json();
-  //console.log("API 回傳資料型態:", Array.isArray(data), data);
-  return data;
+  console.log("[DEBUG] API 回傳內容:", data);
+  return Array.isArray(data.data) ? data.data : [];
 }
 
 async function getLatestTimeFromAPI() {
@@ -76,8 +76,46 @@ async function queryStockHistoryBySymbol(symbol, limit = 1000, offset = 0) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("API 查詢失敗");
   const data = await res.json();
-  if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
-  return data;
+  if (!Array.isArray(data.data)) throw new Error("API 回傳格式錯誤");
+  return data.data;
+}
+
+// 自動分頁抓取所有 symbol 歷史資料
+async function fetchAllStockHistoryBySymbol(symbol) {
+  const pageSize = 1000;
+  let offset = 0;
+  let allData = [];
+  while (true) {
+    const url = `${API_URL}?action=query&symbol=${encodeURIComponent(
+      symbol
+    )}&limit=${pageSize}&offset=${offset}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("API 查詢失敗");
+    const data = await res.json();
+    if (!Array.isArray(data.data)) throw new Error("API 回傳格式錯誤");
+    allData = allData.concat(data.data);
+    if (data.data.length < pageSize) break; // 最後一頁
+    offset += pageSize;
+  }
+  return allData;
+}
+
+// 自動分頁抓取所有 symbol 歷史資料（查全部 symbol 用）
+async function fetchAllStockHistoryAllSymbols() {
+  const pageSize = 1000;
+  let offset = 0;
+  let allData = [];
+  while (true) {
+    const url = `${API_URL}?action=query&limit=${pageSize}&offset=${offset}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("API 查詢失敗");
+    const data = await res.json();
+    if (!Array.isArray(data.data)) throw new Error("API 回傳格式錯誤");
+    allData = allData.concat(data.data);
+    if (data.data.length < pageSize) break;
+    offset += pageSize;
+  }
+  return allData;
 }
 
 async function loadAllStockHistory(symbol = null) {
@@ -87,11 +125,11 @@ async function loadAllStockHistory(symbol = null) {
   if (storageConfig.db || storageConfig.both) {
     try {
       if (symbol) {
-        return await queryStockHistoryBySymbol(symbol);
+        // 分頁抓取單一 symbol
+        return await fetchAllStockHistoryBySymbol(symbol);
       } else {
-        const data = await queryAllStockHistoryViaAPI();
-        if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
-        return data;
+        // 查全部 symbol 也分頁抓取
+        return await fetchAllStockHistoryAllSymbols();
       }
     } catch (e) {
       console.error("❌ API 查詢失敗，嘗試從 JSON 讀取:", e.message);

@@ -125,14 +125,22 @@ async function handleReportCommand(message) {
   const args = content.split(/\s+/);
   if (args[1] === "list") {
     const all = await loadAllStockHistory();
-    const symbols = [...new Set(all.map((d) => d.symbol))];
-    const names = {};
+    console.log("[DEBUG] handleReportCommand all:", all);
+    // 依 symbol 分組，找出每支股票的最後一筆資料
+    const latestBySymbol = {};
     all.forEach((d) => {
-      if (!names[d.symbol]) names[d.symbol] = d.name;
+      if (
+        !latestBySymbol[d.symbol] ||
+        new Date(d.time) > new Date(latestBySymbol[d.symbol].time)
+      ) {
+        latestBySymbol[d.symbol] = d;
+      }
     });
+    const symbols = Object.keys(latestBySymbol);
     let msg = `**可查詢股票列表**\n`;
     symbols.forEach((s) => {
-      msg += `• ${s} - ${names[s]}\n`;
+      const d = latestBySymbol[s];
+      msg += `• ${s} - ${d.name}（last update：${d.time}）\n`;
     });
     message.reply(msg);
     return;
