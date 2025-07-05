@@ -6,19 +6,19 @@ const {
   addAllStocksToSleepTracking,
 } = require("./sleep");
 const { loadAllStockHistory, sendStockNotify } = require("./stock");
-const { createSleepChart } = require("./chart");
+const { createSleepChart } = require("../utils/chart");
 const {
   getAutoNotifySymbols,
   setAutoNotifySymbols,
   loadConfig,
-} = require("./config");
+} = require("../core/config");
 const { MessageAttachment, WebEmbed } = require("discord.js-selfbot-v13");
 const dayjs = require("dayjs");
 const fs = require("fs");
 const path = require("path");
-const debtsPath = path.resolve(__dirname, "debts.json");
-const { getDebtChannelId, setDebtChannelId } = require("./config");
-const keywordsPath = path.resolve(__dirname, "keywords.json");
+const debtsPath = path.resolve(__dirname, "../../data/json/debts.json");
+const { getDebtChannelId, setDebtChannelId } = require("../core/config");
+const keywordsPath = path.resolve(__dirname, "../../data/json/keywords.json");
 
 const USER_ID = "586502118530351114";
 

@@ -4,7 +4,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const CONFIG_PATH = path.resolve(__dirname, "bot_config.json");
+const CONFIG_PATH = path.resolve(
+  __dirname,
+  "../../data/config/bot_config.json"
+);
 
 function loadConfig() {
   const defaultDebtChannelId =
@@ -58,6 +61,22 @@ function setDebtChannelId(channelId) {
   saveConfig(config);
 }
 
+// 股票儲存配置
+function getStockStorageConfig() {
+  // 從環境變數讀取配置，預設為 both
+  const storageMode = process.env.STOCK_STORAGE_MODE || "both";
+
+  switch (storageMode.toLowerCase()) {
+    case "db":
+      return { db: true, json: false, both: false };
+    case "json":
+      return { db: false, json: true, both: false };
+    case "both":
+    default:
+      return { db: true, json: true, both: true };
+  }
+}
+
 module.exports = {
   CONFIG_PATH,
   loadConfig,
@@ -66,4 +85,5 @@ module.exports = {
   setAutoNotifySymbols,
   getDebtChannelId,
   setDebtChannelId,
+  getStockStorageConfig,
 };

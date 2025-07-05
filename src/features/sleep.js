@@ -1,6 +1,10 @@
 const dayjs = require("dayjs");
 const fs = require("fs");
-const SLEEP_DATA_PATH = "./sleepData.json";
+const path = require("path");
+const SLEEP_DATA_PATH = path.resolve(
+  __dirname,
+  "../../data/json/sleepData.json"
+);
 
 function loadSleepData() {
   if (!fs.existsSync(SLEEP_DATA_PATH))

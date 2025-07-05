@@ -7,14 +7,18 @@ const {
   handleConfigCommand,
   handleDebtCommand,
   handleKeywordCommand,
-} = require("./commands");
-const { handleStockMessage } = require("./stock");
+} = require("../features/commands");
+const { handleStockMessage } = require("../features/stock");
 const { getDebtChannelId } = require("./config");
 const fs = require("fs");
 const path = require("path");
 const { MessageEmbed } = require("discord.js-selfbot-v13");
 const { WebEmbed } = require("discord.js-selfbot-v13");
-const { handleOdogMessage, handleOdogCommand } = require("./odog");
+const {
+  handleOdogMessage,
+  handleOdogCommand,
+  handleAutoReactMessage,
+} = require("../features/odog");
 
 const client = new Client();
 
@@ -225,6 +229,10 @@ async function fetchChannelHistory({
 client.on("messageCreate", async (message) => {
   await handleOdogMessage(message);
   if (await handleOdogCommand(message, client)) return;
+
+  // 處理自動回應
+  await handleAutoReactMessage(message, client);
+
   handleStockMessage(message);
   handleSleepCommand(message);
   handleReportCommand(message);

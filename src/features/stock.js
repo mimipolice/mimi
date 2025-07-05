@@ -1,5 +1,6 @@
 const dayjs = require("dayjs");
 const fs = require("fs");
+const path = require("path");
 let fetch;
 try {
   fetch = global.fetch || require("node-fetch");
@@ -8,10 +9,16 @@ try {
   fetch = require("node-fetch");
   if (fetch.default) fetch = fetch.default;
 }
-const { getAutoNotifySymbols } = require("./config");
+const {
+  getAutoNotifySymbols,
+  getStockStorageConfig,
+} = require("../core/config");
 const { addAllStocksToSleepTracking } = require("./sleep");
 
-const ALL_STOCK_DATA_PATH = "./allStockData.json";
+const ALL_STOCK_DATA_PATH = path.resolve(
+  __dirname,
+  "../../data/json/allStockData.json"
+);
 const USER_ID = "586502118530351114";
 const API_URL = "https://cwds.taivs.tp.edu.tw/~cbs21/db/api.php"; // 請依實際部署位置調整
 
@@ -73,16 +80,25 @@ async function queryStockHistoryBySymbol(symbol, limit = 1000, offset = 0) {
 }
 
 async function loadAllStockHistory(symbol = null) {
-  // 若有 symbol，則查詢該股票；否則查詢全部
-  try {
-    if (symbol) {
-      return await queryStockHistoryBySymbol(symbol);
-    } else {
-      const data = await queryAllStockHistoryViaAPI();
-      if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
-      return data;
+  const storageConfig = getStockStorageConfig();
+
+  // 優先從 API/DB 讀取
+  if (storageConfig.db || storageConfig.both) {
+    try {
+      if (symbol) {
+        return await queryStockHistoryBySymbol(symbol);
+      } else {
+        const data = await queryAllStockHistoryViaAPI();
+        if (!Array.isArray(data)) throw new Error("API 回傳格式錯誤");
+        return data;
+      }
+    } catch (e) {
+      console.error("❌ API 查詢失敗，嘗試從 JSON 讀取:", e.message);
     }
-  } catch (e) {
+  }
+
+  // 從 JSON 讀取
+  if (storageConfig.json || storageConfig.both) {
     if (fs.existsSync(ALL_STOCK_DATA_PATH)) {
       try {
         const localData = JSON.parse(
@@ -92,11 +108,11 @@ async function loadAllStockHistory(symbol = null) {
         return localData;
       } catch (e) {
         console.error("❌ 無法讀取 allStockData.json", e);
-        return [];
       }
     }
-    return [];
   }
+
+  return [];
 }
 
 function saveAllStockHistory(history) {
@@ -104,24 +120,37 @@ function saveAllStockHistory(history) {
 }
 
 async function addAllStocksToHistory(stocks) {
-  // 寫入 JSON
-  const history = fs.existsSync(ALL_STOCK_DATA_PATH)
-    ? JSON.parse(fs.readFileSync(ALL_STOCK_DATA_PATH, "utf8"))
-    : [];
+  const storageConfig = getStockStorageConfig();
   const now = dayjs();
-  stocks.forEach((stock) => {
-    history.push({
-      time: now.toISOString(),
-      ...stock,
+
+  // 寫入 JSON
+  if (storageConfig.json || storageConfig.both) {
+    const history = fs.existsSync(ALL_STOCK_DATA_PATH)
+      ? JSON.parse(fs.readFileSync(ALL_STOCK_DATA_PATH, "utf8"))
+      : [];
+    stocks.forEach((stock) => {
+      history.push({
+        time: now.toISOString(),
+        ...stock,
+      });
     });
-  });
-  saveAllStockHistory(history);
-  // 寫入 API
-  await insertStocksViaAPI(stocks);
+    saveAllStockHistory(history);
+    console.log("📄 已儲存到 JSON");
+  }
+
+  // 寫入 API/DB
+  if (storageConfig.db || storageConfig.both) {
+    try {
+      await insertStocksViaAPI(stocks);
+      console.log("🗄️ 已儲存到資料庫");
+    } catch (error) {
+      console.error("❌ 資料庫儲存失敗:", error.message);
+    }
+  }
 }
 
 async function sendStockNotify(symbol, channel) {
-  const all = await loadAllStockHistory(symbol); // 直接查詢該股票
+  const all = await loadAllStockHistory(symbol);
   if (!Array.isArray(all)) return;
   const data = all;
   if (data.length === 0) return;
@@ -188,6 +217,56 @@ function handleStockMessage(message) {
   }
 }
 
+// 單獨執行時的邏輯
+async function runStandalone() {
+  console.log("🚀 股票監控程式啟動（獨立模式）");
+
+  // 檢查是否為獨立執行
+  if (require.main === module) {
+    const { Client } = require("discord.js-selfbot-v13");
+    require("dotenv").config();
+
+    const client = new Client();
+    const CHANNEL_ID = "1390554923862720572";
+    const TOKEN = process.env.TOKEN;
+
+    function triggerStockCommand(channel) {
+      try {
+        channel.sendSlash("1221230734602141727", "stock");
+        console.log("📤 已發送 /stock 指令");
+      } catch (err) {
+        console.error("❌ /stock 指令發送失敗:", err);
+      }
+    }
+
+    client.on("ready", () => {
+      console.log(`✅ Bot 已上線: ${client.user.tag}`);
+
+      const channel = client.channels.cache.get(CHANNEL_ID);
+      if (!channel) return console.error("⚠️ 找不到頻道");
+
+      // 啟動時立即執行
+      triggerStockCommand(channel);
+
+      // 每5分鐘自動查價
+      setInterval(() => {
+        triggerStockCommand(channel);
+      }, 5 * 60 * 1000);
+    });
+
+    client.on("messageCreate", async (message) => {
+      handleStockMessage(message);
+    });
+
+    client.login(TOKEN);
+  }
+}
+
+// 如果直接執行此檔案，則啟動獨立模式
+if (require.main === module) {
+  runStandalone();
+}
+
 module.exports = {
   parseStockField,
   loadAllStockHistory,
@@ -196,5 +275,6 @@ module.exports = {
   handleStockMessage,
   sendStockNotify,
   getLatestTimeFromAPI,
-  queryStockHistoryBySymbol, // 新增: 可查詢單一股票
+  queryStockHistoryBySymbol,
+  runStandalone,
 };
