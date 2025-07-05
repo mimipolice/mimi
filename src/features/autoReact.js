@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { logDirect } = require("../utils/logger");
 const AUTO_REACT_PATH = path.resolve(
   __dirname,
   "../../data/json/auto_react.json"
@@ -184,9 +185,9 @@ async function handleAutoReactMessage(message, client) {
 
   try {
     await message.react(emojiId);
-    console.log(`[AUTO REACT] 已對訊息 ${message.id} 回應 ${emojiId}`);
+    logDirect(`[AUTO REACT] 已對訊息 ${message.id} 回應 ${emojiId}`);
   } catch (error) {
-    console.error(`[AUTO REACT] 回應失敗:`, error);
+    logDirect(`[AUTO REACT] 回應失敗: ${error}`);
   }
 }
 
@@ -200,7 +201,7 @@ async function applyAutoReactToHistory(channel, client) {
   let before = undefined;
   let processedCount = 0;
 
-  console.log(`[AUTO REACT] 開始處理頻道 <#${channelId}> 的歷史訊息`);
+  logDirect(`[AUTO REACT] 開始處理頻道 <#${channelId}> 的歷史訊息`);
 
   while (true) {
     const options = { limit: 100 };
@@ -220,10 +221,10 @@ async function applyAutoReactToHistory(channel, client) {
           try {
             await msg.react(emojiId);
             processedCount++;
-            console.log(`[AUTO REACT] 歷史訊息 ${msg.id} 已回應`);
+            logDirect(`[AUTO REACT] 歷史訊息 ${msg.id} 已回應`);
             await new Promise((resolve) => setTimeout(resolve, 100)); // 避免 API 限制
           } catch (error) {
-            console.error(`[AUTO REACT] 歷史訊息回應失敗:`, error);
+            logDirect(`[AUTO REACT] 歷史訊息回應失敗: ${error}`);
           }
         }
       }
@@ -233,12 +234,12 @@ async function applyAutoReactToHistory(channel, client) {
 
       await new Promise((resolve) => setTimeout(resolve, 500)); // 避免 API 過載
     } catch (error) {
-      console.error(`[AUTO REACT] 取得歷史訊息失敗:`, error);
+      logDirect(`[AUTO REACT] 取得歷史訊息失敗: ${error}`);
       break;
     }
   }
 
-  console.log(
+  logDirect(
     `[AUTO REACT] 頻道 ${channel.name} 處理完成，共回應 ${processedCount} 則訊息`
   );
 }

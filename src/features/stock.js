@@ -14,6 +14,7 @@ const {
   getStockStorageConfig,
 } = require("../core/config");
 const { addAllStocksToSleepTracking } = require("./sleep");
+const { logStockStatus, logDirect } = require("../utils/logger-progress.js");
 
 const ALL_STOCK_DATA_PATH = path.resolve(
   __dirname,
@@ -135,16 +136,16 @@ async function addAllStocksToHistory(stocks) {
       });
     });
     saveAllStockHistory(history);
-    console.log("📄 已儲存到 JSON");
+    logStockStatus("record", `📊 已記錄 ${stocks.length} 支股票資訊`);
   }
 
   // 寫入 API/DB
   if (storageConfig.db || storageConfig.both) {
     try {
       await insertStocksViaAPI(stocks);
-      console.log("🗄️ 已儲存到資料庫");
+      logStockStatus("save", "🗄️ 已儲存到資料庫");
     } catch (error) {
-      console.error("❌ 資料庫儲存失敗:", error.message);
+      logDirect(`❌ 資料庫儲存失敗: ${error.message}`);
     }
   }
 }
@@ -191,6 +192,7 @@ async function sendStockNotify(symbol, channel) {
     "YYYY-MM-DD HH:mm:ss"
   )}`;
   await channel.send(messageText);
+  logStockStatus("send", "📤 已發送 /stock 指令");
 }
 
 function handleStockMessage(message) {
@@ -206,7 +208,7 @@ function handleStockMessage(message) {
   }
   if (stocks.length > 0) {
     addAllStocksToHistory(stocks);
-    console.log(`📊 已記錄 ${stocks.length} 支股票資訊`);
+    logStockStatus("record", `📊 已記錄 ${stocks.length} 支股票資訊`);
     addAllStocksToSleepTracking(stocks, dayjs());
     const autoNotifySymbols = getAutoNotifySymbols();
     for (const stock of stocks) {
@@ -233,9 +235,9 @@ async function runStandalone() {
     function triggerStockCommand(channel) {
       try {
         channel.sendSlash("1221230734602141727", "stock");
-        console.log("📤 已發送 /stock 指令");
+        logStockStatus("send", "📤 已發送 /stock 指令");
       } catch (err) {
-        console.error("❌ /stock 指令發送失敗:", err);
+        logDirect(`❌ /stock 指令發送失敗: ${err}`);
       }
     }
 

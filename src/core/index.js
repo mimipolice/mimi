@@ -19,11 +19,13 @@ const {
   handleAutoReactCommand,
   handleAutoReactMessage,
 } = require("../features/autoReact");
+const { logStockStatus, logDirect } = require("../utils/logger");
 
 const client = new Client();
 
 const CHANNEL_ID = "1390554923862720572"; // 更換為你的頻道 ID
 const TOKEN = process.env.TOKEN;
+let lastQueryTimestamp = 0;
 
 const ODOG_STATS_PATH = path.resolve(__dirname, "odog_stats.json");
 function loadOdogStats() {
@@ -58,9 +60,9 @@ function triggerStockCommand(channel) {
   try {
     lastQueryTimestamp = Date.now();
     channel.sendSlash("1221230734602141727", "stock");
-    console.log("📤 已發送 /stock 指令");
+    logStockStatus("send", "📤 已發送 /stock 指令");
   } catch (err) {
-    console.error("❌ /stock 指令發送失敗:", err);
+    logDirect(`❌ /stock 指令發送失敗: ${err}`);
   }
 }
 

@@ -109,6 +109,20 @@ if (newFormatMatch) {
 - **設定檔**：存放在 `data/config/` 目錄
 - **API 端點**：存放在 `src/web/` 目錄
 
+### 日誌系統
+
+專案使用自定義的 logger 工具，支援計數功能：
+
+```javascript
+const { logWithCounter, logDirect } = require("../utils/logger");
+
+// 計數日誌（相同訊息會顯示 x2, x3...）
+logWithCounter("已發送 /stock 指令", "📤");
+
+// 直接日誌（會中斷計數並直接輸出）
+logDirect("[AUTO REACT] 已對訊息回應");
+```
+
 ### 環境變數
 
 新增環境變數時，在 `src/core/config.js` 中新增對應的 getter/setter 函數：
@@ -173,6 +187,7 @@ mimi/
 │   │   └── odog.js     # 歐氣統計功能
 │   ├── utils/          # 工具函數
 │   │   ├── chart.js    # 圖表繪製
+│   │   ├── logger.js   # 日誌工具（帶計數功能）
 │   │   └── utils.js    # 通用工具
 │   └── web/            # Web 相關
 │       ├── api.php     # API 端點
@@ -206,8 +221,13 @@ mimi/
 
 ### 環境變數
 - `TOKEN`：Discord Bot Token
-- `STOCK_STORAGE_MODE`：股票儲存模式
-- `DEBT_CHANNEL_ID`：欠款提醒頻道 ID
+- `STOCK_STORAGE_MODE`：股票儲存模式（可選：db, json, both）
+- `DEBT_CHANNEL_ID`：欠款提醒頻道 ID（預設：1390741771729899550）
+
+**DEBT_CHANNEL_ID 說明：**
+- 設定後，機器人會在每天 12:00 自動發送欠款提醒到指定頻道
+- 可使用 `&ad setchannel <頻道ID>` 指令動態修改
+- 格式：純數字頻道 ID，如 `1390741771729899550`
 
 ---
 
