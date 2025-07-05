@@ -27,7 +27,10 @@ const CHANNEL_ID = "1390554923862720572"; // 更換為你的頻道 ID
 const TOKEN = process.env.TOKEN;
 let lastQueryTimestamp = 0;
 
-const ODOG_STATS_PATH = path.resolve(__dirname, "odog_stats.json");
+const ODOG_STATS_PATH = path.resolve(
+  __dirname,
+  "../../data/json/odog_stats.json"
+);
 function loadOdogStats() {
   if (!fs.existsSync(ODOG_STATS_PATH)) return {};
   try {
@@ -47,7 +50,7 @@ const rarityMap = {
 };
 
 function loadDebts() {
-  const debtsPath = path.resolve(__dirname, "debts.json");
+  const debtsPath = path.resolve(__dirname, "../../data/json/debts.json");
   if (!fs.existsSync(debtsPath)) return {};
   try {
     return JSON.parse(fs.readFileSync(debtsPath, "utf8"));
@@ -120,7 +123,7 @@ function scheduleDebtReminder(client) {
   }, getNextNoonDelay());
 }
 
-const keywordsPath = path.resolve(__dirname, "keywords.json");
+const keywordsPath = path.resolve(__dirname, "../../data/json/keywords.json");
 function loadKeywords() {
   if (!fs.existsSync(keywordsPath)) return {};
   try {
