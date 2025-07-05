@@ -17777,6 +17777,94 @@
       "price": 264.18,
       "changePercent": 4.61,
       "volume": 5203
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "APPLG",
+      "name": "蘋果典藏",
+      "price": 2.52,
+      "changePercent": 2.17,
+      "volume": 630454
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "AZGC",
+      "name": "亞馬遜雲創",
+      "price": 61720.65,
+      "changePercent": -0.04,
+      "volume": 68
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "GCR",
+      "name": "嘎核心指標",
+      "price": 113.52,
+      "changePercent": 1.09,
+      "volume": 10447
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "HOLO",
+      "name": "Hololive",
+      "price": 2820.73,
+      "changePercent": 0.82,
+      "volume": 567
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "LOVE",
+      "name": "愛馬仕",
+      "price": 31.98,
+      "changePercent": -3.68,
+      "volume": 107189
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "MAID",
+      "name": "女僕特斯",
+      "price": 1076.7,
+      "changePercent": -0.68,
+      "volume": 1968
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "NVGX",
+      "name": "輝達圖核",
+      "price": 4.13,
+      "changePercent": -1.09,
+      "volume": 155316
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "SEGA",
+      "name": "世嘉遊戲",
+      "price": 3785.82,
+      "changePercent": 1.58,
+      "volume": 542
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "SOLCR",
+      "name": "Solara Crest",
+      "price": 41.28,
+      "changePercent": -0.35,
+      "volume": 31437
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "UNRA",
+      "name": "UNION ARENA",
+      "price": 54.59,
+      "changePercent": -2.74,
+      "volume": 12212
+    },
+    {
+      "time": "2025-07-05T03:33:28.258Z",
+      "symbol": "WAVE",
+      "name": "夏日狂熱",
+      "price": 256.19,
+      "changePercent": -3.03,
+      "volume": 5403
     }
   ]
 }
