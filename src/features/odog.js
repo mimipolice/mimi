@@ -455,35 +455,9 @@ async function fetchOdogHistory({
   }
 
   // 合併到原有 stats
-  console.log("[ODOG歷史統計-新統計]", stats);
-  const oldStats = loadOdogStats();
-  for (const date in stats) {
-    if (!oldStats[date]) oldStats[date] = {};
-    for (const user in stats[date]) {
-      if (!oldStats[date][user])
-        oldStats[date][user] = { EX: 0, LR: 0, UR: 0, SSR: 0 };
-      for (const r of ["EX", "LR", "UR", "SSR"]) {
-        const before = oldStats[date][user][r];
-        const add = stats[date][user][r];
-        if (
-          typeof oldStats[date][user][r] !== "number" ||
-          isNaN(oldStats[date][user][r])
-        )
-          oldStats[date][user][r] = 0;
-        if (
-          typeof stats[date][user][r] !== "number" ||
-          isNaN(stats[date][user][r])
-        )
-          continue;
-        console.log(
-          `[ODOG合併] date=${date} user=${user} rarity=${r} before=${before} add=${add}`
-        );
-        oldStats[date][user][r] += stats[date][user][r];
-      }
-    }
-  }
-  saveOdogStats(oldStats);
-  return oldStats;
+  //console.log("[ODOG歷史統計-新統計] (覆寫)", stats); //debug console
+  saveOdogStats(stats);
+  return stats;
 }
 
 async function handleOdogCommand(message, client) {
