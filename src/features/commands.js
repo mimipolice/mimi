@@ -22,6 +22,18 @@ const keywordsPath = path.resolve(__dirname, "../../data/json/keywords.json");
 
 const USER_ID = "586502118530351114";
 
+function parseTimeRange(str) {
+  if (!str) return null;
+  const m = str.match(/^(\d+)([dhm])$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const unit = m[2].toLowerCase();
+  if (unit === "d") return { amount: n, unit: "day" };
+  if (unit === "h") return { amount: n, unit: "hour" };
+  if (unit === "m") return { amount: n, unit: "month" };
+  return null;
+}
+
 function loadDebts() {
   if (!fs.existsSync(debtsPath)) return {};
   try {
@@ -137,10 +149,12 @@ async function handleReportCommand(message) {
       }
     });
     const symbols = Object.keys(latestBySymbol);
-    let msg = `**可查詢股票列表**\n`;
+    let msg = `**可查詢股票列表**\n-# 目前共有 ${symbols.length} 支股票\n`;
     symbols.forEach((s) => {
       const d = latestBySymbol[s];
-      msg += `• ${s} - ${d.name}（last update：${d.time}）\n`;
+      msg += `• ${s} - ${d.name}（last update：<t:${Math.floor(
+        new Date(d.time).getTime() / 1000
+      )}:R>）\n`;
     });
     message.reply(msg);
     return;
@@ -150,7 +164,7 @@ async function handleReportCommand(message) {
     return;
   }
   const symbol = args[1].toUpperCase();
-  const data = await loadAllStockHistory(symbol); // 直接查詢單一股票
+  let data = await loadAllStockHistory(symbol); // 直接查詢單一股票
   if (!Array.isArray(data)) {
     message.reply("查詢失敗，API 回傳格式錯誤");
     return;
@@ -159,22 +173,64 @@ async function handleReportCommand(message) {
     message.reply(`查無 ${symbol} 的資料`);
     return;
   }
-  const startTime = dayjs(data[0].time);
-  const endTime = dayjs(data[data.length - 1].time);
-  const analysis = analyzeSleepData({ startTime, endTime, data })[0];
+  // 支援 &report love 1d 2d 7d 1m 5h ...
+  let filtered = data;
+  let timeRange = null;
+  if (args.length >= 3) {
+    // 只取最後一個合法區間參數
+    for (let i = args.length - 1; i >= 2; --i) {
+      const tr = parseTimeRange(args[i]);
+      if (tr) {
+        timeRange = tr;
+        break;
+      }
+    }
+    if (timeRange) {
+      const end = dayjs(data[data.length - 1].time);
+      const start = end.subtract(timeRange.amount, timeRange.unit);
+      filtered = data.filter((d) => dayjs(d.time).isAfter(start));
+      if (filtered.length === 0) {
+        message.reply(`區間內無資料 (${args[2]})`);
+        return;
+      }
+    }
+  }
+  const startTime = dayjs(filtered[0].time);
+  const endTime = dayjs(filtered[filtered.length - 1].time);
+  const analysis = analyzeSleepData({ startTime, endTime, data: filtered })[0];
   const chartBuffer = await createSleepChart(analysis, true);
   const attachment = new MessageAttachment(chartBuffer, `${symbol}_report.png`);
-  let report = `**${symbol} - ${analysis.name} 歷史分析報告**\n`;
+  const highUnix =
+    analysis.highDateTime && analysis.highDateTime !== "-"
+      ? dayjs(analysis.highDateTime, "YYYY-MM-DD HH:mm:ss").isValid()
+        ? dayjs(analysis.highDateTime, "YYYY-MM-DD HH:mm:ss").unix()
+        : null
+      : null;
+  const lowUnix =
+    analysis.lowDateTime && analysis.lowDateTime !== "-"
+      ? dayjs(analysis.lowDateTime, "YYYY-MM-DD HH:mm:ss").isValid()
+        ? dayjs(analysis.lowDateTime, "YYYY-MM-DD HH:mm:ss").unix()
+        : null
+      : null;
+  let report = `**${symbol} - ${
+    analysis.name
+  } 歷史分析報告**\n-# 最後更新：<t:${Math.floor(
+    new Date(filtered[filtered.length - 1].time).getTime() / 1000
+  )}:R>\n\n`;
   report += `• 起始價格：\`${analysis.startPrice}\`\n`;
   report += `• 結束價格：\`${analysis.endPrice}\`\n`;
   report += `• 總漲跌額：\`${analysis.totalChange}\`\n`;
   report += `• 總漲跌幅：\`${analysis.totalChangePercent}%\`\n`;
-  report += `• 最高價格：\`${analysis.highPrice}\` (${analysis.highTime})\n`;
-  report += `• 最低價格：\`${analysis.lowPrice}\` (${analysis.lowTime})\n`;
+  report += `• 最高價格：\`${analysis.highPrice}\` (${
+    highUnix ? `<t:${highUnix}:F>` : "-"
+  })\n`;
+  report += `• 最低價格：\`${analysis.lowPrice}\` (${
+    lowUnix ? `<t:${lowUnix}:F>` : "-"
+  })\n`;
   report += `• 平均價格：\`${analysis.avgPrice}\`\n`;
   report += `• 波動幅度：\`${analysis.volatility}\` (\`${analysis.volatilityPercent}%\`)\n`;
   report += `• 數據點數：\`${analysis.dataPoints}\`\n`;
-  report += `• 區間：\`${analysis.startTime}\` ~ \`${analysis.endTime}\``;
+  report += `• 區間：\`${analysis.startTime}\` ~ \`${analysis.endTime}\`（共 ${analysis.sleepDuration} 小時）`;
   await message.reply({ content: report, files: [attachment] });
 }
 

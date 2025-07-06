@@ -120,9 +120,17 @@ function analyzeSleepData(trackingData) {
     const highIndex = data.findIndex((d) => d.price === highPrice);
     const lowIndex = data.findIndex((d) => d.price === lowPrice);
     const highTime =
-      highIndex !== -1 && data[highIndex] ? data[highIndex].time : null;
+      highIndex !== -1 && data[highIndex]
+        ? data[highIndex].time
+        : data.length > 0
+        ? data[0].time
+        : null;
     const lowTime =
-      lowIndex !== -1 && data[lowIndex] ? data[lowIndex].time : null;
+      lowIndex !== -1 && data[lowIndex]
+        ? data[lowIndex].time
+        : data.length > 0
+        ? data[data.length - 1].time
+        : null;
     const sleepDuration = trackingData.endTime.diff(
       trackingData.startTime,
       "hour",
@@ -148,6 +156,8 @@ function analyzeSleepData(trackingData) {
       totalChangePercent: safeFixed(totalChangePercent),
       highChangePercent: safeFixed(highChangePercent),
       lowChangePercent: safeFixed(lowChangePercent),
+      highDateTime: highTime ? highTime.format("YYYY-MM-DD HH:mm:ss") : "-",
+      lowDateTime: lowTime ? lowTime.format("YYYY-MM-DD HH:mm:ss") : "-",
       volatility: safeFixed(volatility),
       volatilityPercent: safeFixed(volatilityPercent),
       avgPrice: safeFixed(avgPrice),

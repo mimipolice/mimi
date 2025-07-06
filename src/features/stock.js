@@ -41,7 +41,7 @@ async function queryAllStockHistoryViaAPI() {
   const res = await fetch(`${API_URL}?action=query&limit=10000`);
   if (!res.ok) throw new Error("API 查詢失敗");
   const data = await res.json();
-  console.log("[DEBUG] API 回傳內容:", data);
+  //console.log("[DEBUG] API 回傳內容:", data);
   return Array.isArray(data.data) ? data.data : [];
 }
 

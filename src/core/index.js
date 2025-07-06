@@ -25,7 +25,6 @@ const client = new Client();
 
 const CHANNEL_ID = "1390554923862720572"; // 更換為你的頻道 ID
 const TOKEN = process.env.TOKEN;
-let lastQueryTimestamp = 0;
 
 const ODOG_STATS_PATH = path.resolve(
   __dirname,
