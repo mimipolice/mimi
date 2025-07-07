@@ -58,10 +58,10 @@ function loadDebts() {
   }
 }
 
-function triggerStockCommand(channel) {
+async function triggerStockCommand(channel) {
   try {
     lastQueryTimestamp = Date.now();
-    channel.sendSlash("1221230734602141727", "stock");
+    await channel.sendSlash("1221230734602141727", "stock");
     logStockStatus("send", "📤 已發送 /stock 指令");
   } catch (err) {
     logDirect(`❌ /stock 指令發送失敗: ${err}`);
