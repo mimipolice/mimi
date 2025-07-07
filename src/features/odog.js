@@ -88,7 +88,7 @@ function truncateText(ctx, text, maxWidth) {
   return truncated;
 }
 
-function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18) {
+function generateRankingCanvas(userStats, title = "歐狗榜", fontSize = 18) {
   const users = Object.keys(userStats);
   users.sort((a, b) => {
     const totalA =
@@ -364,15 +364,15 @@ async function fetchOdogHistory({
       if (!msg.embeds || msg.embeds.length === 0) continue;
       const embed = msg.embeds[0];
       const rarity = rarityMap[embed.color];
-      console.log("[ODOG HIST]", {
-        id: msg.id,
-        ts: msg.createdTimestamp,
-        color: embed.color,
-        title: embed.title,
-        description: embed.description,
-        authorName: embed.author?.name,
-        rarity: rarity,
-      });
+      // console.log("[ODOG HIST]", {
+      //   id: msg.id,
+      //   ts: msg.createdTimestamp,
+      //   color: embed.color,
+      //   title: embed.title,
+      //   description: embed.description,
+      //   authorName: embed.author?.name,
+      //   rarity: rarity,
+      // });
       if (!rarity) continue;
       let username = "未知";
       const title = embed.title || "";
@@ -442,14 +442,14 @@ async function handleOdogCommand(message, client) {
           }
         }
       }
-      title = "🏆 所有日期歐氣總排行";
+      title = "所有日期歐狗榜";
     } else {
       if (!stats[showDate] || Object.keys(stats[showDate]).length === 0) {
         message.reply(`**${showDate}** 尚無抽卡紀錄`);
         return true;
       }
       userStats = stats[showDate];
-      title = `📊 ${showDate} 歐氣排行`;
+      title = `${showDate} 歐狗榜`;
     }
 
     try {
@@ -472,7 +472,7 @@ async function handleOdogCommand(message, client) {
       fs.writeFileSync(tempPath, buffer);
 
       await message.reply({
-        content: `${title} 📈`,
+        content: `${title}`,
         files: [tempPath],
       });
 
@@ -540,12 +540,7 @@ async function handleOdogCommand(message, client) {
       }, 5000);
       return true;
     }
-    const reply = await message.reply(
-      "歷史紀錄更新完成！可用 &odog 查詢結果。"
-    );
-    setTimeout(() => {
-      reply.delete();
-    }, 5000);
+    await message.reply("歷史紀錄更新完成！可用 &odog 查詢結果。");
     return true;
   }
   return false;

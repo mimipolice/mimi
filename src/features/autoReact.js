@@ -130,9 +130,13 @@ async function handleAutoReactCommand(message, client) {
 
     try {
       const channel = client.channels.cache.get(channelId);
-      message.reply(`已移除頻道 **<#${channelId}>** 的自動回應設定`);
+      message.reply(
+        `已移除頻道 **<#${channelId}>** 的自動回應設定\n-# by <@${message.author.id}>`
+      );
     } catch (e) {
-      message.reply(`已移除頻道 **${channelId}** 的自動回應設定`);
+      message.reply(
+        `已移除頻道 **${channelId}** 的自動回應設定\n-# by <@${message.author.id}>`
+      );
     }
     return true;
   }

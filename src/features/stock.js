@@ -9,10 +9,7 @@ try {
   fetch = require("node-fetch");
   if (fetch.default) fetch = fetch.default;
 }
-const {
-  getAutoNotifySymbols,
-  getStockStorageConfig,
-} = require("../core/config");
+const { getStockStorageConfig } = require("../core/config");
 const { addAllStocksToSleepTracking } = require("./sleep");
 const { logStockStatus, logDirect } = require("../utils/logger-progress.js");
 
@@ -188,51 +185,6 @@ async function addAllStocksToHistory(stocks) {
   }
 }
 
-async function sendStockNotify(symbol, channel) {
-  const all = await loadAllStockHistory(symbol);
-  if (!Array.isArray(all)) return;
-  const data = all;
-  if (data.length === 0) return;
-  const latest = data[data.length - 1];
-  const now = dayjs();
-  const getPricesWithin = (minutes) =>
-    data
-      .filter((d) => now.diff(dayjs(d.time), "minute") <= minutes)
-      .map((d) => d.price);
-  const prices15 = getPricesWithin(15);
-  const prices30 = getPricesWithin(30);
-  const prices60 = getPricesWithin(60);
-  const prices120 = getPricesWithin(120);
-  const allPrices = data.map((d) => d.price);
-  const high15 = Math.max(...prices15);
-  const low15 = Math.min(...prices15);
-  const high30 = Math.max(...prices30);
-  const low30 = Math.min(...prices30);
-  const high60 = Math.max(...prices60);
-  const low60 = Math.min(...prices60);
-  const high120 = Math.max(...prices120);
-  const low120 = Math.min(...prices120);
-  const historyHigh = Math.max(...allPrices);
-  const historyLow = Math.min(...allPrices);
-  let messageText = `<@${USER_ID}>\n\n# **${symbol} 價格警報**\n`;
-  messageText += `\n> **${latest.name}**`;
-  messageText += `\n\n# <:emoji_1:1309461021420683284> **當前價格：\`${latest.price}\`**`;
-  messageText += `\n\n# ━━━━━━━━━━━━━━━━━━`;
-  messageText += `\n# **價格統計**`;
-  messageText += `\n# <:emoji_12:1309461481095430196> 歷史高點：\`${historyHigh}\``;
-  messageText += `\n# <:emoji_6:1309461163200745504> 歷史低點：\`${historyLow}\``;
-  messageText += `\n\n# **區間極值**`;
-  messageText += `\n# <:__:1318631658353852527> 2小時內：\`${high120}\` ~ \`${low120}\``;
-  messageText += `\n# <:__:1318631705824722985> 1小時內：\`${high60}\` ~ \`${low60}\``;
-  messageText += `\n# <:__:1318631296687145090> 30分鐘內：\`${high30}\` ~ \`${low30}\``;
-  messageText += `\n# <:__:1318630891462856755> 15分鐘內：\`${high15}\` ~ \`${low15}\``;
-  messageText += `\n\n# <:emoji_12:1309461317744201789> 查詢時間：${now.format(
-    "YYYY-MM-DD HH:mm:ss"
-  )}`;
-  await channel.send(messageText);
-  logStockStatus("send", "📤 已發送 /stock 指令");
-}
-
 function handleStockMessage(message) {
   const CHANNEL_ID = "1390554923862720572";
   if (message.channelId !== CHANNEL_ID) return;
@@ -247,13 +199,7 @@ function handleStockMessage(message) {
   if (stocks.length > 0) {
     addAllStocksToHistory(stocks);
     logStockStatus("record", `📊 已記錄 ${stocks.length} 支股票資訊`);
-    addAllStocksToSleepTracking(stocks, dayjs());
-    const autoNotifySymbols = getAutoNotifySymbols();
-    for (const stock of stocks) {
-      if (autoNotifySymbols.includes(stock.symbol)) {
-        sendStockNotify(stock.symbol, message.channel);
-      }
-    }
+    // 已移除 addAllStocksToSleepTracking、getAutoNotifySymbols、sendStockNotify
   }
 }
 
@@ -316,7 +262,6 @@ module.exports = {
   saveAllStockHistory,
   addAllStocksToHistory,
   handleStockMessage,
-  sendStockNotify,
   getLatestTimeFromAPI,
   queryStockHistoryBySymbol,
   runStandalone,

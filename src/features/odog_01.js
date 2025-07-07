@@ -299,13 +299,13 @@ async function handleOdogCommand(message, client) {
           }
         }
       }
-      msg = formatRankingMessage("所有日期歐氣總排行", total);
+      msg = formatRankingMessage("所有日期歐狗榜", total);
     } else {
       if (!stats[showDate] || Object.keys(stats[showDate]).length === 0) {
         message.reply(`**${showDate}** 尚無抽卡紀錄`);
         return true;
       }
-      msg = formatRankingMessage(`${showDate} 歐氣排行`, stats[showDate]);
+      msg = formatRankingMessage(`${showDate} 歐狗榜`, stats[showDate]);
     }
     if (msg.length > 1900) {
       const filePath = path.resolve(__dirname, "../../data/json/odog_rank.txt");
@@ -370,12 +370,7 @@ async function handleOdogCommand(message, client) {
       }, 5000); //然後刪除自己
       return true;
     }
-    const reply = await message.reply(
-      "歷史紀錄更新完成！可用 &odog 查詢結果。"
-    );
-    setTimeout(() => {
-      reply.delete();
-    }, 5000); //然後刪除自己
+    await message.reply("歷史紀錄更新完成！可用 &odog 查詢結果。");
     return true;
   }
   return false;

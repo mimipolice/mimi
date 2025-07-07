@@ -1,88 +1,4 @@
 const dayjs = require("dayjs");
-const fs = require("fs");
-const path = require("path");
-const SLEEP_DATA_PATH = path.resolve(
-  __dirname,
-  "../../data/json/sleepData.json"
-);
-
-function loadSleepData() {
-  if (!fs.existsSync(SLEEP_DATA_PATH))
-    return { isTracking: false, startTime: null, data: [] };
-  try {
-    const data = JSON.parse(fs.readFileSync(SLEEP_DATA_PATH, "utf8"));
-    return {
-      ...data,
-      startTime: data.startTime ? dayjs(data.startTime) : null,
-      data: data.data.map((item) => ({ ...item, time: dayjs(item.time) })),
-    };
-  } catch (e) {
-    console.error("❌ 無法讀取 sleepData.json", e);
-    return { isTracking: false, startTime: null, data: [] };
-  }
-}
-
-function saveSleepData(sleepData) {
-  fs.writeFileSync(
-    SLEEP_DATA_PATH,
-    JSON.stringify(
-      {
-        isTracking: sleepData.isTracking,
-        startTime: sleepData.startTime
-          ? sleepData.startTime.toISOString()
-          : null,
-        data: sleepData.data.map((item) => ({
-          time: item.time.toISOString(),
-          symbol: item.symbol,
-          name: item.name,
-          price: item.price,
-          changePercent: item.changePercent,
-          volume: item.volume,
-        })),
-      },
-      null,
-      2
-    )
-  );
-}
-
-function startSleepTracking() {
-  const sleepData = {
-    isTracking: true,
-    startTime: dayjs(),
-    data: [],
-  };
-  saveSleepData(sleepData);
-  console.log("🛏️ 開始睡眠追蹤");
-}
-
-function stopSleepTracking() {
-  const sleepData = loadSleepData();
-  if (!sleepData.isTracking) return null;
-
-  const endTime = dayjs();
-  const trackingData = {
-    startTime: sleepData.startTime,
-    endTime: endTime,
-    data: [...sleepData.data],
-  };
-
-  const newSleepData = { isTracking: false, startTime: null, data: [] };
-  saveSleepData(newSleepData);
-
-  console.log("⏰ 結束睡眠追蹤");
-  return trackingData;
-}
-
-function addAllStocksToSleepTracking(stocks, time) {
-  const sleepData = loadSleepData();
-  if (sleepData.isTracking) {
-    stocks.forEach((stock) => {
-      sleepData.data.push({ time, ...stock });
-    });
-    saveSleepData(sleepData);
-  }
-}
 
 function analyzeSleepData(trackingData) {
   if (
@@ -170,10 +86,5 @@ function analyzeSleepData(trackingData) {
 }
 
 module.exports = {
-  loadSleepData,
-  saveSleepData,
-  startSleepTracking,
-  stopSleepTracking,
-  addAllStocksToSleepTracking,
   analyzeSleepData,
 };
