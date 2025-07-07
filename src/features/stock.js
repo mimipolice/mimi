@@ -286,8 +286,11 @@ async function runStandalone() {
       if (!channel) return console.error("⚠️ 找不到頻道");
 
       // 啟動時立即執行
-      await triggerStockCommand(channel);
-
+      try {
+        await triggerStockCommand(channel);
+      } catch (err) {
+        logDirect(`❌ 啟動時立即執行 /stock 指令失敗: ${err}`);
+      }
       // 每5分鐘自動查價
       setInterval(() => {
         triggerStockCommand(channel).catch(() => {});
