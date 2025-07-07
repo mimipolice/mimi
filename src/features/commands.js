@@ -176,7 +176,7 @@ async function handleKeywordCommand(message) {
     }
     let msg = "**已設定關鍵字：**\n";
     for (const k in keywords) {
-      msg += `• ${k} → ${keywords[k]}\n`;
+      msg += `• ${k} → ${keywords[k]}\n-# by <@${message.author.id}>`;
     }
     message.reply(msg);
     return;

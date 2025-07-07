@@ -165,7 +165,7 @@ async function handleAutoReactCommand(message, client) {
     saveAutoReact(config);
 
     message.reply(
-      `已設定對頻道 **<#${channelId}>** 自動回應 <:emoji:${emojiId}>`
+      `已設定對頻道 **<#${channelId}>** 自動回應 <:emoji:${emojiId}>\n-# by <@${message.author.id}>`
     );
     return true;
   }
