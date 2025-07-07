@@ -137,7 +137,7 @@ async function handleReportCommand(message) {
   const args = content.split(/\s+/);
   if (args[1] === "list") {
     const all = await loadAllStockHistory();
-    console.log("[DEBUG] handleReportCommand all:", all);
+    //console.log("[DEBUG] handleReportCommand all:", all);
     // 依 symbol 分組，找出每支股票的最後一筆資料
     const latestBySymbol = {};
     all.forEach((d) => {
