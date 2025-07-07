@@ -89,10 +89,8 @@ function truncateText(ctx, text, maxWidth) {
 }
 
 function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18) {
-  // 排序用戶
   const users = Object.keys(userStats);
   users.sort((a, b) => {
-    // 先比總計，再比稀有度順序
     const totalA =
       (userStats[a].EX || 0) +
       (userStats[a].LR || 0) +
@@ -113,58 +111,56 @@ function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18)
     return 0;
   });
 
-  // 計算Canvas尺寸
   const headerHeight = 120;
   const rowHeight = fontSize * 2.8;
   const canvasWidth = Math.max(800, users.length > 5 ? 1000 : 800);
   const canvasHeight = headerHeight + (users.length + 2) * rowHeight + 80;
 
-  // 創建Canvas
   const canvas = createCanvas(canvasWidth, canvasHeight);
   const ctx = canvas.getContext("2d");
 
-  // 設置背景
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-  gradient.addColorStop(0, "#f8f9fa");
-  gradient.addColorStop(1, "#e9ecef");
-  ctx.fillStyle = gradient;
+  // 🌑 Dark background
+  ctx.fillStyle = "#1e1e2f";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // 設置字體
   ctx.font = `${fontSize}px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
 
-  // 繪製標題
-  ctx.fillStyle = "#2c3e50";
-  ctx.font = `bold ${
-    fontSize + 8
-  }px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+  // 🎯 Title
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${fontSize + 8}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillText(title, canvasWidth / 2, 50);
 
-  // 繪製副標題
-  ctx.fillStyle = "#7f8c8d";
-  ctx.font = `${
-    fontSize - 2
-  }px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+  // 📆 Subtitle
+  ctx.fillStyle = "#cccccc";
+  ctx.font = `${fontSize - 2}px sans-serif`;
   ctx.fillText(`共 ${users.length} 名參與者`, canvasWidth / 2, 80);
 
-  // 重設字體
+  // Reset font
   ctx.font = `${fontSize}px 'Consolas', 'Monaco', monospace`;
   ctx.textAlign = "left";
 
-  // 定義列寬
   const rankWidth = 80;
   const nameWidth = Math.max(200, canvasWidth * 0.25);
   const rarityWidth = 70;
   const totalWidth = 80;
-
   const startX = 40;
   let currentY = headerHeight;
 
-  // 繪製表頭背景
-  ctx.fillStyle = "#34495e";
+  const colX = {
+    rank: startX + rankWidth / 2,
+    name: startX + rankWidth + 10,
+    EX: startX + rankWidth + nameWidth + rarityWidth * 0 + rarityWidth / 2,
+    LR: startX + rankWidth + nameWidth + rarityWidth * 1 + rarityWidth / 2,
+    UR: startX + rankWidth + nameWidth + rarityWidth * 2 + rarityWidth / 2,
+    SSR: startX + rankWidth + nameWidth + rarityWidth * 3 + rarityWidth / 2,
+    total: startX + rankWidth + nameWidth + rarityWidth * 4 + totalWidth / 2,
+  };
+
+  // 🟪 Table Header
+  ctx.fillStyle = "#2c2c3a";
   ctx.fillRect(
     startX - 10,
     currentY - rowHeight / 2,
@@ -172,42 +168,19 @@ function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18)
     rowHeight
   );
 
-  // 繪製表頭文字
   ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${fontSize}px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
-
+  ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("排名", startX + rankWidth / 2, currentY);
+  ctx.fillText("排名", colX.rank, currentY);
   ctx.textAlign = "left";
-  ctx.fillText("使用者", startX + rankWidth + 10, currentY);
+  ctx.fillText("使用者", colX.name, currentY);
   ctx.textAlign = "center";
-  ctx.fillText(
-    "EX",
-    startX + rankWidth + nameWidth + rarityWidth / 2,
-    currentY
-  );
-  ctx.fillText(
-    "LR",
-    startX + rankWidth + nameWidth + rarityWidth + rarityWidth / 2,
-    currentY
-  );
-  ctx.fillText(
-    "UR",
-    startX + rankWidth + nameWidth + rarityWidth * 2 + rarityWidth / 2,
-    currentY
-  );
-  ctx.fillText(
-    "SSR",
-    startX + rankWidth + nameWidth + rarityWidth * 3 + rarityWidth / 2,
-    currentY
-  );
-  ctx.fillText(
-    "總計",
-    startX + rankWidth + nameWidth + rarityWidth * 4 + totalWidth / 2,
-    currentY
-  );
+  ctx.fillText("EX", colX.EX, currentY);
+  ctx.fillText("LR", colX.LR, currentY);
+  ctx.fillText("UR", colX.UR, currentY);
+  ctx.fillText("SSR", colX.SSR, currentY);
+  ctx.fillText("總計", colX.total, currentY);
 
-  // 繪製數據行
   currentY += rowHeight;
 
   users.forEach((user, index) => {
@@ -215,81 +188,67 @@ function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18)
     const total =
       (stats.EX || 0) + (stats.LR || 0) + (stats.UR || 0) + (stats.SSR || 0);
 
-    // 交替行色
-    if (index % 2 === 0) {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(
-        startX - 10,
-        currentY - rowHeight / 2,
-        rankWidth + nameWidth + rarityWidth * 4 + totalWidth + 20,
-        rowHeight
-      );
-    }
+    // 行背景色
+    ctx.fillStyle = index % 2 === 0 ? "#2c2c3a" : "#1e1e2f";
+    ctx.fillRect(
+      startX - 10,
+      currentY - rowHeight / 2,
+      rankWidth + nameWidth + rarityWidth * 4 + totalWidth + 20,
+      rowHeight
+    );
 
-    // 根據排名設置顏色和特效
-    let rankColor = "#2c3e50";
+    let rankColor = "#ffffff";
     let showCrown = false;
-
     if (index === 0) {
-      rankColor = "#e74c3c"; // 第一名紅色
+      rankColor = "#e74c3c";
       showCrown = true;
     } else if (index === 1) {
-      rankColor = "#f39c12"; // 第二名橙色
+      rankColor = "#f39c12";
     } else if (index === 2) {
-      rankColor = "#f1c40f"; // 第三名黃色
+      rankColor = "#f1c40f";
     }
 
-    // 繪製排名
+    // 排名
     ctx.fillStyle = rankColor;
-    ctx.font = `bold ${
-      fontSize + 2
-    }px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+    ctx.font = `bold ${fontSize + 2}px sans-serif`;
     ctx.textAlign = "center";
-    const rankText = showCrown ? `👑${index + 1}` : (index + 1).toString();
-    ctx.fillText(rankText, startX + rankWidth / 2, currentY);
+    const rankText = showCrown ? `👑${index + 1}` : `${index + 1}`;
+    ctx.fillText(rankText, colX.rank, currentY);
 
-    // 繪製用戶名
-    ctx.fillStyle = "#2c3e50";
-    ctx.font = `${fontSize}px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+    // 名稱
+    ctx.fillStyle = "#eeeeee";
+    ctx.font = `${fontSize}px sans-serif`;
     ctx.textAlign = "left";
     const truncatedName = truncateText(ctx, user, nameWidth - 20);
-    ctx.fillText(truncatedName, startX + rankWidth + 10, currentY);
+    ctx.fillText(truncatedName, colX.name, currentY);
 
-    // 繪製稀有度數據
+    // 稀有度數值
     ctx.textAlign = "center";
     const rarities = ["EX", "LR", "UR", "SSR"];
-
-    rarities.forEach((rarity, rIndex) => {
+    rarities.forEach((rarity) => {
       const count = stats[rarity] || 0;
-      const x =
-        startX + rankWidth + nameWidth + rarityWidth * rIndex + rarityWidth / 2;
+      const x = colX[rarity];
 
-      // 如果有數據，使用對應顏色
       if (count > 0) {
         ctx.fillStyle = rarityColors[rarity];
-        ctx.font = `bold ${fontSize}px 'Consolas', 'Monaco', monospace`;
+        ctx.font = `bold ${fontSize}px monospace`;
       } else {
-        ctx.fillStyle = "#bdc3c7";
-        ctx.font = `${fontSize}px 'Consolas', 'Monaco', monospace`;
+        ctx.fillStyle = "#555";
+        ctx.font = `${fontSize}px monospace`;
       }
-
       ctx.fillText(count.toString(), x, currentY);
     });
 
-    // 繪製總計
-    ctx.fillStyle = "#2c3e50";
-    ctx.font = `bold ${fontSize + 2}px 'Consolas', 'Monaco', monospace`;
-    ctx.fillText(
-      total.toString(),
-      startX + rankWidth + nameWidth + rarityWidth * 4 + totalWidth / 2,
-      currentY
-    );
+    // 總計
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${fontSize + 2}px monospace`;
+    ctx.fillText(total.toString(), colX.total, currentY);
 
     currentY += rowHeight;
   });
 
-  // 繪製外邊框
-  ctx.strokeStyle = "#34495e";
+  // 邊框
+  ctx.strokeStyle = "#444";
   ctx.lineWidth = 2;
   ctx.strokeRect(
     startX - 10,
@@ -298,31 +257,27 @@ function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18)
     currentY - headerHeight + rowHeight / 2
   );
 
-  // 繪製分隔線
-  const linePositions = [
+  // 分隔線
+  const lines = [
     startX + rankWidth,
     startX + rankWidth + nameWidth,
-    startX + rankWidth + nameWidth + rarityWidth,
-    startX + rankWidth + nameWidth + rarityWidth * 2,
-    startX + rankWidth + nameWidth + rarityWidth * 3,
-    startX + rankWidth + nameWidth + rarityWidth * 4,
+    ...[1, 2, 3, 4].map(
+      (i) => startX + rankWidth + nameWidth + rarityWidth * i
+    ),
   ];
-
-  ctx.strokeStyle = "#bdc3c7";
+  ctx.strokeStyle = "#444";
   ctx.lineWidth = 1;
-  linePositions.forEach((x) => {
+  lines.forEach((x) => {
     ctx.beginPath();
     ctx.moveTo(x, headerHeight - rowHeight / 2);
     ctx.lineTo(x, currentY - rowHeight / 2);
     ctx.stroke();
   });
 
-  // 添加稀有度圖例
+  // 圖例
   const legendY = currentY + 20;
-  ctx.fillStyle = "#7f8c8d";
-  ctx.font = `${
-    fontSize - 2
-  }px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+  ctx.fillStyle = "#cccccc";
+  ctx.font = `${fontSize - 2}px sans-serif`;
   ctx.textAlign = "left";
   ctx.fillText("稀有度說明：", startX, legendY);
 
@@ -330,16 +285,14 @@ function generateRankingCanvas(userStats, title = "歐氣排行", fontSize = 18)
   Object.entries(rarityColors).forEach(([rarity, color]) => {
     ctx.fillStyle = color;
     ctx.fillRect(legendX, legendY - 8, 15, 16);
-    ctx.fillStyle = "#2c3e50";
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(rarity, legendX + 20, legendY);
     legendX += 80;
   });
 
-  // 添加時間戳
-  ctx.fillStyle = "#7f8c8d";
-  ctx.font = `${
-    fontSize - 4
-  }px 'Microsoft JhengHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif`;
+  // 時間戳
+  ctx.fillStyle = "#888";
+  ctx.font = `${fontSize - 4}px sans-serif`;
   ctx.textAlign = "right";
   ctx.fillText(
     `生成時間: ${getLocalDateString()} ${new Date().toLocaleTimeString(

@@ -270,27 +270,27 @@ async function runStandalone() {
     const CHANNEL_ID = "1390554923862720572";
     const TOKEN = process.env.TOKEN;
 
-    function triggerStockCommand(channel) {
+    async function triggerStockCommand(channel) {
       try {
-        channel.sendSlash("1221230734602141727", "stock");
+        await channel.sendSlash("1221230734602141727", "stock");
         logStockStatus("send", "📤 已發送 /stock 指令");
       } catch (err) {
         logDirect(`❌ /stock 指令發送失敗: ${err}`);
       }
     }
 
-    client.on("ready", () => {
+    client.on("ready", async () => {
       console.log(`✅ Bot 已上線: ${client.user.tag}`);
 
       const channel = client.channels.cache.get(CHANNEL_ID);
       if (!channel) return console.error("⚠️ 找不到頻道");
 
       // 啟動時立即執行
-      triggerStockCommand(channel);
+      await triggerStockCommand(channel);
 
       // 每5分鐘自動查價
       setInterval(() => {
-        triggerStockCommand(channel);
+        triggerStockCommand(channel).catch(() => {});
       }, 5 * 60 * 1000);
     });
 
