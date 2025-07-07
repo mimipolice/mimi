@@ -156,6 +156,7 @@ async function handleReportCommand(message) {
         new Date(d.time).getTime() / 1000
       )}:R>）\n`;
     });
+    msg += `-# 若更新時間大於\`5\`分鐘可能是米米機器人出現了問題 請隨時關注最新公告`;
     message.reply(msg);
     return;
   }
