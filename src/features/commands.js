@@ -152,11 +152,11 @@ async function handleReportCommand(message) {
     let msg = `**可查詢股票列表**\n-# 目前共有 ${symbols.length} 支股票\n`;
     symbols.forEach((s) => {
       const d = latestBySymbol[s];
-      msg += `• ${s} - ${d.name}（last update：<t:${Math.floor(
+      msg += `> \`${s}\` - ${d.name}（last update：<t:${Math.floor(
         new Date(d.time).getTime() / 1000
       )}:R>）\n`;
     });
-    msg += `-# 若更新時間大於\`5\`分鐘可能是米米機器人出現了問題 請隨時關注最新公告`;
+    msg += `\n-# 若更新時間大於\`5\`分鐘可能是米米機器人出現了問題 請隨時關注最新公告`;
     message.reply(msg);
     return;
   }
