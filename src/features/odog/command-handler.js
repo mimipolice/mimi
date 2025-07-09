@@ -5,6 +5,9 @@ const { loadOdogStats, getLocalDateString } = require("./utils");
 const { generateOdogImage } = require("./image-generator");
 const { fetchChannelHistory } = require("./history-fetcher");
 
+const rateLimitMap = new Map();
+const RATE_LIMIT_MS = 5000; // 5秒冷卻
+
 /**
  * 處理歐狗指令
  * @param {Object} message - Discord 訊息對象
@@ -33,6 +36,19 @@ async function handleOdogCommand(message, client) {
  * @returns {Promise<boolean>} 是否處理成功
  */
 async function handleOdogShowCommand(message) {
+  // Rate limit check
+  const userId = message.author.id;
+  const now = Date.now();
+  const last = rateLimitMap.get(userId) || 0;
+  if (now - last < RATE_LIMIT_MS) {
+    const reply = await message.reply("你太快了🥵，請慢一點好嗎");
+    setTimeout(() => {
+      reply.delete().catch(() => {});
+    }, 3000);
+    return true;
+  }
+  rateLimitMap.set(userId, now);
+
   try {
     const stats = loadOdogStats();
     const args = message.content.trim().split(" ");

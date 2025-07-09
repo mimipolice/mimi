@@ -1,7 +1,9 @@
 const puppeteer = require("puppeteer");
-const { sleep } = require("./utils");
+const { sleep } = require("../../utils/utils");
 const fs = require("fs");
 const path = require("path");
+const TaskQueue = require("./queue");
+const imageQueue = new TaskQueue(2); // 例如同時最多2個
 
 function getRandomWatermarkImageBase64(pageWidth, pageHeight) {
   const watermarkDir = path.resolve(__dirname, "watermark");
@@ -9,15 +11,14 @@ function getRandomWatermarkImageBase64(pageWidth, pageHeight) {
   // 預設水印寬高
   const watermarkW = 300,
     watermarkH = 300;
-  for (let i = 0; i < files.length; ++i) {
+  if (files.length === 0) return null;
+  if (pageWidth > watermarkW + 100 && pageHeight > watermarkH + 100) {
     const idx = Math.floor(Math.random() * files.length);
     const file = files[idx];
-    if (pageWidth > watermarkW + 100 && pageHeight > watermarkH + 100) {
-      const filePath = path.join(watermarkDir, file);
-      const data = fs.readFileSync(filePath);
-      const base64 = data.toString("base64");
-      return `data:image/png;base64,${base64}`;
-    }
+    const filePath = path.join(watermarkDir, file);
+    const data = fs.readFileSync(filePath);
+    const base64 = data.toString("base64");
+    return `data:image/png;base64,${base64}`;
   }
   return null;
 }
@@ -67,22 +68,27 @@ async function generateImageFromHTML(html, outputPath) {
 }
 
 async function generateOdogImage(userStats, title, outputPath) {
-  const { generateHTML } = require("./html-generator");
-  try {
-    // 預設寬高
-    const pageWidth = 2400,
-      pageHeight = 1400;
-    const watermarkImage = getRandomWatermarkImageBase64(pageWidth, pageHeight);
-    const html = generateHTML(userStats, title, watermarkImage);
-    // 先存一份 HTML
-    const htmlPath = outputPath.replace(/\.png$/, ".html");
-    fs.writeFileSync(htmlPath, html, "utf8");
-    // 再生成圖片
-    await generateImageFromHTML(html, outputPath);
-  } catch (error) {
-    console.error("[ODOG] 生成歐狗圖片失敗:", error);
-    throw error;
-  }
+  return imageQueue.push(async () => {
+    const { generateHTML } = require("./html-generator");
+    try {
+      // 預設寬高
+      const pageWidth = 2400,
+        pageHeight = 1400;
+      const watermarkImage = getRandomWatermarkImageBase64(
+        pageWidth,
+        pageHeight
+      );
+      const html = generateHTML(userStats, title, watermarkImage);
+      // 先存一份 HTML
+      const htmlPath = outputPath.replace(/\.png$/, ".html");
+      fs.writeFileSync(htmlPath, html, "utf8");
+      // 再生成圖片
+      await generateImageFromHTML(html, outputPath);
+    } catch (error) {
+      console.error("[ODOG] 生成歐狗圖片失敗:", error);
+      throw error;
+    }
+  });
 }
 
 module.exports = {

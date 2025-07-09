@@ -4,6 +4,7 @@ const {
   handleReportCommand,
   handleKeywordCommand,
   handleHelpCommand,
+  handleTodoCommand,
 } = require("../features/commands");
 const { handleStockMessage } = require("../features/stock");
 const fs = require("fs");
@@ -14,7 +15,7 @@ const {
   handleAutoReactMessage,
 } = require("../features/autoReact");
 const { logStockStatus, logDirect } = require("../utils/logger");
-
+const { sleep } = require("../utils/utils");
 const client = new Client();
 
 const CHANNEL_ID = "1390554923862720572"; // 更換為你的頻道 ID
@@ -89,10 +90,6 @@ const isKeywordMatch = (content, keyword) => {
   );
   return pattern.test(content);
 };
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
 
 async function fetchChannelHistory({
   days = null,
@@ -173,6 +170,7 @@ client.on("messageCreate", async (message) => {
   await handleAutoReactMessage(message, client);
   handleKeywordCommand(message);
   handleStockMessage(message);
+  handleTodoCommand(message);
   handleReportCommand(message); // &odog 指令
   if (message.content.trim() === "&odog") {
     const stats = loadOdogStats();

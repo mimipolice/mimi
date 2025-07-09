@@ -6,6 +6,7 @@ const dayjs = require("dayjs");
 const fs = require("fs");
 const path = require("path");
 const keywordsPath = path.resolve(__dirname, "../../data/json/keywords.json");
+const todosPath = path.resolve(__dirname, "../../data/json/todos.json");
 
 function parseTimeRange(str) {
   if (!str) return null;
@@ -30,6 +31,18 @@ function loadKeywords() {
 
 function saveKeywords(keywords) {
   fs.writeFileSync(keywordsPath, JSON.stringify(keywords, null, 2));
+}
+
+function loadTodos() {
+  if (!fs.existsSync(todosPath)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(todosPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+function saveTodos(todos) {
+  fs.writeFileSync(todosPath, JSON.stringify(todos, null, 2));
 }
 
 async function handleReportCommand(message) {
@@ -59,6 +72,70 @@ async function handleReportCommand(message) {
     });
     msg += `\n-# 若更新時間大於\`5\`分鐘可能是米米機器人出現了問題 請隨時關注最新公告`;
     message.reply(msg);
+    return;
+  }
+  if (args[1] === "all") {
+    const all = await loadAllStockHistory();
+    // 依 symbol 分組
+    const bySymbol = {};
+    all.forEach((d) => {
+      if (!bySymbol[d.symbol]) bySymbol[d.symbol] = [];
+      bySymbol[d.symbol].push(d);
+    });
+    const symbols = Object.keys(bySymbol);
+    // 產生每支股票的總和報告與圖表
+    const reportsWithImages = [];
+    for (const s of symbols) {
+      const arr = bySymbol[s];
+      arr.sort((a, b) => new Date(a.time) - new Date(b.time));
+      const name = arr[0]?.name || s;
+      // 取價格陣列，型別安全
+      const prices = arr.map((d) => Number(d.price)).filter((v) => !isNaN(v));
+      const high = prices.length ? Math.max(...prices) : "-";
+      const low = prices.length ? Math.min(...prices) : "-";
+      const avg = prices.length
+        ? (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2)
+        : "-";
+      const totalChange = prices.length
+        ? (prices[prices.length - 1] - prices[0]).toFixed(2)
+        : "-";
+      const totalChangePercent =
+        prices.length && prices[0] !== 0
+          ? (
+              ((prices[prices.length - 1] - prices[0]) / prices[0]) *
+              100
+            ).toFixed(2)
+          : "-";
+      const startPrice = prices.length ? prices[0] : "-";
+      const endPrice = prices.length ? prices[prices.length - 1] : "-";
+      const start = arr[0];
+      const end = arr[arr.length - 1];
+      // 統計分析資料
+      const startTime = start.time;
+      const endTime = end.time;
+      const analysis = analyzeSleepData({
+        startTime: dayjs(startTime),
+        endTime: dayjs(endTime),
+        data: arr,
+      })[0];
+      const chartBuffer = await createSleepChart(analysis, true);
+      const attachment = new MessageAttachment(chartBuffer, `${s}_report.png`);
+      const report = `\`${s}\` - ${name}\n資料點數: \`${
+        arr.length
+      }\`\n起始: \`${startPrice}\` 結束: \`${endPrice}\`\n最高: \`${high}\` 最低: \`${low}\` 平均: \`${avg}\`\n總漲跌: \`${totalChange}\` (${totalChangePercent}%)\n最後更新：<t:${Math.floor(
+        new Date(end.time).getTime() / 1000
+      )}:R>`;
+      reportsWithImages.push({ report, attachment });
+    }
+    // 每五則發送一則訊息
+    for (let i = 0; i < reportsWithImages.length; i += 5) {
+      const chunk = reportsWithImages.slice(i, i + 5);
+      const content =
+        `**所有股票歷史總和**\n` + chunk.map((x) => x.report).join("\n\n");
+      const files = chunk.map((x) => x.attachment);
+      // eslint-disable-next-line no-await-in-loop
+      await message.reply({ content, files });
+    }
     return;
   }
   if (args.length < 2) {
@@ -183,6 +260,65 @@ async function handleKeywordCommand(message) {
   }
 }
 
+async function handleTodoCommand(message) {
+  const content = message.content.trim();
+  if (content.startsWith("&td add ")) {
+    const match = content.match(/^&td add (.+)/);
+    if (!match) {
+      message.reply("format error，請用 &td add <事情>");
+      return;
+    }
+    const [, task] = match;
+    const todos = loadTodos();
+    todos.push({ text: task, done: false });
+    saveTodos(todos);
+    message.reply(`已新增待辦事項：${task}`);
+    return;
+  }
+  if (content.startsWith("&td rm ")) {
+    const match = content.match(/^&td rm (\d+)/);
+    if (!match) {
+      message.reply("format error，請用 &td rm <編號>");
+      return;
+    }
+    const [, idxStr] = match;
+    const idx = parseInt(idxStr, 10) - 1;
+    const todos = loadTodos();
+    if (idx < 0 || idx >= todos.length) {
+      message.reply("無此編號");
+      return;
+    }
+    todos[idx].done = true;
+    saveTodos(todos);
+    message.reply(`已標記完成：~~${todos[idx].text}~~`);
+    return;
+  }
+  if (content === "&td list") {
+    const todos = loadTodos();
+    if (todos.length === 0) {
+      const reply = await message.reply("目前沒有待辦事項");
+      setTimeout(() => {
+        reply.delete().catch(() => {});
+      }, 3000);
+      return;
+    }
+    let msg = "**待辦清單：**\n";
+    todos.forEach((t, i) => {
+      msg += `${i + 1}. ${t.done ? `~~${t.text}~~` : t.text}\n`;
+    });
+    message.reply(msg);
+    return;
+  }
+  if (content === "&td clear") {
+    saveTodos([]);
+    const reply = await message.reply("已清空所有待辦事項！");
+    setTimeout(() => {
+      reply.delete().catch(() => {});
+    }, 3000);
+    return;
+  }
+}
+
 async function handleHelpCommand(message) {
   const content = message.content.trim();
   const args = content.split(/\s+/);
@@ -250,4 +386,5 @@ module.exports = {
   handleReportCommand,
   handleKeywordCommand,
   handleHelpCommand,
+  handleTodoCommand,
 };
