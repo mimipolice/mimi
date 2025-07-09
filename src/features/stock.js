@@ -30,7 +30,7 @@ async function insertStocksViaAPI(stocks) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    console.log("API response:", await res.text());
+    //console.log("API response:", await res.text());
     if (!res.ok) throw new Error("API 查詢失敗");
   }
 }
