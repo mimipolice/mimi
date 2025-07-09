@@ -8,8 +8,6 @@ const {
 const { handleStockMessage } = require("../features/stock");
 const fs = require("fs");
 const path = require("path");
-const { MessageEmbed } = require("discord.js-selfbot-v13");
-const { WebEmbed } = require("discord.js-selfbot-v13");
 const { handleOdogMessage, handleOdogCommand } = require("../features/odog");
 const {
   handleAutoReactCommand,

@@ -1,3 +1,4 @@
+require("dotenv").config();
 const dayjs = require("dayjs");
 const fs = require("fs");
 const path = require("path");
@@ -10,14 +11,12 @@ try {
   if (fetch.default) fetch = fetch.default;
 }
 const { getStockStorageConfig } = require("../core/config");
-const { addAllStocksToSleepTracking } = require("./sleep");
 const { logStockStatus, logDirect } = require("../utils/logger-progress.js");
 
 const ALL_STOCK_DATA_PATH = path.resolve(
   __dirname,
   "../../data/json/allStockData.json"
 );
-const USER_ID = "586502118530351114";
 const API_URL = "https://cwds.taivs.tp.edu.tw/~cbs21/db/api.php"; // 請依實際部署位置調整
 
 async function insertStocksViaAPI(stocks) {
@@ -26,20 +25,14 @@ async function insertStocksViaAPI(stocks) {
       time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
       ...stock,
     };
-    await fetch(`${API_URL}?action=insert`, {
+    const res = await fetch(`${API_URL}?action=insert`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    console.log("API response:", await res.text());
+    if (!res.ok) throw new Error("API 查詢失敗");
   }
-}
-
-async function queryAllStockHistoryViaAPI() {
-  const res = await fetch(`${API_URL}?action=query&limit=10000`);
-  if (!res.ok) throw new Error("API 查詢失敗");
-  const data = await res.json();
-  //console.log("[DEBUG] API 回傳內容:", data);
-  return Array.isArray(data.data) ? data.data : [];
 }
 
 async function getLatestTimeFromAPI() {
@@ -205,7 +198,9 @@ function handleStockMessage(message) {
 
 // 單獨執行時的邏輯
 async function runStandalone() {
-  console.log("🚀 股票監控程式啟動（獨立模式）");
+  console.log("股票監控程式啟動（獨立模式）");
+  console.log("STOCK_STORAGE_MODE:", process.env.STOCK_STORAGE_MODE);
+  console.log("TOKEN:", process.env.TOKEN ? "Loaded" : "Missing");
 
   // 檢查是否為獨立執行
   if (require.main === module) {
@@ -243,8 +238,8 @@ async function runStandalone() {
       }, 5 * 60 * 1000);
     });
 
-    client.on("messageCreate", async (message) => {
-      handleStockMessage(message);
+    client.on("messageUpdate", (_, newMessage) => {
+      handleStockMessage(newMessage);
     });
 
     client.login(TOKEN);
