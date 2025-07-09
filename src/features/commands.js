@@ -34,7 +34,7 @@ function saveKeywords(keywords) {
 
 async function handleReportCommand(message) {
   const content = message.content.trim();
-  if (!content.startsWith("&report")) return;
+  if (!/^&(report|r)(\s|$)/.test(content)) return;
   const args = content.split(/\s+/);
   if (args[1] === "list") {
     const all = await loadAllStockHistory();
@@ -191,7 +191,7 @@ async function handleHelpCommand(message) {
   if (args.length === 1) {
     let msg = "**可用指令列表**\n-# []選填 <>必填\n";
     msg += "> `&help <指令>`：顯示該指令詳細說明\n";
-    msg += "> `&report <股票代碼> [區間]`：查詢股票歷史分析\n";
+    msg += "> `&r`, `&report <股票代碼> [區間]`：查詢股票歷史分析\n";
     msg += "> `&odog [日期|all]`：查詢歐氣排行\n";
     msg += "> `&zz [1d|7d]`：爬取歐氣歷史紀錄\n";
     msg += "> `&addkw <關鍵字> <回覆>`：新增自動回覆\n";
@@ -207,8 +207,8 @@ async function handleHelpCommand(message) {
   // 細則說明
   const sub = args[1].toLowerCase();
   let detail = "";
-  if (sub === "report") {
-    detail = "**&report <股票代碼> [區間]**\n";
+  if (sub === "report" || sub === "r") {
+    detail = "**&report <股票代碼> [區間]**（亦可使用`&r`, 與`&report`相同）\n";
     detail += "查詢指定股票的歷史分析報告。\n";
     detail += "範例：\n";
     detail += "> `&report APPLG`（查詢全部歷史）\n";
