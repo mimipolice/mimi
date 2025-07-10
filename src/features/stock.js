@@ -235,7 +235,7 @@ async function runStandalone() {
       // 每5分鐘自動查價
       setInterval(() => {
         triggerStockCommand(channel).catch(() => {});
-      }, 5 * 60 * 1000);
+      }, 1 * 60 * 1000);
     });
 
     client.on("messageUpdate", (_, newMessage) => {
