@@ -12,9 +12,14 @@ function logStockStatus(type, text) {
 }
 
 function redrawStockStatus() {
-  // 清除當前行並重新輸出
-  process.stdout.clearLine();
-  process.stdout.cursorTo(0);
+  if (process.stdout.isTTY) {
+    // 只有在有終端機支援時才清除並重繪
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+  } else {
+    // 非終端環境，改用換行輸出
+    console.log(); // 換行
+  }
 
   const status = [];
   if (stockStatus.send) status.push("📤 已發送 /stock 指令");
