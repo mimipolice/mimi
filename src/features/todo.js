@@ -24,7 +24,7 @@ async function Todo(message) {
     const todos = loadTodos();
     todos.push({ text: task, done: false });
     saveTodos(todos);
-    message.reply(`已新增待辦事項：${task}`);
+    message.reply(`已新增待辦事項：${task}\n-# by <@${message.author.id}>`);
     return;
   }
   if (content.startsWith("&td rm ")) {
@@ -42,7 +42,9 @@ async function Todo(message) {
     }
     todos[idx].done = true;
     saveTodos(todos);
-    message.reply(`已標記完成：~~${todos[idx].text}~~`);
+    message.reply(
+      `已標記完成：~~${todos[idx].text}~~\n-# by <@${message.author.id}>`
+    );
     return;
   }
   if (content === "&td list") {
@@ -63,7 +65,9 @@ async function Todo(message) {
   }
   if (content === "&td clear") {
     saveTodos([]);
-    const reply = await message.reply("已清空所有待辦事項！");
+    const reply = await message.reply(
+      `已清空所有待辦事項！\n-# by <@${message.author.id}>`
+    );
     setTimeout(() => {
       reply.delete().catch(() => {});
     }, 3000);
