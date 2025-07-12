@@ -9,7 +9,8 @@ async function Help(message) {
     msg += "> `&r`, `&report <股票代碼> [區間]`：查詢股票歷史分析\n";
     msg += "> `&odog [日期|all]`：查詢歐氣排行\n";
     msg += "> `&zz [1d|7d]`：爬取歐氣歷史紀錄\n";
-    msg += "> `&addkw <關鍵字> <回覆>`：新增自動回覆\n";
+    msg += "> `&addkw <關鍵字> <回覆>`：新增完全匹配自動回覆\n";
+    msg += "> `&addkwinclude <關鍵字> <回覆>`：新增包含匹配自動回覆\n";
     msg += "> `&listkw`：列出所有關鍵字\n";
     msg += "> `&ar`：顯示當前設定\n";
     msg += "> `&ar <emoji> <channel>`：新增設定\n";
@@ -44,9 +45,20 @@ async function Help(message) {
     detail += "> `&zz 1d`：今日 12:00 以後 `壞了`\n";
     detail += "> `&zz 7d`：過去 7 天 `不知道有沒有壞`";
   } else if (sub === "addkw") {
-    detail = "**&addkw <關鍵字> <回覆>**\n新增自動回覆。";
+    detail = "**&addkw <關鍵字> <回覆>**\n新增完全匹配自動回覆。\n";
+    detail += "只有訊息完全等於關鍵字時才會觸發。\n";
+    detail += "範例：\n";
+    detail += "> `&addkw hello 你好！`\n";
+    detail += "> 只有輸入 `hello` 才會回覆 `你好！`";
+  } else if (sub === "addkwinclude") {
+    detail = "**&addkwinclude <關鍵字> <回覆>**\n新增包含匹配自動回覆。\n";
+    detail += "只要訊息包含關鍵字就會觸發。\n";
+    detail += "範例：\n";
+    detail += "> `&addkwinclude 你好 歡迎！`\n";
+    detail += "> 輸入 `你好嗎`、`你好啊` 等包含 `你好` 的訊息都會回覆 `歡迎！`";
   } else if (sub === "listkw") {
-    detail = "**&listkw**\n列出所有關鍵字。";
+    detail = "**&listkw**\n列出所有關鍵字及其類型。\n";
+    detail += "會顯示 `[完全匹配]` 或 `[包含]` 來標示關鍵字類型。";
   } else if (sub === "ar") {
     detail = "**&ar**\n顯示當前設定。\n";
     detail += "> `&ar <emoji> <channel>`：新增設定\n";

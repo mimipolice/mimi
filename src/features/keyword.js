@@ -25,9 +25,24 @@ async function Keyword(message) {
     }
     const [, keyword, reply] = match;
     const keywords = loadKeywords();
-    keywords[keyword] = reply;
+    keywords[keyword] = { reply, include: false };
     saveKeywords(keywords);
     message.reply(`已新增關鍵字：${keyword}\n-# by <@${message.author.id}>`);
+    return;
+  }
+  if (content.startsWith("&addkwinclude ")) {
+    const match = content.match(/^&addkwinclude\s+(\S+)\s+([\s\S]+)/);
+    if (!match) {
+      message.reply("格式錯誤，請用 &addkwinclude 關鍵字 回覆內容");
+      return;
+    }
+    const [, keyword, reply] = match;
+    const keywords = loadKeywords();
+    keywords[keyword] = { reply, include: true };
+    saveKeywords(keywords);
+    message.reply(
+      `已新增包含關鍵字：${keyword}\n-# by <@${message.author.id}>`
+    );
     return;
   }
   if (content.startsWith("&delkw ")) {
@@ -55,10 +70,48 @@ async function Keyword(message) {
     }
     let msg = "**已設定關鍵字：**\n";
     for (const k in keywords) {
-      msg += `• ${k} → ${keywords[k]}\n-# by <@${message.author.id}>`;
+      const keywordData = keywords[k];
+      const type = keywordData.include ? "[包含]" : "[完全匹配]";
+      const reply =
+        typeof keywordData === "string" ? keywordData : keywordData.reply;
+      msg += `• ${k} ${type} → ${reply}\n-# by <@${message.author.id}>`;
     }
     message.reply(msg);
     return;
+  }
+
+  // 檢查是否觸發任何關鍵字
+  checkKeywords(message);
+}
+
+function checkKeywords(message) {
+  const content = message.content.trim();
+  const keywords = loadKeywords();
+
+  for (const keyword in keywords) {
+    const keywordData = keywords[keyword];
+    let shouldTrigger = false;
+
+    if (typeof keywordData === "string") {
+      // 舊格式：完全匹配
+      shouldTrigger = content === keyword;
+    } else {
+      // 新格式：根據 include 設定決定匹配方式
+      if (keywordData.include) {
+        // 包含模式：訊息包含關鍵字就觸發
+        shouldTrigger = content.includes(keyword);
+      } else {
+        // 完全匹配模式：訊息必須完全等於關鍵字
+        shouldTrigger = content === keyword;
+      }
+    }
+
+    if (shouldTrigger) {
+      const reply =
+        typeof keywordData === "string" ? keywordData : keywordData.reply;
+      message.reply(reply);
+      return; // 只觸發第一個匹配的關鍵字
+    }
   }
 }
 
