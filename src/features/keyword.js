@@ -74,7 +74,7 @@ async function Keyword(message) {
       const type = keywordData.include ? "[包含]" : "[完全匹配]";
       const reply =
         typeof keywordData === "string" ? keywordData : keywordData.reply;
-      msg += `• ${k} ${type} → \`\`\`\\n${reply}\`\`\`\n-# by <@${message.author.id}>\m`;
+      msg += `• ${k} ${type} → \`\`\`\${reply}\`\`\`\n-# by <@${message.author.id}>\n`;
     }
     message.reply(msg);
     return;
