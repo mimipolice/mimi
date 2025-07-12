@@ -157,6 +157,7 @@ async function fetchChannelHistory({
 }
 
 client.on("messageCreate", async (message) => {
+  if (message.author.bot || message.author.id === client.user.id) return;
   if (message.content.trim().startsWith("&help")) {
     await handleHelpCommand(message);
     return;
