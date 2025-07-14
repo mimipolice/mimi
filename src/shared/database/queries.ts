@@ -18,17 +18,45 @@ export interface OdogStats {
   rarity_counts: { [rarity: string]: number };
 }
 
+function buildTimeCondition(timeRange: string, tableAlias: string): string {
+  if (timeRange === "all") {
+    return "";
+  }
+
+  const match = timeRange.match(/^(\d+)([hdwmy])$/);
+  if (match) {
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+    let interval;
+    switch (unit) {
+      case "h":
+        interval = "hours";
+        break;
+      case "d":
+        interval = "days";
+        break;
+      case "w":
+        interval = "weeks";
+        break;
+      case "m":
+        interval = "months";
+        break;
+      case "y":
+        interval = "years";
+        break;
+      default:
+        return "";
+    }
+    return `AND ${tableAlias}.timestamp >= NOW() - INTERVAL '${value} ${interval}'`;
+  }
+  return "";
+}
+
 export async function getAssetPriceHistory(
   symbol: string,
   timeRange: string
 ): Promise<PriceHistory[]> {
-  let timeCondition = "";
-  if (timeRange !== "all") {
-    const unit = timeRange.slice(-1);
-    const value = parseInt(timeRange.slice(0, -1));
-    const interval = unit === "d" ? "days" : unit === "m" ? "months" : "years";
-    timeCondition = `AND aph.timestamp >= NOW() - INTERVAL '${value} ${interval}'`;
-  }
+  const timeCondition = buildTimeCondition(timeRange, "aph");
 
   const query = `
     SELECT
@@ -75,7 +103,10 @@ export async function getAllAssetsWithLatestPrice(): Promise<
     WHERE rn = 1;
   `;
   const result = await pool.query(query);
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    price: parseFloat(row.price),
+  }));
 }
 
 export interface AssetSummary {
@@ -90,13 +121,7 @@ export async function getAssetSummary(
   symbol: string,
   timeRange: string
 ): Promise<AssetSummary | null> {
-  let timeCondition = "";
-  if (timeRange !== "all") {
-    const unit = timeRange.slice(-1);
-    const value = parseInt(timeRange.slice(0, -1));
-    const interval = unit === "d" ? "days" : unit === "m" ? "months" : "years";
-    timeCondition = `AND aph.timestamp >= NOW() - INTERVAL '${value} ${interval}'`;
-  }
+  const timeCondition = buildTimeCondition(timeRange, "aph");
 
   const query = `
     WITH PriceData AS (
@@ -121,7 +146,46 @@ export async function getAssetSummary(
   `;
 
   const result = await pool.query(query, [symbol]);
-  return result.rows[0] || null;
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  const summary = result.rows[0];
+
+  return {
+    high: parseFloat(summary.high),
+    low: parseFloat(summary.low),
+    avg: parseFloat(summary.avg),
+    startPrice: parseFloat(summary.startprice),
+    endPrice: parseFloat(summary.endprice),
+  };
+}
+export async function getPriceHistoryWithVolume(
+  symbol: string,
+  timeRange: string
+): Promise<any[]> {
+  const timeCondition = buildTimeCondition(timeRange, "mt");
+
+  const query = `
+    SELECT
+      AVG(mt.price_per_unit) as price,
+      SUM(mt.quantity) as volume,
+      DATE_TRUNC('hour', mt.timestamp) as timestamp
+    FROM market_transactions mt
+    JOIN virtual_assets va ON mt.asset_id = va.asset_id
+    WHERE va.asset_symbol = $1
+      ${timeCondition}
+    GROUP BY DATE_TRUNC('hour', mt.timestamp)
+    ORDER BY timestamp ASC;
+  `;
+
+  const result = await pool.query(query, [symbol]);
+  // Manually parse numeric types
+  return result.rows.map((row) => ({
+    price: parseFloat(row.price),
+    volume: parseInt(row.volume, 10),
+    timestamp: row.timestamp,
+  }));
 }
 
 export async function searchAssets(searchText: string): Promise<Asset[]> {

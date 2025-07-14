@@ -1,28 +1,84 @@
-import { ChartJSNodeCanvas } from "chartjs-node-canvas";
-import { ChartConfiguration } from "chart.js";
-import "chartjs-adapter-date-fns";
+import { createCanvas } from "canvas";
+import {
+  Chart,
+  ChartConfiguration,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  TimeSeriesScale,
+  LineController,
+  BarController,
+} from "chart.js";
+import "chartjs-adapter-moment";
 
-const width = 800;
-const height = 400;
+// Register all the necessary components with Chart.js
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  TimeSeriesScale,
+  LineController,
+  BarController
+);
 
-const chartJSNodeCanvas = new ChartJSNodeCanvas({
-  width,
-  height,
-  backgroundColour: "white",
-});
+// Define interfaces for the data
+interface PriceData {
+  timestamp: Date;
+  price: number;
+  volume: number;
+}
 
 export async function generatePriceChart(
-  data: { timestamp: Date; price: number }[]
+  priceData: PriceData[],
+  darkMode = false
 ): Promise<Buffer> {
+  const width = 800;
+  const height = 400;
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  // Manually set background color
+  ctx.fillStyle = darkMode ? "#1E293B" : "white";
+  ctx.fillRect(0, 0, width, height);
+
   const configuration: ChartConfiguration = {
     type: "line",
     data: {
       datasets: [
         {
           label: "Price",
-          data: data.map((d) => ({ x: d.timestamp.getTime(), y: d.price })),
-          borderColor: "rgb(75, 192, 192)",
+          data: priceData.map((d) => ({
+            x: d.timestamp.getTime(),
+            y: d.price,
+          })),
+          borderColor: darkMode ? "rgba(54, 162, 235, 1)" : "rgb(75, 192, 192)",
           tension: 0.1,
+          yAxisID: "y",
+        },
+        {
+          label: "Volume",
+          data: priceData.map((d) => ({
+            x: d.timestamp.getTime(),
+            y: d.volume,
+          })),
+          backgroundColor: darkMode
+            ? "rgba(255, 99, 132, 0.5)"
+            : "rgba(153, 102, 255, 0.2)",
+          type: "bar",
+          yAxisID: "y1",
         },
       ],
     },
@@ -33,19 +89,49 @@ export async function generatePriceChart(
           time: {
             unit: "day",
           },
+          ticks: {
+            color: darkMode ? "white" : "black",
+          },
+          grid: {
+            color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+          },
         },
         y: {
+          type: "linear",
+          display: true,
+          position: "left",
           beginAtZero: false,
+          ticks: {
+            color: darkMode ? "white" : "black",
+          },
+          grid: {
+            color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+          },
+        },
+        y1: {
+          type: "linear",
+          display: true,
+          position: "right",
+          grid: {
+            drawOnChartArea: false, // only want the grid lines for one axis to show up
+          },
+          ticks: {
+            color: darkMode ? "white" : "black",
+          },
         },
       },
       plugins: {
         legend: {
-          display: false,
+          display: true,
+          labels: {
+            color: darkMode ? "white" : "black",
+          },
         },
       },
     },
   };
 
-  const buffer = await chartJSNodeCanvas.renderToBuffer(configuration);
-  return buffer;
+  new Chart(ctx, configuration);
+
+  return canvas.toBuffer("image/png");
 }

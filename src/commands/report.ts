@@ -3,17 +3,16 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
   AttachmentBuilder,
-  ContainerBuilder,
   TextDisplayBuilder,
   MediaGalleryBuilder,
   SeparatorBuilder,
+  ContainerBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import {
-  getAssetPriceHistory,
   getAllAssetsWithLatestPrice,
-  getAssetSummary,
   searchAssets,
+  getPriceHistoryWithVolume,
 } from "../shared/database/queries";
 import { generatePriceChart } from "../utils/chart-generator";
 
@@ -32,17 +31,13 @@ export default {
             .setRequired(true)
             .setAutocomplete(true)
         )
-        .addStringOption((option) =>
-          option
-            .setName("time_range")
-            .setDescription("The time range for the report (default: 7d)")
-            .setRequired(false)
-            .addChoices(
-              { name: "1 Day", value: "1d" },
-              { name: "7 Days", value: "7d" },
-              { name: "1 Month", value: "1m" },
-              { name: "All Time", value: "all" }
-            )
+        .addStringOption(
+          (option) =>
+            option
+              .setName("range")
+              .setDescription("e.g., 7d, 2w, 1m, 6h. Defaults to 7d")
+              .setRequired(false)
+          //.setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -53,14 +48,25 @@ export default {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
-      const focusedValue = interaction.options.getFocused();
-      const choices = await searchAssets(focusedValue);
-      await interaction.respond(
-        choices.map((choice) => ({
-          name: `${choice.name} (${choice.symbol})`,
-          value: choice.symbol,
-        }))
-      );
+      const focusedOption = interaction.options.getFocused(true);
+
+      if (focusedOption.name === "symbol") {
+        const choices = await searchAssets(focusedOption.value);
+        await interaction.respond(
+          choices.map((choice) => ({
+            name: `${choice.name} (${choice.symbol})`,
+            value: choice.symbol,
+          }))
+        );
+      } else if (focusedOption.name === "range") {
+        const choices = [
+          { name: "1 Day", value: "1d" },
+          { name: "7 Days", value: "7d" },
+          { name: "1 Month", value: "1m" },
+          { name: "All Time", value: "all" },
+        ];
+        await interaction.respond(choices);
+      }
     } catch (error) {
       console.error("Autocomplete error:", error);
     }
@@ -76,35 +82,60 @@ export default {
 
       if (subcommand === "list") {
         const assets = await getAllAssetsWithLatestPrice();
-        const reply = assets
+        if (assets.length === 0) {
+          await interaction.editReply("No assets found.");
+          return;
+        }
+
+        let reply = `**可查詢股票列表**\n-# 目前共有 ${assets.length} 支股票\n`;
+        reply += assets
           .map(
             (asset) =>
-              `**${asset.asset_name} (${
-                asset.asset_symbol
-              })**: ${asset.price.toFixed(
-                2
-              )} (as of ${asset.timestamp.toLocaleDateString()})`
+              `> \`${asset.asset_symbol}\` - ${
+                asset.asset_name
+              }（last update：<t:${Math.floor(
+                asset.timestamp.getTime() / 1000
+              )}:R>）`
           )
           .join("\n");
-        await interaction.editReply(reply || "No assets found.");
+        reply +=
+          "\n\n-# 若更新時間大於`5`分鐘可能是米米機器人出現了問題 請隨時關注最新公告";
+
+        await interaction.editReply(reply);
       } else if (subcommand === "symbol") {
         const symbol = interaction.options.getString("symbol", true);
-        const timeRange = interaction.options.getString("time_range") ?? "7d";
+        const range = interaction.options.getString("range") ?? "7d";
 
-        const history = await getAssetPriceHistory(symbol, timeRange);
-        const summary = await getAssetSummary(symbol, timeRange);
+        const since = parseTimeRange(range);
+        if (!since) {
+          await interaction.editReply(
+            "Invalid time range. Please use a format like 7d, 2w, 1m, or a preset value."
+          );
+          return;
+        }
+
+        const history = await getPriceHistoryWithVolume(symbol, range);
         const assets = await searchAssets(symbol);
         const assetName =
           assets.find((a) => a.symbol === symbol)?.name || symbol;
 
-        if (history.length === 0 || !summary) {
+        if (history.length === 0) {
           await interaction.editReply(
             `No data found for symbol "${symbol}" in the selected time range.`
           );
           return;
         }
 
-        const chartBuffer = await generatePriceChart(history);
+        const prices = history.map((p) => p.price);
+        const summary = {
+          high: Math.max(...prices),
+          low: Math.min(...prices),
+          avg: prices.reduce((a, b) => a + b, 0) / prices.length,
+          startPrice: history[0].price,
+          endPrice: history[history.length - 1].price,
+        };
+
+        const chartBuffer = await generatePriceChart(history, true);
         const attachment = new AttachmentBuilder(chartBuffer, {
           name: "price-chart.png",
         });
@@ -112,42 +143,50 @@ export default {
         const change = summary.endPrice - summary.startPrice;
         const changePercent = (change / summary.startPrice) * 100;
 
-        const components = [
-          new TextDisplayBuilder().setContent(`**${assetName} (${symbol})**`),
-          new TextDisplayBuilder().setContent(`Time Range: ${timeRange}`),
+        const container = new ContainerBuilder();
+
+        const changeSign = change >= 0 ? "+" : "";
+        const color = change >= 0 ? 0x22c55e : 0xef4444;
+        container.setAccentColor(color);
+
+        const title = new TextDisplayBuilder().setContent(
+          `# ${assetName} (${symbol})`
+        );
+        const rangeText = new TextDisplayBuilder().setContent(
+          `> Time Range: ${range}`
+        );
+        const summaryText = new TextDisplayBuilder().setContent(
+          `• **High:** \`${summary.high.toFixed(
+            2
+          )}\`\n• **Low:** \`${summary.low.toFixed(
+            2
+          )}\`\n• **Average:** \`${summary.avg.toFixed(2)}\``
+        );
+        const changeText = new TextDisplayBuilder().setContent(
+          `• **Price:** \`${summary.endPrice.toFixed(
+            2
+          )}\`\n• **Change:** \`${changeSign}${change.toFixed(
+            2
+          )}\` (${changeSign}${changePercent.toFixed(2)}%)`
+        );
+        const chartImage = new MediaGalleryBuilder().addItems((item) =>
+          item
+            .setURL("attachment://price-chart.png")
+            .setDescription(`Price chart for ${assetName}`)
+        );
+
+        container.components.push(
+          title,
+          rangeText,
           new SeparatorBuilder(),
-          new TextDisplayBuilder().setContent(
-            `• **High:** \`${summary.high.toFixed(2)}\``
-          ),
-          new TextDisplayBuilder().setContent(
-            `• **Low:** \`${summary.low.toFixed(2)}\``
-          ),
-          new TextDisplayBuilder().setContent(
-            `• **Average:** \`${summary.avg.toFixed(2)}\``
-          ),
+          summaryText,
+          changeText,
           new SeparatorBuilder(),
-          new TextDisplayBuilder().setContent(
-            `• **Start Price:** \`${summary.startPrice.toFixed(2)}\``
-          ),
-          new TextDisplayBuilder().setContent(
-            `• **End Price:** \`${summary.endPrice.toFixed(2)}\``
-          ),
-          new TextDisplayBuilder().setContent(
-            `• **Change:** \`${change.toFixed(2)}\` (${changePercent.toFixed(
-              2
-            )}%)`
-          ),
-          new SeparatorBuilder(),
-          new MediaGalleryBuilder().addItems((item) =>
-            item
-              .setURL("attachment://price-chart.png")
-              .setDescription(`Price chart for ${assetName}`)
-          ),
-        ];
+          chartImage
+        );
 
         await interaction.editReply({
-          content: "",
-          components,
+          components: [container],
           files: [attachment],
           flags: MessageFlags.IsComponentsV2,
         });
@@ -168,3 +207,40 @@ export default {
     }
   },
 };
+
+function parseTimeRange(range: string): Date | null {
+  if (range === "all") {
+    return new Date(0);
+  }
+
+  const match = range.match(/^(\d+)([hdwmy])$/);
+  if (!match) {
+    return null;
+  }
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  const date = new Date();
+
+  switch (unit) {
+    case "h":
+      date.setHours(date.getHours() - value);
+      break;
+    case "d":
+      date.setDate(date.getDate() - value);
+      break;
+    case "w":
+      date.setDate(date.getDate() - value * 7);
+      break;
+    case "m":
+      date.setMonth(date.getMonth() - value);
+      break;
+    case "y":
+      date.setFullYear(date.getFullYear() - value);
+      break;
+    default:
+      return null;
+  }
+
+  return date;
+}
