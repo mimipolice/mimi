@@ -38,3 +38,24 @@ BEGIN
         );
     END IF;
 END$$;
+
+-- Table for Ticket System
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tickets') THEN
+        CREATE TABLE tickets (
+            id SERIAL PRIMARY KEY,
+            guildId VARCHAR(255),
+            channelId VARCHAR(255),
+            ownerId VARCHAR(255),
+            claimedById VARCHAR(255) NULL,
+            status VARCHAR(255) CHECK (status IN ('OPEN', 'CLOSED')),
+            closeReason TEXT NULL,
+            closedById VARCHAR(255) NULL,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            closedAt TIMESTAMP NULL,
+            feedbackRating INT NULL,
+            feedbackComment TEXT NULL
+        );
+    END IF;
+END$$;
