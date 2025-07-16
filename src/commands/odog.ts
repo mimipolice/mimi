@@ -2,11 +2,15 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   AutocompleteInteraction,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
 } from "discord.js";
+import { MessageFlags } from "discord-api-types/v10";
 import {
   getOdogRankings,
   getGachaPools,
-  searchAssets,
+  getGachaPoolById,
 } from "../shared/database/queries";
 
 export default {
@@ -69,11 +73,20 @@ export default {
         return;
       }
 
-      const title = gachaId
-        ? `Odog Rankings for ${gachaId} (Last ${period})`
-        : `Global Odog Rankings (Last ${period})`;
+      const container = new ContainerBuilder();
+      container.setAccentColor(0xffd700); // Gold color for rankings
+      container.setSpoiler(true);
 
-      let reply = `**${title}**\n----------------------------------\n`;
+      const gachaPool = gachaId ? await getGachaPoolById(gachaId) : null;
+      const gachaName = gachaPool
+        ? `${gachaPool.gacha_name} (${gachaPool.gacha_name_alias})`
+        : "Global";
+
+      const titleText = `Odog Rankings for ${gachaName} (Last ${period})`;
+
+      const title = new TextDisplayBuilder().setContent(`# ${titleText}`);
+      container.components.push(title, new SeparatorBuilder());
+
       rankings.slice(0, 15).forEach((user, index) => {
         const rarityDetails = user.rarity_counts
           ? Object.entries(user.rarity_counts)
@@ -82,12 +95,18 @@ export default {
               .join(" | ")
           : "No top-tier draws";
 
-        reply += `${index + 1}. ${
-          user.nickname || `User ${user.user_id}`
-        } | ${rarityDetails} | Total Draws: ${user.total_draws}\n`;
+        const userRankText = new TextDisplayBuilder().setContent(
+          `**${index + 1}.** ${
+            user.nickname || `User ${user.user_id}`
+          } - ${rarityDetails} (Total: ${user.total_draws})`
+        );
+        container.components.push(userRankText);
       });
 
-      await interaction.editReply(reply);
+      await interaction.editReply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+      });
     } catch (error) {
       console.error(error);
       if (interaction.deferred || interaction.replied) {
