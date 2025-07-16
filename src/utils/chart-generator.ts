@@ -44,8 +44,8 @@ export async function generatePriceChart(
   priceData: PriceData[],
   darkMode = false
 ): Promise<Buffer> {
-  const width = 800;
-  const height = 400;
+  const width = 1600;
+  const height = 800;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -91,6 +91,9 @@ export async function generatePriceChart(
           },
           ticks: {
             color: darkMode ? "white" : "black",
+            font: {
+              size: 18,
+            },
           },
           grid: {
             color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
@@ -103,6 +106,9 @@ export async function generatePriceChart(
           beginAtZero: false,
           ticks: {
             color: darkMode ? "white" : "black",
+            font: {
+              size: 18,
+            },
           },
           grid: {
             color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
@@ -117,6 +123,9 @@ export async function generatePriceChart(
           },
           ticks: {
             color: darkMode ? "white" : "black",
+            font: {
+              size: 18,
+            },
           },
         },
       },
@@ -125,7 +134,18 @@ export async function generatePriceChart(
           display: true,
           labels: {
             color: darkMode ? "white" : "black",
+            font: {
+              size: 20,
+            },
           },
+        },
+      },
+      elements: {
+        point: {
+          radius: 4,
+        },
+        line: {
+          borderWidth: 3,
         },
       },
     },
