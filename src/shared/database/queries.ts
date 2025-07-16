@@ -170,13 +170,13 @@ export async function getPriceHistoryWithVolume(
     SELECT
       AVG(mt.price_per_unit) as price,
       SUM(mt.quantity) as volume,
-      DATE_TRUNC('hour', mt.timestamp) as timestamp
+      to_timestamp(floor(extract('epoch' from mt.timestamp) / 1800) * 1800) AS timestamp
     FROM market_transactions mt
     JOIN virtual_assets va ON mt.asset_id = va.asset_id
     WHERE va.asset_symbol = $1
       ${timeCondition}
-    GROUP BY DATE_TRUNC('hour', mt.timestamp)
-    ORDER BY timestamp ASC;
+    GROUP BY 3 -- Group by the 3rd column (timestamp)
+    ORDER BY 3 ASC; -- Order by the 3rd column (timestamp)
   `;
 
   const result = await pool.query(query, [symbol]);
@@ -218,6 +218,22 @@ export async function getGachaPools(searchText: string): Promise<GachaPool[]> {
   `;
   const result = await pool.query(query, [`%${searchText}%`]);
   return result.rows;
+}
+
+export async function getGachaPoolById(
+  gachaId: string
+): Promise<GachaPool | null> {
+  const query = `
+    SELECT
+      gacha_id,
+      gacha_name,
+      gacha_name_alias
+    FROM gacha_pools
+    WHERE gacha_id = $1
+    LIMIT 1;
+  `;
+  const result = await pool.query(query, [gachaId]);
+  return result.rows[0] || null;
 }
 
 export async function getOdogRankings(
@@ -452,4 +468,104 @@ export async function getAllAutoreacts(): Promise<AutoReact[]> {
   const query = `SELECT guild_id, channel_id, emoji FROM auto_reacts;`;
   const result = await pool.query(query);
   return result.rows;
+}
+
+export async function getUserReportData(userId: string): Promise<any> {
+  console.log(`Fetching report data for user ${userId}...`);
+
+  try {
+    // Query 1: Top 3 Commands
+    const topCommandsQuery = `
+            SELECT command_name, COUNT(*) as count
+            FROM command_usage_stats
+            WHERE user_id = $1
+            GROUP BY command_name
+            ORDER BY count DESC
+            LIMIT 3;
+        `;
+    const topCommandsRes = await pool.query(topCommandsQuery, [userId]);
+    const topCommands =
+      topCommandsRes.rows
+        .map((row, i) => `${i + 1}. ${row.command_name} (${row.count}次)`)
+        .join("\n") || "無指令紀錄";
+
+    // Query 2: Spending vs Income
+    const transactionQuery = `
+            SELECT
+                COALESCE(SUM(CASE WHEN sender_id = $1 THEN gross_amount ELSE 0 END), 0) AS total_spent,
+                COALESCE(SUM(CASE WHEN receiver_id = $1 THEN net_amount ELSE 0 END), 0) AS total_income
+            FROM user_transaction_history
+            WHERE sender_id = $1 OR receiver_id = $1;
+        `;
+    const transactionRes = await pool.query(transactionQuery, [userId]);
+    const spendingVsIncome = `${transactionRes.rows[0].total_spent} / ${transactionRes.rows[0].total_income}`;
+
+    // Query 3: Detailed Game Stats
+    const gameStatsQuery = `
+            SELECT game_type, total_games, total_wins, total_losses, total_profit_loss
+            FROM user_game_stats
+            WHERE user_id = $1
+            ORDER BY total_games DESC;
+        `;
+    const gameStatsRes = await pool.query(gameStatsQuery, [userId]);
+    const detailedGameStats =
+      gameStatsRes.rows
+        .map(
+          (row) =>
+            `**${row.game_type}**: ${row.total_games}場 ${row.total_wins}勝 ${row.total_losses}敗 (盈虧: ${row.total_profit_loss})`
+        )
+        .join("\n") || "無遊戲紀錄";
+
+    // Query 4: Gacha Behavior
+    const gachaQuery = `
+            SELECT
+                COUNT(*) as total_draws,
+                COALESCE(SUM(CASE WHEN is_wish THEN 1 ELSE 0 END), 0) as wish_hits,
+                (SELECT user_selected_pool FROM gacha_draw_history WHERE user_id = $1 GROUP BY user_selected_pool ORDER BY COUNT(*) DESC LIMIT 1) as favorite_pool
+            FROM gacha_draw_history
+            WHERE user_id = $1;
+        `;
+    const gachaRes = await pool.query(gachaQuery, [userId]);
+    const totalDraws = gachaRes.rows[0].total_draws;
+    const wishHits = gachaRes.rows[0].wish_hits;
+    const wishHitRate =
+      totalDraws > 0 ? `${((wishHits / totalDraws) * 100).toFixed(2)}%` : "0%";
+    const favoritePool = gachaRes.rows[0].favorite_pool || "無抽卡紀錄";
+
+    // Query 5: Rarity Stats
+    const rarityQuery = `
+        SELECT gmc.rarity, COUNT(*) as count
+        FROM gacha_draw_history gdh
+        JOIN gacha_master_cards gmc ON gdh.card_id = gmc.card_id
+        WHERE gdh.user_id = $1
+        GROUP BY gmc.rarity
+        ORDER BY gmc.rarity DESC;
+    `;
+    const rarityRes = await pool.query(rarityQuery, [userId]);
+    const rarityStats =
+      rarityRes.rows
+        .map((row) => `R${row.rarity}: ${row.count}張`)
+        .join(", ") || "無抽卡紀錄";
+
+    return {
+      topCommands,
+      spendingVsIncome,
+      detailedGameStats,
+      totalDraws,
+      wishHitRate,
+      favoritePool,
+      rarityStats,
+    };
+  } catch (error) {
+    console.error("Error fetching user report data:", error);
+    return {
+      topCommands: "查詢錯誤",
+      spendingVsIncome: "查詢錯誤",
+      detailedGameStats: "查詢錯誤",
+      totalDraws: 0,
+      wishHitRate: "查詢錯誤",
+      favoritePool: "查詢錯誤",
+      rarityStats: "查詢錯誤",
+    };
+  }
 }
