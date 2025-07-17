@@ -68,8 +68,6 @@ export async function up(db: Pool): Promise<void> {
           "closedById" VARCHAR(255) NULL,               -- 關閉者的使用者 ID
           "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- 創建時間
           "closedAt" TIMESTAMP WITH TIME ZONE NULL,     -- 關閉時間
-          "feedbackRating" SMALLINT NULL CHECK ("feedbackRating" >= 1 AND "feedbackRating" <= 5), -- 1-5 星評價
-          "feedbackComment" TEXT NULL,                  -- 使用者文字反饋
 
           -- 建立一個外鍵約束，以便於數據完整性管理 (可選，但推薦)
           CONSTRAINT fk_guild

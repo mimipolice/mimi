@@ -3,14 +3,12 @@ import { pool } from '../../shared/database/queries';
 import { MessageFlags } from "discord-api-types/v10";
 
 export default {
-  name: /^confirm_purge:(\d+)$/,
+  name: 'confirm_purge:',
   execute: async function (interaction: ButtonInteraction) {
     await interaction.deferUpdate();
 
-    const match = interaction.customId.match(/^confirm_purge:(\d+)$/);
-    if (!match) return;
-
-    const originalUserId = match[1];
+    const parts = interaction.customId.split(':');
+    const originalUserId = parts[1];
 
     if (interaction.user.id !== originalUserId) {
       await interaction.followUp({ content: 'Only the user who initiated the purge can confirm it.', flags: MessageFlags.Ephemeral });

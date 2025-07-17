@@ -587,17 +587,6 @@ export async function getUserReportData(userId: string): Promise<any> {
   }
 }
 
-export async function addTicketFeedback(ticketId: number, rating: number, comment: string): Promise<any> {
-    const query = `
-        UPDATE tickets
-        SET "feedbackRating" = $1, "feedbackComment" = $2
-        WHERE id = $3
-        RETURNING *;
-    `;
-    const result = await pool.query(query, [rating, comment, ticketId]);
-    return result.rows[0];
-}
-
 export async function addTicketType(
   db: Pool,
   guildId: string,

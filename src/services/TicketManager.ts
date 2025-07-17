@@ -189,16 +189,6 @@ export class TicketManager {
     }
 
     try {
-        const ratingButtons = new ActionRowBuilder<ButtonBuilder>();
-        for (let i = 1; i <= 5; i++) {
-            ratingButtons.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`rate_ticket:${i}:${ticketData.id}`)
-                    .setLabel('⭐'.repeat(i))
-                    .setStyle(ButtonStyle.Primary)
-            );
-        }
-
         const dmEmbed = new EmbedBuilder()
             .setAuthor({ name: guild.name, iconURL: guild.iconURL() || undefined })
             .setTitle('Ticket Closed')
@@ -214,8 +204,7 @@ export class TicketManager {
             );
 
       await owner.send({
-        embeds: [dmEmbed],
-        components: [ratingButtons]
+        embeds: [dmEmbed]
       });
     } catch (error) {
       logger.warn(`Could not DM user ${owner.id}`, error);

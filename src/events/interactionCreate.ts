@@ -18,6 +18,8 @@ export async function execute(
   ticketManager: TicketManager,
   db: Pool
 ) {
+  console.log(`[DEBUG] Received interaction: ${interaction.type} | Custom ID: ${'customId' in interaction ? interaction.customId : 'N/A'}`);
+
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName) as Command;
     if (!command) return;
@@ -33,12 +35,12 @@ export async function execute(
       }
     }
   } else if (interaction.isButton()) {
-    const button = [...client.buttons.values()].find(b => {
+    const button = client.buttons.find(b => {
       if (typeof b.name === 'string') {
         return interaction.customId.startsWith(b.name);
       }
-      return b.name.test(interaction.customId);
-    }) as Button;
+      return false;
+    });
     if (!button) return;
 
     try {
@@ -52,12 +54,12 @@ export async function execute(
       }
     }
   } else if (interaction.isModalSubmit()) {
-    const modal = [...client.modals.values()].find(m => {
+    const modal = client.modals.find(m => {
       if (typeof m.name === 'string') {
         return interaction.customId.startsWith(m.name);
       }
-      return m.name.test(interaction.customId);
-    }) as Modal;
+      return false;
+    });
     if (!modal) return;
 
     try {
@@ -71,12 +73,12 @@ export async function execute(
       }
     }
   } else if (interaction.isStringSelectMenu()) {
-    const menu = [...client.selectMenus.values()].find(m => {
+    const menu = client.selectMenus.find(m => {
       if (typeof m.name === 'string') {
         return interaction.customId.startsWith(m.name);
       }
-      return m.name.test(interaction.customId);
-    }) as SelectMenu;
+      return false;
+    });
     if (!menu) return;
 
     try {
