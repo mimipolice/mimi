@@ -1,46 +1,48 @@
-import { Pool } from "pg";
-import fs from "fs";
-import path from "path";
-import config from "../../config";
+import { Pool } from 'pg';
+import fs from 'fs';
+import path from 'path';
+import logger from '../../utils/logger';
 
-const pool = new Pool({
-  host: config.database.host,
-  port: config.database.port,
-  user: config.database.user,
-  password: config.database.password,
-  database: config.database.name,
-});
+export const runMigrations = async (pool: Pool) => {
+  const migrationFolder = path.join(__dirname, 'migrations');
 
-async function initializeDatabase() {
   try {
-    const schemaPath = path.join(__dirname, "schema.sql");
-    const schemaSQL = fs.readFileSync(schemaPath, "utf-8");
-    await pool.query(schemaSQL);
-    console.log("Database schema initialized successfully.");
+    // Ensure the schema_migrations table exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version VARCHAR(255) PRIMARY KEY
+      );
+    `);
+
+    const migrations = fs.readdirSync(migrationFolder).sort();
+    for (const migrationFile of migrations) {
+      const { rows: [appliedMigration] } = await pool.query(
+        'SELECT version FROM schema_migrations WHERE version = $1',
+        [migrationFile]
+      );
+
+      if (appliedMigration) {
+        continue;
+      }
+
+      const migration = await import(path.join(migrationFolder, migrationFile));
+      if (typeof migration.up !== 'function') {
+        logger.warn(`Migration ${migrationFile} does not have an 'up' function.`);
+        continue;
+      }
+      
+      await migration.up(pool);
+
+      await pool.query('INSERT INTO schema_migrations (version) VALUES ($1)', [
+        migrationFile,
+      ]);
+      
+      logger.info(`Migration ${migrationFile} executed successfully.`);
+    }
+
+    logger.info('Database migrations completed successfully.');
   } catch (error) {
-    console.error("Error initializing database schema:", error);
+    logger.error('Database migration failed:', error);
+    throw error;
   }
-}
-
-pool.on("connect", () => {
-  console.log("Database connected");
-  initializeDatabase();
-});
-
-pool.on("error", (err) => {
-  console.error("Database connection error", err.stack);
-});
-
-// Test the connection
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error("Database connection test failed", err.stack);
-    return;
-  }
-  console.log("Database connection test successful");
-  if (done) {
-    done();
-  }
-});
-
-export default pool;
+};

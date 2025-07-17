@@ -5,21 +5,35 @@ import fs from "node:fs";
 import path from "node:path";
 
 const commands = [];
-// The path should be to the compiled JS files in the 'dist' directory
 const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs
-  .readdirSync(commandsPath)
-  .filter((file) => file.endsWith(".ts") || file.endsWith(".js"));
+
+// Recursive function to get all command files
+function getCommandFiles(dir: string): string[] {
+  const commandFiles: string[] = [];
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const file of files) {
+    const filePath = path.join(dir, file.name);
+    if (file.isDirectory()) {
+      commandFiles.push(...getCommandFiles(filePath));
+    } else if (file.name.endsWith(".ts") || file.name.endsWith(".js")) {
+      commandFiles.push(filePath);
+    }
+  }
+
+  return commandFiles;
+}
+
+const commandFiles = getCommandFiles(commandsPath);
 
 for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath).default;
+  const command = require(file).default || require(file).command;
 
   if (command && command.data) {
     commands.push(command.data.toJSON());
   } else {
     console.log(
-      `[WARNING] The command at ${filePath} is missing a required "data" property.`
+      `[WARNING] The command at ${file} is missing a required "data" or "command" property.`
     );
   }
 }

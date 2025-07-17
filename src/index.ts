@@ -3,54 +3,119 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { Pool } from 'pg';
-import logger from './utils/logger';
-import { TicketManager } from './services/TicketManager';
+import logger from './utils/logger.js';
+import { SettingsManager } from './services/SettingsManager.js';
+import { TicketManager } from './services/TicketManager.js';
+import { initDatabase } from './shared/database/init.js';
+import { runMigrations } from './shared/database/index.js';
 
-// Extend Client class to include a commands property
-class CustomClient extends Client {
-  commands = new Collection<string, any>();
-}
+async function main() {
+  // 1. Ensure database exists
+  await initDatabase();
 
-const client = new CustomClient({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages,
-  ],
-});
+  // 2. Connect to the application database and set up tables
+  const db = new Pool({
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  });
+  await runMigrations(db);
 
-const db = new Pool();
+  // 3. Initialize Discord client and services
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.DirectMessages,
+    ],
+  });
 
-const ticketManager = new TicketManager(client, db);
+  const settingsManager = new SettingsManager(db);
+  const ticketManager = new TicketManager(db, settingsManager, client);
 
-// Dynamically load commands
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+  client.commands = new Collection();
+  client.buttons = new Collection();
+  client.modals = new Collection();
+  client.selectMenus = new Collection();
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath).default;
-    if ('data' in command && 'execute' in command) {
+  // Load Commands
+  const commandFoldersPath = path.join(__dirname, 'commands');
+  const commandItems = fs.readdirSync(commandFoldersPath);
+  for (const item of commandItems) {
+    const itemPath = path.join(commandFoldersPath, item);
+    const stat = fs.statSync(itemPath);
+
+    if (stat.isDirectory()) {
+      const commandsPath = itemPath;
+      const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js') || file.endsWith('.ts'));
+      for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const loadedModule = require(filePath);
+        const command = loadedModule.command || loadedModule.default;
+        if (command && 'data' in command && 'execute' in command) {
+          client.commands.set(command.data.name, command);
+        } else {
+          logger.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
+        }
+      }
+    } else if (stat.isFile() && (item.endsWith('.js') || item.endsWith('.ts'))) {
+      const filePath = itemPath;
+      const loadedModule = require(filePath);
+      const command = loadedModule.command || loadedModule.default;
+      if (command && 'data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
-    } else {
+      } else {
         logger.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
+      }
     }
-}
-
-
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
-
-for (const file of eventFiles) {
-  const filePath = path.join(eventsPath, file);
-  const event = require(filePath).default;
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args, ticketManager, client));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args, ticketManager, client));
   }
+
+  // Load Interactions (Buttons, Modals)
+  const interactionFoldersPath = path.join(__dirname, 'interactions');
+  const interactionFolders = fs.readdirSync(interactionFoldersPath);
+  for (const folder of interactionFolders) {
+    const interactionsPath = path.join(interactionFoldersPath, folder);
+    const interactionFiles = fs.readdirSync(interactionsPath).filter(file => file.endsWith('.js') || file.endsWith('.ts'));
+    for (const file of interactionFiles) {
+      const filePath = path.join(interactionsPath, file);
+      const loadedModule = require(filePath);
+      const interaction = loadedModule.default || loadedModule;
+
+      if (interaction.name && interaction.execute) {
+        if (folder === 'buttons') {
+          client.buttons.set(interaction.name, interaction);
+        } else if (folder === 'modals') {
+          client.modals.set(interaction.name, interaction);
+        } else if (folder === 'selectMenus') {
+          client.selectMenus.set(interaction.name, interaction);
+        }
+      } else {
+        logger.warn(`The interaction at ${filePath} is missing a required "name" or "execute" property.`);
+      }
+    }
+  }
+
+  // Load Events
+  const eventsPath = path.join(__dirname, 'events');
+  const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js') || file.endsWith('.ts'));
+  for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if (event.once) {
+      client.once(event.name, (...args) => event.execute(...args, client, settingsManager, ticketManager, db));
+    } else {
+      client.on(event.name, (...args) => event.execute(...args, client, settingsManager, ticketManager, db));
+    }
+  }
+
+  // 4. Login to Discord
+  client.login(process.env.DISCORD_TOKEN);
 }
 
-client.login(process.env.BOT_TOKEN);
+main().catch(error => {
+  logger.error('Unhandled error during bot startup:', error);
+  process.exit(1);
+});

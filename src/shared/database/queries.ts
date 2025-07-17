@@ -1,4 +1,12 @@
-import pool from "./index";
+import { Pool } from "pg";
+
+export const pool = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+});
 
 interface PriceHistory {
   price: number;
@@ -103,7 +111,7 @@ export async function getAllAssetsWithLatestPrice(): Promise<
     WHERE rn = 1;
   `;
   const result = await pool.query(query);
-  return result.rows.map((row) => ({
+  return result.rows.map((row: any) => ({
     ...row,
     price: parseFloat(row.price),
   }));
@@ -181,7 +189,7 @@ export async function getPriceHistoryWithVolume(
 
   const result = await pool.query(query, [symbol]);
   // Manually parse numeric types
-  return result.rows.map((row) => ({
+  return result.rows.map((row: any) => ({
     price: parseFloat(row.price),
     volume: parseInt(row.volume, 10),
     timestamp: row.timestamp,
@@ -486,7 +494,7 @@ export async function getUserReportData(userId: string): Promise<any> {
     const topCommandsRes = await pool.query(topCommandsQuery, [userId]);
     const topCommands =
       topCommandsRes.rows
-        .map((row, i) => `${i + 1}. ${row.command_name} (${row.count}次)`)
+        .map((row: any, i: number) => `${i + 1}. ${row.command_name} (${row.count}次)`)
         .join("\n") || "無指令紀錄";
 
     // Query 2: Spending vs Income
@@ -511,7 +519,7 @@ export async function getUserReportData(userId: string): Promise<any> {
     const detailedGameStats =
       gameStatsRes.rows
         .map(
-          (row) =>
+          (row: any) =>
             `**${row.game_type}**: ${row.total_games}場 ${row.total_wins}勝 ${row.total_losses}敗 (盈虧: ${row.total_profit_loss})`
         )
         .join("\n") || "無遊戲紀錄";
@@ -544,7 +552,7 @@ export async function getUserReportData(userId: string): Promise<any> {
     const rarityRes = await pool.query(rarityQuery, [userId]);
     const rarityStats =
       rarityRes.rows
-        .map((row) => `R${row.rarity}: ${row.count}張`)
+        .map((row: any) => `R${row.rarity}: ${row.count}張`)
         .join(", ") || "無抽卡紀錄";
 
     return {
@@ -568,4 +576,13 @@ export async function getUserReportData(userId: string): Promise<any> {
       rarityStats: "查詢錯誤",
     };
   }
+}
+
+export async function addTicketFeedback(ticketId: number, rating: number, comment: string): Promise<void> {
+    const query = `
+        UPDATE tickets
+        SET "feedbackRating" = $1, "feedbackComment" = $2
+        WHERE id = $3;
+    `;
+    await pool.query(query, [rating, comment, ticketId]);
 }

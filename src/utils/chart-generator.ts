@@ -151,7 +151,8 @@ export async function generatePriceChart(
     },
   };
 
-  new Chart(ctx, configuration);
+  new Chart(canvas as any, configuration);
 
   return canvas.toBuffer("image/png");
 }
+

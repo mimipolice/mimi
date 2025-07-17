@@ -4,3 +4,6 @@
 
 **/dist
 **/.**
+
+**/error.log
+**/combined.log

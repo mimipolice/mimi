@@ -2,20 +2,26 @@
   "compilerOptions": {
     /* Base Options */
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
     "strict": true,
     "skipLibCheck": true,
 
     /* Path Aliases */
     "baseUrl": "./src",
     "paths": {
-      "@/commands/*": ["commands/*"],
-      "@/events/*": ["events/*"],
-      "@/features/*": ["features/*"],
-      "@/shared/*": ["shared/*"]
+      "*": ["src/*"],
+      "commands/*": ["src/commands/*"],
+      "events/*": ["src/events/*"],
+      "interactions/*": ["src/interactions/*"],
+      "interfaces/*": ["src/interfaces/*"],
+      "services/*": ["src/services/*"],
+      "shared/*": ["src/shared/*"],
+      "utils/*": ["src/utils/*"]
     },
 
     /* Output */
@@ -25,3 +31,5 @@
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
+
+// cache-bust
