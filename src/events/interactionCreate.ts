@@ -7,6 +7,7 @@ import logger from '../utils/logger';
 import { Pool } from 'pg';
 import { SelectMenu } from '../interfaces/SelectMenu';
 import { Modal } from '../interfaces/Modal';
+import { MessageFlags } from "discord-api-types/v10";
 
 export const name = 'interactionCreate';
 
@@ -26,9 +27,9 @@ export async function execute(
     } catch (error) {
       logger.error('Error executing command:', error);
       if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+        await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+        await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
       }
     }
   } else if (interaction.isButton()) {
@@ -45,9 +46,9 @@ export async function execute(
     } catch (error) {
       logger.error('Error executing button:', error);
       if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({ content: 'There was an error while executing this button!', ephemeral: true });
+        await interaction.followUp({ content: 'There was an error while executing this button!', flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: 'There was an error while executing this button!', ephemeral: true });
+        await interaction.reply({ content: 'There was an error while executing this button!', flags: MessageFlags.Ephemeral });
       }
     }
   } else if (interaction.isModalSubmit()) {
@@ -64,9 +65,9 @@ export async function execute(
     } catch (error) {
       logger.error('Error executing modal:', error);
       if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({ content: 'There was an error while executing this modal!', ephemeral: true });
+        await interaction.followUp({ content: 'There was an error while executing this modal!', flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: 'There was an error while executing this modal!', ephemeral: true });
+        await interaction.reply({ content: 'There was an error while executing this modal!', flags: MessageFlags.Ephemeral });
       }
     }
   } else if (interaction.isStringSelectMenu()) {
@@ -83,9 +84,9 @@ export async function execute(
     } catch (error) {
       logger.error('Error executing select menu:', error);
       if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({ content: 'There was an error while executing this menu!', ephemeral: true });
+        await interaction.followUp({ content: 'There was an error while executing this menu!', flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: 'There was an error while executing this menu!', ephemeral: true });
+        await interaction.reply({ content: 'There was an error while executing this menu!', flags: MessageFlags.Ephemeral });
       }
     }
   } else if (interaction.isAutocomplete()) {

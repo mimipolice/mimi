@@ -2,6 +2,7 @@ import { ChannelType, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder
 import { Command } from '../../interfaces/Command';
 import { TicketManager } from '../../services/TicketManager';
 import { pool } from '../../shared/database/queries';
+import { MessageFlags } from "discord-api-types/v10";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -27,7 +28,7 @@ export const command: Command = {
   async execute(interaction, client, settingsManager, ticketManager: TicketManager) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const subcommand = interaction.options.getSubcommand();
     if (subcommand === 'purge') {

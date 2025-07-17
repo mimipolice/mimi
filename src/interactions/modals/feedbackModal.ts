@@ -1,16 +1,16 @@
 import { EmbedBuilder, ModalSubmitInteraction, TextChannel } from 'discord.js';
-import { Modal } from '../../interfaces/Modal';
 import { addTicketFeedback } from '../../shared/database/queries';
 import logger from '../../utils/logger';
 import { sanitize } from '../../utils/sanitize';
 import { SettingsManager } from '../../services/SettingsManager';
 import { pool } from '../../shared/database/queries';
+import { MessageFlags } from "discord-api-types/v10";
 
 const settingsManager = new SettingsManager(pool);
 
-const modal: Modal = {
+export default {
     name: /^feedback_comment_modal:(\d):(\d+)$/,
-    async execute(interaction: ModalSubmitInteraction) {
+    execute: async function (interaction: ModalSubmitInteraction) {
         const match = interaction.customId.match(/^feedback_comment_modal:(\d):(\d+)$/);
         if (!match || !interaction.guild) return;
 
@@ -43,12 +43,10 @@ const modal: Modal = {
                 }
             }
 
-            await interaction.reply({ content: 'Thank you for your feedback!', ephemeral: true });
+            await interaction.reply({ content: 'Thank you for your feedback!', flags: MessageFlags.Ephemeral });
         } catch (error) {
             logger.error('Error processing feedback modal:', error);
-            await interaction.reply({ content: 'There was an error processing your feedback. Please try again later.', ephemeral: true });
+            await interaction.reply({ content: 'There was an error processing your feedback. Please try again later.', flags: MessageFlags.Ephemeral });
         }
     },
 };
-
-export default modal;

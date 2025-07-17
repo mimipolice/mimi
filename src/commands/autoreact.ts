@@ -9,6 +9,8 @@ import {
   getAutoreacts,
 } from "../shared/database/queries";
 import { loadCaches } from "../shared/cache";
+import { MessageFlags } from "discord-api-types/v10";
+
 
 export default {
   data: new SlashCommandBuilder()
@@ -56,7 +58,7 @@ export default {
     const subcommand = interaction.options.getSubcommand();
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       if (subcommand === "set") {
         const emoji = interaction.options.getString("emoji", true);

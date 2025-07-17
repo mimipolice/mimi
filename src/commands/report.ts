@@ -76,7 +76,7 @@ export default {
     if (!interaction.isChatInputCommand()) return;
 
     try {
-      await interaction.deferReply({ ephemeral: false });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const subcommand = interaction.options.getSubcommand();
 
@@ -196,12 +196,12 @@ export default {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "An error occurred while fetching the report.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.followUp({
           content: "An error occurred while fetching the report.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral        
         });
       }
     }

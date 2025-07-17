@@ -1,10 +1,10 @@
 import { ButtonInteraction, PermissionFlagsBits, ButtonBuilder } from 'discord.js';
-import { Button } from '../../interfaces/Button';
 import { pool } from '../../shared/database/queries';
+import { MessageFlags } from "discord-api-types/v10";
 
-export const button: Button = {
+export default {
   name: /^confirm_purge:(\d+)$/,
-  async execute(interaction: ButtonInteraction) {
+  execute: async function (interaction: ButtonInteraction) {
     await interaction.deferUpdate();
 
     const match = interaction.customId.match(/^confirm_purge:(\d+)$/);
@@ -13,18 +13,18 @@ export const button: Button = {
     const originalUserId = match[1];
 
     if (interaction.user.id !== originalUserId) {
-      await interaction.followUp({ content: 'Only the user who initiated the purge can confirm it.', ephemeral: true });
+      await interaction.followUp({ content: 'Only the user who initiated the purge can confirm it.', flags: MessageFlags.Ephemeral });
       return;
     }
 
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      await interaction.followUp({ content: 'You no longer have permission to do this.', ephemeral: true });
+      await interaction.followUp({ content: 'You no longer have permission to do this.', flags: MessageFlags.Ephemeral });
       return;
     }
 
     try {
       await pool.query('TRUNCATE TABLE tickets RESTART IDENTITY;');
-      
+
       const disabledButton = ButtonBuilder.from(interaction.component).setDisabled(true);
       await interaction.editReply({
         content: '✅ All ticket records have been permanently deleted and the ID counter has been reset.',

@@ -102,21 +102,11 @@ async function main() {
     const interactionFiles = fs.readdirSync(interactionsPath).filter(file => file.endsWith('.js') || file.endsWith('.ts'));
     for (const file of interactionFiles) {
       const filePath = path.join(interactionsPath, file);
-      const loadedModule = require(filePath);
-      // This handles every case: default export, named object export, or separate exports.
-      const interaction = loadedModule.default || loadedModule.button || loadedModule.modal || loadedModule.selectMenu || loadedModule;
-
-      if (interaction.name && interaction.execute) {
-        // This handles object exports like `export const button = { ... }`
-        // or `export default { ... }`
+      const interaction = require(filePath).default;
+      if (interaction && interaction.name && interaction.execute) {
         if (folder === 'buttons') client.buttons.set(interaction.name, interaction);
         if (folder === 'modals') client.modals.set(interaction.name, interaction);
         if (folder === 'selectMenus') client.selectMenus.set(interaction.name, interaction);
-      } else if (loadedModule.name && loadedModule.execute) {
-        // This handles separate exports like `export const name = ...;`
-        if (folder === 'buttons') client.buttons.set(loadedModule.name, loadedModule);
-        if (folder === 'modals') client.modals.set(loadedModule.name, loadedModule);
-        if (folder === 'selectMenus') client.selectMenus.set(loadedModule.name, loadedModule);
       } else {
         logger.warn(`The interaction at ${filePath} is missing a required "name" or "execute" property.`);
       }

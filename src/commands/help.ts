@@ -4,6 +4,7 @@ import {
   EmbedBuilder,
   Collection,
 } from "discord.js";
+import { MessageFlags } from "discord-api-types/v10";
 
 // A simple interface for the structure of a command
 interface Command {
@@ -44,7 +45,7 @@ export default {
             .join("\n")
         );
 
-      await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [helpEmbed], flags: MessageFlags.Ephemeral });
     } else {
       // Specific command help
       const command = commands.get(commandName.toLowerCase());
@@ -52,7 +53,7 @@ export default {
       if (!command) {
         await interaction.reply({
           content: "That's not a valid command!",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -75,7 +76,7 @@ export default {
         }
       }
 
-      await interaction.reply({ embeds: [commandEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [commandEmbed], flags: MessageFlags.Ephemeral });
     }
   },
 };

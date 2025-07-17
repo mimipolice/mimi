@@ -1,14 +1,14 @@
-import { Button } from '../../interfaces/Button';
 import {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
+    ButtonInteraction,
 } from 'discord.js';
 
-const button: Button = {
+export default {
     name: /^rate_ticket:(\d):(\d+)$/,
-    execute: async (interaction) => {
+    execute: async (interaction: ButtonInteraction) => {
         const match = interaction.customId.match(/^rate_ticket:(\d):(\d+)$/);
         if (!match) return;
 
@@ -31,5 +31,3 @@ const button: Button = {
         await interaction.showModal(modal);
     },
 };
-
-export default button;

@@ -9,6 +9,7 @@ import {
   getTodos,
   clearTodos,
 } from "../shared/database/queries";
+import { MessageFlags } from "discord-api-types/v10";
 
 export default {
   data: new SlashCommandBuilder()
@@ -67,7 +68,7 @@ export default {
     const userId = interaction.user.id;
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       if (subcommand === "add") {
         const item = interaction.options.getString("item", true);

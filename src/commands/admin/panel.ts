@@ -16,6 +16,7 @@ import { SettingsManager } from "../../services/SettingsManager";
 import { TicketManager } from "../../services/TicketManager";
 import logger from "../../utils/logger";
 import { Pool } from "pg";
+import { MessageFlags } from "discord-api-types/v10";
 import * as queries from "../../shared/database/queries";
 
 export const command: Command = {
@@ -123,7 +124,7 @@ export const command: Command = {
     if (!interaction.guildId) {
       await interaction.reply({
         content: "This command can only be used in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral
       });
       return;
     }
@@ -131,7 +132,7 @@ export const command: Command = {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "setup") {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       try {
         const settings = await settingsManager.getSettings(interaction.guildId);
         if (!settings || !settings.panelChannelId) {
@@ -226,7 +227,7 @@ export const command: Command = {
         );
       }
     } else if (subcommand === "add") {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const typeId = interaction.options.getString("type_id", true);
       const label = interaction.options.getString("label", true);
       const style = interaction.options.getString("style") || "Secondary";
@@ -260,23 +261,23 @@ export const command: Command = {
         if (result?.rowCount && result.rowCount > 0) {
           await interaction.reply({
             content: `Ticket type with ID \`${typeId}\` has been removed.`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         } else {
           await interaction.reply({
             content: `Ticket type with ID \`${typeId}\` not found.`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
       } catch (error) {
         logger.error("Error removing ticket type:", error);
         await interaction.reply({
           content: "An error occurred while removing the ticket type.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     } else if (subcommand === "list") {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const { rows: ticketTypes } = await db.query(
         'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
         [interaction.guildId]
@@ -311,7 +312,7 @@ export const command: Command = {
       if (!authorName && !authorIconUrl && !thumbnailUrl && !footerIconUrl && !messageId) {
         await interaction.reply({
           content: "You must provide at least one option to customize.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -329,7 +330,7 @@ export const command: Command = {
           } else {
             await interaction.reply({
               content: "Message not found.",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
@@ -338,7 +339,7 @@ export const command: Command = {
           await interaction.reply({
             content:
               "Could not fetch the message. Make sure the ID is correct and I have permission to read and delete messages in this channel.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -355,13 +356,13 @@ export const command: Command = {
 
         await interaction.reply({
           content: "The ticket panel has been customized.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } catch (error) {
         logger.error("Error customizing panel:", error);
         await interaction.reply({
           content: "An error occurred while customizing the panel.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }

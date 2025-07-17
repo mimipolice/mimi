@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, Client, SlashCommandBuilder, PermissionFla
 import { Command } from '../../interfaces/Command';
 import { SettingsManager } from '../../services/SettingsManager';
 import { TicketManager } from '../../services/TicketManager';
+import { MessageFlags } from "discord-api-types/v10";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -31,7 +32,7 @@ export const command: Command = {
   ) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const subcommand = interaction.options.getSubcommand();
 
