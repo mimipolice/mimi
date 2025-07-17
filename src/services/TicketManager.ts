@@ -90,11 +90,11 @@ export class TicketManager {
       .addComponents(
         new ButtonBuilder()
           .setCustomId('close_ticket')
-          .setLabel('關閉客服單')
+          .setLabel('Close Ticket')
           .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
           .setCustomId('claim_ticket')
-          .setLabel('接手客服單')
+          .setLabel('Claim Ticket')
           .setStyle(ButtonStyle.Success),
       );
 
@@ -114,7 +114,7 @@ export class TicketManager {
     });
 
     await ticketChannel.send({
-      content: `Cảm ơn bạn đã liên hệ với chúng tôi, <@${user.id}>! <:newticket:1327350182499123291> Một nhân viên (<@&${settings.staffRoleId}>) sẽ sớm hỗ trợ bạn.`,
+      content: `||<@${user.id}><@&${settings.staffRoleId}>||`,
     });
 
     return interaction.editReply(`Your ticket has been created: ${ticketChannel}`);
@@ -132,13 +132,14 @@ export class TicketManager {
     const owner = await this.client.users.fetch(ticket.rows[0].ownerId);
 
     // Generate transcript
-    const transcript = await generateTranscript(channel);
+    const transcriptUrl = await generateTranscript(channel);
 
     const sanitizedReason = sanitize(reason);
     const ticketData = ticket.rows[0];
     const openTime = Math.floor(new Date(ticketData.createdAt).getTime() / 1000);
 
     const settings = await this.settingsManager.getSettings(guild.id);
+    let logMessageId: string | null = null;
     if (settings && settings.logChannelId) {
       const logChannel = await guild.channels.fetch(settings.logChannelId) as TextChannel;
 
@@ -156,12 +157,24 @@ export class TicketManager {
           { name: '<:reason:1327350192801972224> Reason', value: sanitizedReason || 'No reason specified', inline: false },
         );
 
-      await logChannel.send({ embeds: [embed], files: [transcript] });
+      const components = [];
+      if (transcriptUrl) {
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('View Transcript')
+            .setStyle(ButtonStyle.Link)
+            .setURL(transcriptUrl)
+        );
+        components.push(row);
+      }
+
+      const logMessage = await logChannel.send({ embeds: [embed], components });
+      logMessageId = logMessage.id;
     }
 
     await this.db.query(
-      'UPDATE tickets SET status = \'CLOSED\', "closeReason" = $1, "closedById" = $2, "closedAt" = NOW() WHERE "channelId" = $3',
-      [sanitizedReason, interaction.user.id, channel.id]
+      'UPDATE tickets SET status = \'CLOSED\', "closeReason" = $1, "closedById" = $2, "closedAt" = NOW(), "transcriptUrl" = $3, "logMessageId" = $4 WHERE "channelId" = $5',
+      [sanitizedReason, interaction.user.id, transcriptUrl, logMessageId, channel.id]
     );
 
     await channel.permissionOverwrites.edit(owner.id, { ViewChannel: false });

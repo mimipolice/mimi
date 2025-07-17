@@ -1,4 +1,4 @@
-import { ChannelType, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { ChannelType, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../interfaces/Command';
 import { TicketManager } from '../../services/TicketManager';
 import { pool } from '../../shared/database/queries';
@@ -18,6 +18,11 @@ export const command: Command = {
         .setName('remove')
         .setDescription('Remove a user from a ticket.')
         .addUserOption(option => option.setName('user').setDescription('The user to remove.').setRequired(true))
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('purge')
+        .setDescription('Permanently delete all tickets and reset the ID counter.')
     ),
   async execute(interaction, client, settingsManager, ticketManager: TicketManager) {
     if (!interaction.isChatInputCommand()) return;
@@ -25,6 +30,26 @@ export const command: Command = {
     await interaction.deferReply({ ephemeral: true });
 
     const subcommand = interaction.options.getSubcommand();
+    if (subcommand === 'purge') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+        await interaction.editReply({ content: 'You do not have permission to use this command.' });
+        return;
+      }
+
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`confirm_purge:${interaction.user.id}`)
+        .setLabel('Confirm Permanent Deletion')
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton);
+
+      await interaction.editReply({
+        content: '⚠️ **DANGER** ⚠️\nThis will permanently delete ALL tickets and reset the ID counter. This action cannot be undone.',
+        components: [row],
+      });
+      return;
+    }
+
     const user = interaction.options.getUser('user');
     const channel = interaction.channel;
 

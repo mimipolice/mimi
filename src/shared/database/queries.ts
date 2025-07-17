@@ -18,6 +18,15 @@ interface Asset {
   symbol: string;
 }
 
+export interface TicketType {
+  id: number;
+  guild_id: string;
+  type_id: string;
+  label: string;
+  style: string;
+  emoji: string | null;
+}
+
 export interface OdogStats {
   user_id: string;
   nickname: string;
@@ -578,11 +587,40 @@ export async function getUserReportData(userId: string): Promise<any> {
   }
 }
 
-export async function addTicketFeedback(ticketId: number, rating: number, comment: string): Promise<void> {
+export async function addTicketFeedback(ticketId: number, rating: number, comment: string): Promise<any> {
     const query = `
         UPDATE tickets
         SET "feedbackRating" = $1, "feedbackComment" = $2
-        WHERE id = $3;
+        WHERE id = $3
+        RETURNING *;
     `;
-    await pool.query(query, [rating, comment, ticketId]);
+    const result = await pool.query(query, [rating, comment, ticketId]);
+    return result.rows[0];
+}
+
+export async function addTicketType(
+  db: Pool,
+  guildId: string,
+  typeId: string,
+  label: string,
+  style: string,
+  emoji: string | null
+): Promise<void> {
+  const query = `
+    INSERT INTO ticket_types (guild_id, type_id, label, style, emoji)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (guild_id, type_id) DO UPDATE SET
+      label = EXCLUDED.label,
+      style = EXCLUDED.style,
+      emoji = EXCLUDED.emoji;
+  `;
+  await db.query(query, [guildId, typeId, label, style, emoji]);
+}
+
+export async function getTicketTypes(db: Pool, guildId: string): Promise<TicketType[]> {
+  const { rows } = await db.query<TicketType>(
+    'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
+    [guildId]
+  );
+  return rows;
 }

@@ -88,5 +88,15 @@ export async function execute(
         await interaction.reply({ content: 'There was an error while executing this menu!', ephemeral: true });
       }
     }
+  } else if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command || !command.autocomplete) return;
+
+    try {
+      await command.autocomplete(interaction, db);
+    } catch (error) {
+      logger.error('Error executing autocomplete:', error);
+    }
   }
 }

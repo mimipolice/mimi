@@ -10,10 +10,31 @@ import { initDatabase } from './shared/database/init.js';
 import { runMigrations } from './shared/database/index.js';
 
 async function main() {
-  // 1. Ensure database exists
+  // 1. Ensure transcript directory exists
+  const transcriptPath = process.env.TRANSCRIPT_PATH;
+  if (transcriptPath) {
+    try {
+      if (!fs.existsSync(transcriptPath)) {
+        fs.mkdirSync(transcriptPath, { recursive: true });
+        logger.info(`Created transcript directory at: ${transcriptPath}`);
+      }
+    } catch (error: any) {
+      if (error.code === 'EACCES') {
+        logger.error(`Permission denied to create transcript directory at: ${transcriptPath}`);
+        logger.error('Please ensure the bot has the correct permissions to write to this directory, or change the path in your .env file.');
+        process.exit(1);
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    logger.warn('TRANSCRIPT_PATH is not set. Transcripts will not be saved to disk.');
+  }
+
+  // 2. Ensure database exists
   await initDatabase();
 
-  // 2. Connect to the application database and set up tables
+  // 3. Connect to the application database and set up tables
   const db = new Pool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
@@ -73,7 +94,7 @@ async function main() {
     }
   }
 
-  // Load Interactions (Buttons, Modals)
+  // Load Interactions (Buttons, Modals, Select Menus)
   const interactionFoldersPath = path.join(__dirname, 'interactions');
   const interactionFolders = fs.readdirSync(interactionFoldersPath);
   for (const folder of interactionFolders) {
@@ -82,16 +103,20 @@ async function main() {
     for (const file of interactionFiles) {
       const filePath = path.join(interactionsPath, file);
       const loadedModule = require(filePath);
-      const interaction = loadedModule.default || loadedModule;
+      // This handles every case: default export, named object export, or separate exports.
+      const interaction = loadedModule.default || loadedModule.button || loadedModule.modal || loadedModule.selectMenu || loadedModule;
 
       if (interaction.name && interaction.execute) {
-        if (folder === 'buttons') {
-          client.buttons.set(interaction.name, interaction);
-        } else if (folder === 'modals') {
-          client.modals.set(interaction.name, interaction);
-        } else if (folder === 'selectMenus') {
-          client.selectMenus.set(interaction.name, interaction);
-        }
+        // This handles object exports like `export const button = { ... }`
+        // or `export default { ... }`
+        if (folder === 'buttons') client.buttons.set(interaction.name, interaction);
+        if (folder === 'modals') client.modals.set(interaction.name, interaction);
+        if (folder === 'selectMenus') client.selectMenus.set(interaction.name, interaction);
+      } else if (loadedModule.name && loadedModule.execute) {
+        // This handles separate exports like `export const name = ...;`
+        if (folder === 'buttons') client.buttons.set(loadedModule.name, loadedModule);
+        if (folder === 'modals') client.modals.set(loadedModule.name, loadedModule);
+        if (folder === 'selectMenus') client.selectMenus.set(loadedModule.name, loadedModule);
       } else {
         logger.warn(`The interaction at ${filePath} is missing a required "name" or "execute" property.`);
       }

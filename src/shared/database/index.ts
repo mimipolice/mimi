@@ -2,8 +2,14 @@ import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import logger from '../../utils/logger';
+import { Kysely, PostgresDialect } from 'kysely';
 
 export const runMigrations = async (pool: Pool) => {
+  const db = new Kysely<any>({
+    dialect: new PostgresDialect({
+      pool,
+    }),
+  });
   const migrationFolder = path.join(__dirname, 'migrations');
 
   try {
@@ -14,7 +20,7 @@ export const runMigrations = async (pool: Pool) => {
       );
     `);
 
-    const migrations = fs.readdirSync(migrationFolder).sort();
+    const migrations = fs.readdirSync(migrationFolder).filter(file => file.endsWith('.js')).sort();
     for (const migrationFile of migrations) {
       const { rows: [appliedMigration] } = await pool.query(
         'SELECT version FROM schema_migrations WHERE version = $1',
@@ -31,7 +37,7 @@ export const runMigrations = async (pool: Pool) => {
         continue;
       }
       
-      await migration.up(pool);
+      await migration.up(db);
 
       await pool.query('INSERT INTO schema_migrations (version) VALUES ($1)', [
         migrationFile,

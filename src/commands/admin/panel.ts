@@ -9,12 +9,14 @@ import {
   ChatInputCommandInteraction,
   Client,
   StringSelectMenuBuilder,
+  AutocompleteInteraction,
 } from "discord.js";
 import { Command } from "../../interfaces/Command";
 import { SettingsManager } from "../../services/SettingsManager";
 import { TicketManager } from "../../services/TicketManager";
 import logger from "../../utils/logger";
 import { Pool } from "pg";
+import * as queries from "../../shared/database/queries";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -68,10 +70,48 @@ export const command: Command = {
             .setName("type_id")
             .setDescription("The ID of the ticket type to remove.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand.setName("list").setDescription("List all ticket types.")
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("customize")
+        .setDescription("Customize the ticket panel's embed.")
+        .addStringOption((option) =>
+          option
+            .setName("title")
+            .setDescription("The Title for the embed.")
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("author_icon_url")
+            .setDescription("The author icon URL for the embed.")
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("thumbnail_url")
+            .setDescription("The thumbnail URL for the embed.")
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("footer_icon_url")
+            .setDescription("The footer icon URL for the embed.")
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription(
+              "The ID of the message to use as the panel description."
+            )
+            .setRequired(false)
+        )
     ),
   async execute(
     interaction: ChatInputCommandInteraction,
@@ -123,12 +163,29 @@ export const command: Command = {
           return;
         }
 
+        const footerText = `Currently supports ${ticketTypes.length} services.`;
         const embed = new EmbedBuilder()
-          .setTitle("Ticket Support")
+          .setColor("Green")
           .setDescription(
-            "Please select a category below to open a new support ticket."
-          )
-          .setColor("Green");
+            settings.panelDescription ||
+              "Please select a category below to open a new support ticket."
+          );
+
+        if (settings.panelTitle) {
+          embed.setAuthor({
+            name: settings.panelTitle,
+            iconURL: settings.panelAuthorIconUrl || undefined,
+          });
+        }
+
+        if (settings.panelThumbnailUrl) {
+          embed.setThumbnail(settings.panelThumbnailUrl);
+        }
+
+        embed.setFooter({
+          text: footerText,
+          iconURL: settings.panelFooterIconUrl || undefined,
+        });
 
         if (ticketTypes.length <= 5) {
           const row = new ActionRowBuilder<ButtonBuilder>();
@@ -169,25 +226,28 @@ export const command: Command = {
         );
       }
     } else if (subcommand === "add") {
+      await interaction.deferReply({ ephemeral: true });
       const typeId = interaction.options.getString("type_id", true);
       const label = interaction.options.getString("label", true);
       const style = interaction.options.getString("style") || "Secondary";
       const emoji = interaction.options.getString("emoji");
 
       try {
-        await db.query(
-          'INSERT INTO ticket_types (guild_id, type_id, label, style, emoji) VALUES ($1, $2, $3, $4, $5)',
-          [interaction.guildId, typeId, label, style, emoji]
+        await queries.addTicketType(
+          db,
+          interaction.guildId,
+          typeId,
+          label,
+          style,
+          emoji
         );
-        await interaction.reply({
-          content: `Ticket type "${label}" has been added.`,
-          ephemeral: true,
+        await interaction.editReply({
+          content: `Ticket type \`${typeId}\` has been saved.`,
         });
       } catch (error) {
-        logger.error("Error adding ticket type:", error);
-        await interaction.reply({
-          content: "An error occurred. This `type_id` might already exist.",
-          ephemeral: true,
+        logger.error("Error saving ticket type:", error);
+        await interaction.editReply({
+          content: "An error occurred while saving the ticket type.",
         });
       }
     } else if (subcommand === "remove") {
@@ -199,12 +259,12 @@ export const command: Command = {
         );
         if (result?.rowCount && result.rowCount > 0) {
           await interaction.reply({
-            content: `Ticket type with ID "${typeId}" has been removed.`,
+            content: `Ticket type with ID \`${typeId}\` has been removed.`,
             ephemeral: true,
           });
         } else {
           await interaction.reply({
-            content: `Ticket type with ID "${typeId}" not found.`,
+            content: `Ticket type with ID \`${typeId}\` not found.`,
             ephemeral: true,
           });
         }
@@ -216,15 +276,15 @@ export const command: Command = {
         });
       }
     } else if (subcommand === "list") {
+      await interaction.deferReply({ ephemeral: true });
       const { rows: ticketTypes } = await db.query(
         'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
         [interaction.guildId]
       );
 
       if (ticketTypes.length === 0) {
-        await interaction.reply({
+        await interaction.editReply({
           content: "No ticket types configured.",
-          ephemeral: true,
         });
         return;
       }
@@ -240,7 +300,91 @@ export const command: Command = {
             .join("\n")
         );
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
+    } else if (subcommand === "customize") {
+      const authorName = interaction.options.getString("title");
+      const authorIconUrl = interaction.options.getString("author_icon_url");
+      const thumbnailUrl = interaction.options.getString("thumbnail_url");
+      const footerIconUrl = interaction.options.getString("footer_icon_url");
+      const messageId = interaction.options.getString("message_id");
+
+      if (!authorName && !authorIconUrl && !thumbnailUrl && !footerIconUrl && !messageId) {
+        await interaction.reply({
+          content: "You must provide at least one option to customize.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      let description: string | undefined;
+
+      if (messageId) {
+        try {
+          const fetchedMessage = await interaction.channel?.messages.fetch(
+            messageId
+          );
+          if (fetchedMessage) {
+            description = fetchedMessage.content;
+            await fetchedMessage.delete();
+          } else {
+            await interaction.reply({
+              content: "Message not found.",
+              ephemeral: true,
+            });
+            return;
+          }
+        } catch (error) {
+          logger.error("Failed to fetch message:", error);
+          await interaction.reply({
+            content:
+              "Could not fetch the message. Make sure the ID is correct and I have permission to read and delete messages in this channel.",
+            ephemeral: true,
+          });
+          return;
+        }
+      }
+
+      try {
+        await settingsManager.updateSettings(interaction.guildId, {
+          panelTitle: authorName ?? undefined,
+          panelDescription: description,
+          panelAuthorIconUrl: authorIconUrl ?? undefined,
+          panelThumbnailUrl: thumbnailUrl ?? undefined,
+          panelFooterIconUrl: footerIconUrl ?? undefined,
+        });
+
+        await interaction.reply({
+          content: "The ticket panel has been customized.",
+          ephemeral: true,
+        });
+      } catch (error) {
+        logger.error("Error customizing panel:", error);
+        await interaction.reply({
+          content: "An error occurred while customizing the panel.",
+          ephemeral: true,
+        });
+      }
+    }
+  },
+
+  async autocomplete(interaction: AutocompleteInteraction, db: Pool) {
+    if (!interaction.guildId) return;
+    const focused = interaction.options.getFocused(true);
+
+    if (focused.name === "type_id") {
+      const ticketTypes = await queries.getTicketTypes(db, interaction.guildId);
+      const filtered = ticketTypes.filter(
+        (choice: { label: string; type_id: string }) =>
+          choice.label.toLowerCase().includes(focused.value.toLowerCase()) ||
+          choice.type_id.toLowerCase().includes(focused.value.toLowerCase())
+      );
+
+      await interaction.respond(
+        filtered.map((choice: { label: string; type_id: string }) => ({
+          name: `${choice.label} (ID: ${choice.type_id})`,
+          value: choice.type_id,
+        }))
+      );
     }
   },
 };
