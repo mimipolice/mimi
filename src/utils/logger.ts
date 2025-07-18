@@ -1,26 +1,59 @@
-import winston from 'winston';
+import winston from "winston";
+
+// 1. (新增) 建立一個自訂 format，專門將 level 字串轉為大寫
+//    這一步是為了解決問題的核心
+const upperCaseLevel = winston.format((info) => {
+  info.level = info.level.toUpperCase();
+  return info;
+});
 
 const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
+  level: "info",
+  // 這是寫入檔案的 format，沒有顏色，所以直接轉大寫即可
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ level, message, timestamp, ...rest }) => {
+      // (優化) 讓檔案日誌的 level 也變成大寫，以求格式一致
+      const levelStr = `[${level.toUpperCase()}]`;
+      const timestampStr = timestamp;
+      const messageStr = message;
+      const metaStr = Object.keys(rest).length
+        ? JSON.stringify(rest, null, 2)
+        : "";
+      return `${levelStr} ${timestampStr}: ${messageStr} ${metaStr}`;
+    })
+  ),
   transports: [
-    //
-    // - Write all logs with importance level of `error` or less to `error.log`
-    // - Write all logs with importance level of `info` or less to `combined.log`
-    //
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.File({ filename: "error.log", level: "error" }),
+    new winston.transports.File({ filename: "combined.log" }),
   ],
 });
 
-//
-// If we're not in production then log to the `console` with the format:
-// `${info.level}: ${info.message} ${JSON.stringify({ ...rest })} `
-//
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple(),
-  }));
+// 開發環境下，新增 console 輸出
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      // 2. (修改) 調整 Console 的 format 組合
+      format: winston.format.combine(
+        // 重要：調整了以下 format 的順序
+        winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), // 步驟一：先加上時間戳
+        upperCaseLevel(), // 步驟二：將 level 轉為大寫 (此時還是純文字)
+        winston.format.colorize(), // 步驟三：對已經大寫的 level 上色
+        winston.format.printf(({ level, message, timestamp, ...rest }) => {
+          // 3. (修改) 簡化 printf 函式
+          // 現在傳入的 'level' 已經是處理好的「彩色大寫字串」，例如：`\u001b[32mINFO\u001b[39m`
+          // 所以我們不再需要手動呼叫 toUpperCase()
+          const levelStr = `[${level}]`;
+          const timestampStr = timestamp;
+          const messageStr = message;
+          const metaStr = Object.keys(rest).length
+            ? JSON.stringify(rest, null, 2)
+            : "";
+          return `${levelStr} ${timestampStr}: ${messageStr} ${metaStr}`;
+        })
+      ),
+    })
+  );
 }
 
 export default logger;

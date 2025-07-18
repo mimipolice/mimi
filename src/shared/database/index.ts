@@ -38,7 +38,7 @@ export const migrateToLatest = async (
   dbName: string,
   migrationPath: string
 ) => {
-  logger.info(`[${dbName}] Running migrations from: ${migrationPath}`);
+  logger.info(`[${dbName}]: Running migrations from: ${migrationPath}`);
 
   // 1. Ensure the migrations table exists.
   await db.schema
@@ -52,11 +52,11 @@ export const migrateToLatest = async (
   const migrationFiles = files.filter((file) => file.endsWith(".js")).sort();
 
   if (migrationFiles.length === 0) {
-    logger.info(`[${dbName}] No migration files found.`);
+    logger.info(`[${dbName}]: No migration files found.`);
     return;
   }
 
-  logger.info(`[${dbName}] Found migration files:`, migrationFiles);
+  logger.info(`[${dbName}]: Found migration files:`, migrationFiles);
 
   // 3. Get all already applied migrations from the database.
   const appliedMigrations = await db
@@ -69,12 +69,12 @@ export const migrateToLatest = async (
   for (const migrationFile of migrationFiles) {
     if (appliedVersions.has(migrationFile)) {
       logger.info(
-        `[${dbName}] Skipping already applied migration: ${migrationFile}`
+        `[${dbName}]: Skipping already applied migration: ${migrationFile}`
       );
       continue;
     }
 
-    logger.info(`[${dbName}] Applying migration: ${migrationFile}`);
+    logger.info(`[${dbName}]: Applying migration: ${migrationFile}`);
     const migration = await import(path.join(migrationPath, migrationFile));
 
     // Handle CJS/ESM module differences
@@ -82,7 +82,7 @@ export const migrateToLatest = async (
 
     if (typeof migrationModule.up !== "function") {
       logger.warn(
-        `[${dbName}] Migration ${migrationFile} has no 'up' function. Skipping.`
+        `[${dbName}]: Migration ${migrationFile} has no 'up' function. Skipping.`
       );
       continue;
     }
@@ -97,16 +97,16 @@ export const migrateToLatest = async (
           .execute();
       });
       logger.info(
-        `[${dbName}] Migration "${migrationFile}" was executed successfully`
+        `[${dbName}]: Migration "${migrationFile}" was executed successfully`
       );
     } catch (error) {
       logger.error(
-        `[${dbName}] Failed to execute migration "${migrationFile}"`,
+        `[${dbName}]: Failed to execute migration "${migrationFile}"`,
         error
       );
       throw error;
     }
   }
 
-  logger.info(`[${dbName}] Migrations completed successfully.`);
+  logger.info(`[${dbName}]: Migrations completed successfully.`);
 };
