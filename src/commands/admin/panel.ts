@@ -182,7 +182,6 @@ export const command: Command = {
         const footerText = `Currently supports ${ticketTypes.length} services.`;
         const embed = new EmbedBuilder()
           .setColor("Green")
-          .setTitle(settings.panelTitle || "Support Tickets")
           .setDescription(
             settings.panelDescription ||
               "Please select a category below to open a new support ticket."
@@ -190,7 +189,7 @@ export const command: Command = {
 
         if (settings.panelAuthorIconUrl) {
           embed.setAuthor({
-            name: interaction.guild?.name || "Support",
+            name: settings.panelTitle || "Support",
             iconURL: settings.panelAuthorIconUrl,
           });
         }
