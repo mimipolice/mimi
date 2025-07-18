@@ -15,9 +15,22 @@ import { Command } from "../../interfaces/Command";
 import { SettingsManager } from "../../services/SettingsManager";
 import { TicketManager } from "../../services/TicketManager";
 import logger from "../../utils/logger";
-import { Pool } from "pg";
 import { MessageFlags } from "discord-api-types/v10";
-import * as queries from "../../shared/database/queries";
+import { ticketDB } from "../../shared/database";
+
+function mapStyleToButtonStyle(style: string): ButtonStyle {
+  switch (style.toLowerCase()) {
+    case "primary":
+      return ButtonStyle.Primary;
+    case "success":
+      return ButtonStyle.Success;
+    case "danger":
+      return ButtonStyle.Danger;
+    case "secondary":
+    default:
+      return ButtonStyle.Secondary;
+  }
+}
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -119,12 +132,12 @@ export const command: Command = {
     _client: Client,
     settingsManager: SettingsManager,
     _ticketManager: TicketManager,
-    db: Pool
+    _db: any
   ) {
     if (!interaction.guildId) {
       await interaction.reply({
         content: "This command can only be used in a server.",
-        flags: MessageFlags.Ephemeral
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -152,10 +165,12 @@ export const command: Command = {
           return;
         }
 
-        const { rows: ticketTypes } = await db.query(
-          'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
-          [interaction.guildId]
-        );
+        const ticketTypes = await ticketDB
+          .selectFrom("ticket_types")
+          .selectAll()
+          .where("guild_id", "=", interaction.guildId)
+          .orderBy("id")
+          .execute();
 
         if (ticketTypes.length === 0) {
           await interaction.editReply(
@@ -167,15 +182,16 @@ export const command: Command = {
         const footerText = `Currently supports ${ticketTypes.length} services.`;
         const embed = new EmbedBuilder()
           .setColor("Green")
+          .setTitle(settings.panelTitle || "Support Tickets")
           .setDescription(
             settings.panelDescription ||
               "Please select a category below to open a new support ticket."
           );
 
-        if (settings.panelTitle) {
+        if (settings.panelAuthorIconUrl) {
           embed.setAuthor({
-            name: settings.panelTitle,
-            iconURL: settings.panelAuthorIconUrl || undefined,
+            name: interaction.guild?.name || "Support",
+            iconURL: settings.panelAuthorIconUrl,
           });
         }
 
@@ -194,7 +210,7 @@ export const command: Command = {
             const button = new ButtonBuilder()
               .setCustomId(`create_ticket:${type.type_id}`)
               .setLabel(type.label)
-              .setStyle(ButtonStyle[type.style as keyof typeof ButtonStyle]);
+              .setStyle(mapStyleToButtonStyle(type.style));
             if (type.emoji) {
               button.setEmoji(type.emoji);
             }
@@ -202,18 +218,19 @@ export const command: Command = {
           }
           await channel.send({ embeds: [embed], components: [row] });
         } else {
-          const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId("create_ticket_menu")
-              .setPlaceholder("Select a ticket type...")
-              .addOptions(
-                ticketTypes.map((type) => ({
-                  label: type.label,
-                  value: `create_ticket:${type.type_id}`,
-                  emoji: type.emoji || undefined,
-                }))
-              )
-          );
+          const row =
+            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId("create_ticket_menu")
+                .setPlaceholder("Select a ticket type...")
+                .addOptions(
+                  ticketTypes.map((type) => ({
+                    label: type.label,
+                    value: `create_ticket:${type.type_id}`,
+                    emoji: type.emoji || undefined,
+                  }))
+                )
+            );
           await channel.send({ embeds: [embed], components: [row] });
         }
 
@@ -234,14 +251,16 @@ export const command: Command = {
       const emoji = interaction.options.getString("emoji");
 
       try {
-        await queries.addTicketType(
-          db,
-          interaction.guildId,
-          typeId,
-          label,
-          style,
-          emoji
-        );
+        await ticketDB
+          .insertInto("ticket_types")
+          .values({
+            guild_id: interaction.guildId,
+            type_id: typeId,
+            label: label,
+            style: style,
+            emoji: emoji,
+          })
+          .execute();
         await interaction.editReply({
           content: `Ticket type \`${typeId}\` has been saved.`,
         });
@@ -254,11 +273,12 @@ export const command: Command = {
     } else if (subcommand === "remove") {
       const typeId = interaction.options.getString("type_id", true);
       try {
-        const result = await db.query(
-          'DELETE FROM ticket_types WHERE guild_id = $1 AND type_id = $2',
-          [interaction.guildId, typeId]
-        );
-        if (result?.rowCount && result.rowCount > 0) {
+        const result = await ticketDB
+          .deleteFrom("ticket_types")
+          .where("guild_id", "=", interaction.guildId)
+          .where("type_id", "=", typeId)
+          .executeTakeFirst();
+        if (result.numDeletedRows > 0) {
           await interaction.reply({
             content: `Ticket type with ID \`${typeId}\` has been removed.`,
             flags: MessageFlags.Ephemeral,
@@ -278,10 +298,12 @@ export const command: Command = {
       }
     } else if (subcommand === "list") {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const { rows: ticketTypes } = await db.query(
-        'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
-        [interaction.guildId]
-      );
+      const ticketTypes = await ticketDB
+        .selectFrom("ticket_types")
+        .selectAll()
+        .where("guild_id", "=", interaction.guildId)
+        .orderBy("id")
+        .execute();
 
       if (ticketTypes.length === 0) {
         await interaction.editReply({
@@ -296,20 +318,30 @@ export const command: Command = {
           ticketTypes
             .map(
               (t) =>
-                `**Label:** ${t.label} | **ID:** \`${t.type_id}\` | **Style:** ${t.style} | **Emoji:** ${t.emoji || "None"}`
+                `**Label:** ${t.label} | **ID:** \`${
+                  t.type_id
+                }\` | **Emoji:** ${t.emoji || "None"}`
             )
             .join("\n")
         );
 
       await interaction.editReply({ embeds: [embed] });
     } else if (subcommand === "customize") {
-      const authorName = interaction.options.getString("title");
-      const authorIconUrl = interaction.options.getString("author_icon_url");
-      const thumbnailUrl = interaction.options.getString("thumbnail_url");
-      const footerIconUrl = interaction.options.getString("footer_icon_url");
+      const panelTitle = interaction.options.getString("title");
+      const panelAuthorIconUrl =
+        interaction.options.getString("author_icon_url");
+      const panelThumbnailUrl = interaction.options.getString("thumbnail_url");
+      const panelFooterIconUrl =
+        interaction.options.getString("footer_icon_url");
       const messageId = interaction.options.getString("message_id");
 
-      if (!authorName && !authorIconUrl && !thumbnailUrl && !footerIconUrl && !messageId) {
+      if (
+        !panelTitle &&
+        !panelAuthorIconUrl &&
+        !panelThumbnailUrl &&
+        !panelFooterIconUrl &&
+        !messageId
+      ) {
         await interaction.reply({
           content: "You must provide at least one option to customize.",
           flags: MessageFlags.Ephemeral,
@@ -317,7 +349,13 @@ export const command: Command = {
         return;
       }
 
-      let description: string | undefined;
+      const updateData: { [key: string]: string | null } = {};
+      if (panelTitle) updateData.panelTitle = panelTitle;
+      if (panelAuthorIconUrl)
+        updateData.panelAuthorIconUrl = panelAuthorIconUrl;
+      if (panelThumbnailUrl) updateData.panelThumbnailUrl = panelThumbnailUrl;
+      if (panelFooterIconUrl)
+        updateData.panelFooterIconUrl = panelFooterIconUrl;
 
       if (messageId) {
         try {
@@ -325,7 +363,7 @@ export const command: Command = {
             messageId
           );
           if (fetchedMessage) {
-            description = fetchedMessage.content;
+            updateData.panelDescription = fetchedMessage.content;
             await fetchedMessage.delete();
           } else {
             await interaction.reply({
@@ -346,13 +384,7 @@ export const command: Command = {
       }
 
       try {
-        await settingsManager.updateSettings(interaction.guildId, {
-          panelTitle: authorName ?? undefined,
-          panelDescription: description,
-          panelAuthorIconUrl: authorIconUrl ?? undefined,
-          panelThumbnailUrl: thumbnailUrl ?? undefined,
-          panelFooterIconUrl: footerIconUrl ?? undefined,
-        });
+        await settingsManager.updateSettings(interaction.guildId, updateData);
 
         await interaction.reply({
           content: "The ticket panel has been customized.",
@@ -368,21 +400,23 @@ export const command: Command = {
     }
   },
 
-  async autocomplete(interaction: AutocompleteInteraction, db: Pool) {
+  async autocomplete(interaction: AutocompleteInteraction) {
     if (!interaction.guildId) return;
     const focused = interaction.options.getFocused(true);
 
     if (focused.name === "type_id") {
-      const ticketTypes = await queries.getTicketTypes(db, interaction.guildId);
-      const filtered = ticketTypes.filter(
-        (choice: { label: string; type_id: string }) =>
-          choice.label.toLowerCase().includes(focused.value.toLowerCase()) ||
-          choice.type_id.toLowerCase().includes(focused.value.toLowerCase())
+      const ticketTypes = await ticketDB
+        .selectFrom("ticket_types")
+        .selectAll()
+        .where("guild_id", "=", interaction.guildId)
+        .execute();
+      const filtered = ticketTypes.filter((choice) =>
+        choice.label.toLowerCase().includes(focused.value.toLowerCase())
       );
 
       await interaction.respond(
-        filtered.map((choice: { label: string; type_id: string }) => ({
-          name: `${choice.label} (ID: ${choice.type_id})`,
+        filtered.map((choice) => ({
+          name: `${choice.label} (${choice.type_id})`,
           value: choice.type_id,
         }))
       );

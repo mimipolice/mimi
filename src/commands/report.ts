@@ -9,6 +9,7 @@ import {
   ContainerBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
+import { gachaPool } from "../shared/database";
 import {
   getAllAssetsWithLatestPrice,
   searchAssets,
@@ -51,7 +52,7 @@ export default {
       const focusedOption = interaction.options.getFocused(true);
 
       if (focusedOption.name === "symbol") {
-        const choices = await searchAssets(focusedOption.value);
+        const choices = await searchAssets(gachaPool, focusedOption.value);
         await interaction.respond(
           choices.map((choice) => ({
             name: `${choice.name} (${choice.symbol})`,
@@ -81,7 +82,7 @@ export default {
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {
-        const assets = await getAllAssetsWithLatestPrice();
+        const assets = await getAllAssetsWithLatestPrice(gachaPool);
         if (assets.length === 0) {
           await interaction.editReply("No assets found.");
           return;
@@ -114,8 +115,12 @@ export default {
           return;
         }
 
-        const history = await getPriceHistoryWithVolume(symbol, range);
-        const assets = await searchAssets(symbol);
+        const history = await getPriceHistoryWithVolume(
+          gachaPool,
+          symbol,
+          range
+        );
+        const assets = await searchAssets(gachaPool, symbol);
         const assetName =
           assets.find((a) => a.symbol === symbol)?.name || symbol;
 
@@ -201,7 +206,7 @@ export default {
       } else {
         await interaction.followUp({
           content: "An error occurred while fetching the report.",
-          flags: MessageFlags.Ephemeral        
+          flags: MessageFlags.Ephemeral,
         });
       }
     }

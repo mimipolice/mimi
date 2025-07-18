@@ -1,13 +1,5 @@
 import { Pool } from "pg";
 
-export const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
-});
-
 interface PriceHistory {
   price: number;
   timestamp: Date;
@@ -70,6 +62,7 @@ function buildTimeCondition(timeRange: string, tableAlias: string): string {
 }
 
 export async function getAssetPriceHistory(
+  pool: Pool,
   symbol: string,
   timeRange: string
 ): Promise<PriceHistory[]> {
@@ -97,9 +90,9 @@ export interface AssetWithLatestPrice {
   timestamp: Date;
 }
 
-export async function getAllAssetsWithLatestPrice(): Promise<
-  AssetWithLatestPrice[]
-> {
+export async function getAllAssetsWithLatestPrice(
+  pool: Pool
+): Promise<AssetWithLatestPrice[]> {
   const query = `
     WITH RankedPrices AS (
       SELECT
@@ -135,6 +128,7 @@ export interface AssetSummary {
 }
 
 export async function getAssetSummary(
+  pool: Pool,
   symbol: string,
   timeRange: string
 ): Promise<AssetSummary | null> {
@@ -178,6 +172,7 @@ export async function getAssetSummary(
   };
 }
 export async function getPriceHistoryWithVolume(
+  pool: Pool,
   symbol: string,
   timeRange: string
 ): Promise<any[]> {
@@ -205,7 +200,10 @@ export async function getPriceHistoryWithVolume(
   }));
 }
 
-export async function searchAssets(searchText: string): Promise<Asset[]> {
+export async function searchAssets(
+  pool: Pool,
+  searchText: string
+): Promise<Asset[]> {
   const query = `
     SELECT asset_name as name, asset_symbol as symbol
     FROM virtual_assets
@@ -222,7 +220,10 @@ export interface GachaPool {
   gacha_name_alias: string;
 }
 
-export async function getGachaPools(searchText: string): Promise<GachaPool[]> {
+export async function getGachaPools(
+  pool: Pool,
+  searchText: string
+): Promise<GachaPool[]> {
   const query = `
     SELECT DISTINCT
       gacha_id,
@@ -238,6 +239,7 @@ export async function getGachaPools(searchText: string): Promise<GachaPool[]> {
 }
 
 export async function getGachaPoolById(
+  pool: Pool,
   gachaId: string
 ): Promise<GachaPool | null> {
   const query = `
@@ -254,6 +256,7 @@ export async function getGachaPoolById(
 }
 
 export async function getOdogRankings(
+  pool: Pool,
   gacha_id: string | null,
   days: number | "all"
 ): Promise<OdogStats[]> {
@@ -352,6 +355,7 @@ export interface AutoReact {
 }
 
 export async function setAutoreact(
+  pool: Pool,
   guildId: string,
   channelId: string,
   emoji: string
@@ -366,6 +370,7 @@ export async function setAutoreact(
 }
 
 export async function removeAutoreact(
+  pool: Pool,
   guildId: string,
   channelId: string
 ): Promise<void> {
@@ -376,7 +381,10 @@ export async function removeAutoreact(
   await pool.query(query, [guildId, channelId]);
 }
 
-export async function getAutoreacts(guildId: string): Promise<AutoReact[]> {
+export async function getAutoreacts(
+  pool: Pool,
+  guildId: string
+): Promise<AutoReact[]> {
   const query = `
     SELECT channel_id, emoji
     FROM auto_reacts
@@ -396,6 +404,7 @@ export interface Keyword {
 }
 
 export async function addKeyword(
+  pool: Pool,
   guildId: string,
   keyword: string,
   reply: string,
@@ -411,6 +420,7 @@ export async function addKeyword(
 }
 
 export async function removeKeyword(
+  pool: Pool,
   guildId: string,
   keyword: string
 ): Promise<void> {
@@ -421,7 +431,10 @@ export async function removeKeyword(
   await pool.query(query, [guildId, keyword]);
 }
 
-export async function getKeywords(guildId: string): Promise<Keyword[]> {
+export async function getKeywords(
+  pool: Pool,
+  guildId: string
+): Promise<Keyword[]> {
   const query = `
     SELECT id, keyword, reply, match_type
     FROM keywords
@@ -439,7 +452,11 @@ export interface Todo {
   created_at: Date;
 }
 
-export async function addTodo(userId: string, item: string): Promise<void> {
+export async function addTodo(
+  pool: Pool,
+  userId: string,
+  item: string
+): Promise<void> {
   const query = `
     INSERT INTO todos (user_id, item)
     VALUES ($1, $2);
@@ -447,7 +464,11 @@ export async function addTodo(userId: string, item: string): Promise<void> {
   await pool.query(query, [userId, item]);
 }
 
-export async function removeTodo(id: number, userId: string): Promise<number> {
+export async function removeTodo(
+  pool: Pool,
+  id: number,
+  userId: string
+): Promise<number> {
   const query = `
     DELETE FROM todos
     WHERE id = $1 AND user_id = $2;
@@ -456,7 +477,7 @@ export async function removeTodo(id: number, userId: string): Promise<number> {
   return result.rowCount ?? 0;
 }
 
-export async function getTodos(userId: string): Promise<Todo[]> {
+export async function getTodos(pool: Pool, userId: string): Promise<Todo[]> {
   const query = `
     SELECT id, item, created_at
     FROM todos
@@ -467,7 +488,7 @@ export async function getTodos(userId: string): Promise<Todo[]> {
   return result.rows;
 }
 
-export async function clearTodos(userId: string): Promise<void> {
+export async function clearTodos(pool: Pool, userId: string): Promise<void> {
   const query = `
     DELETE FROM todos
     WHERE user_id = $1;
@@ -475,19 +496,22 @@ export async function clearTodos(userId: string): Promise<void> {
   await pool.query(query, [userId]);
 }
 
-export async function getAllKeywords(): Promise<Keyword[]> {
+export async function getAllKeywords(pool: Pool): Promise<Keyword[]> {
   const query = `SELECT id, guild_id, keyword, reply, match_type FROM keywords;`;
   const result = await pool.query(query);
   return result.rows;
 }
 
-export async function getAllAutoreacts(): Promise<AutoReact[]> {
+export async function getAllAutoreacts(pool: Pool): Promise<AutoReact[]> {
   const query = `SELECT guild_id, channel_id, emoji FROM auto_reacts;`;
   const result = await pool.query(query);
   return result.rows;
 }
 
-export async function getUserReportData(userId: string): Promise<any> {
+export async function getUserReportData(
+  pool: Pool,
+  userId: string
+): Promise<any> {
   console.log(`Fetching report data for user ${userId}...`);
 
   try {
@@ -503,7 +527,10 @@ export async function getUserReportData(userId: string): Promise<any> {
     const topCommandsRes = await pool.query(topCommandsQuery, [userId]);
     const topCommands =
       topCommandsRes.rows
-        .map((row: any, i: number) => `${i + 1}. ${row.command_name} (${row.count}次)`)
+        .map(
+          (row: any, i: number) =>
+            `${i + 1}. ${row.command_name} (${row.count}次)`
+        )
         .join("\n") || "無指令紀錄";
 
     // Query 2: Spending vs Income
@@ -588,7 +615,7 @@ export async function getUserReportData(userId: string): Promise<any> {
 }
 
 export async function addTicketType(
-  db: Pool,
+  pool: Pool,
   guildId: string,
   typeId: string,
   label: string,
@@ -603,13 +630,27 @@ export async function addTicketType(
       style = EXCLUDED.style,
       emoji = EXCLUDED.emoji;
   `;
-  await db.query(query, [guildId, typeId, label, style, emoji]);
+  await pool.query(query, [guildId, typeId, label, style, emoji]);
 }
 
-export async function getTicketTypes(db: Pool, guildId: string): Promise<TicketType[]> {
-  const { rows } = await db.query<TicketType>(
-    'SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id',
+export async function getTicketTypes(
+  pool: Pool,
+  guildId: string
+): Promise<TicketType[]> {
+  const { rows } = await pool.query<TicketType>(
+    "SELECT * FROM ticket_types WHERE guild_id = $1 ORDER BY id",
     [guildId]
   );
   return rows;
+}
+
+export async function getTicketByChannelId(
+  pool: Pool,
+  channelId: string
+): Promise<any> {
+  const query = `
+    SELECT * FROM tickets WHERE "channelId" = $1
+  `;
+  const result = await pool.query(query, [channelId]);
+  return result;
 }

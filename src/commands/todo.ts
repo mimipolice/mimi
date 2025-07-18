@@ -3,6 +3,7 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
 } from "discord.js";
+import { ticketPool } from "../shared/database";
 import {
   addTodo,
   removeTodo,
@@ -49,7 +50,7 @@ export default {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
-    const todos = await getTodos(interaction.user.id);
+    const todos = await getTodos(ticketPool, interaction.user.id);
     const choices = todos
       .filter((todo) =>
         todo.item.toLowerCase().includes(focusedValue.toLowerCase())
@@ -72,11 +73,11 @@ export default {
 
       if (subcommand === "add") {
         const item = interaction.options.getString("item", true);
-        await addTodo(userId, item);
+        await addTodo(ticketPool, userId, item);
         await interaction.editReply(`Added "${item}" to your to-do list.`);
       } else if (subcommand === "remove") {
         const id = interaction.options.getInteger("id", true);
-        const removedCount = await removeTodo(id, userId);
+        const removedCount = await removeTodo(ticketPool, id, userId);
         if (removedCount > 0) {
           await interaction.editReply(`Removed to-do item #${id}.`);
         } else {
@@ -85,7 +86,7 @@ export default {
           );
         }
       } else if (subcommand === "list") {
-        const todos = await getTodos(userId);
+        const todos = await getTodos(ticketPool, userId);
         if (todos.length === 0) {
           await interaction.editReply("Your to-do list is empty.");
           return;
@@ -95,7 +96,7 @@ export default {
           .join("\n");
         await interaction.editReply(`**Your To-Do List:**\n${list}`);
       } else if (subcommand === "clear") {
-        await clearTodos(userId);
+        await clearTodos(ticketPool, userId);
         await interaction.editReply("Your to-do list has been cleared.");
       }
     } catch (error) {

@@ -12,6 +12,7 @@ import {
   getGachaPools,
   getGachaPoolById,
 } from "../shared/database/queries";
+import { gachaPool } from "../shared/database";
 
 export default {
   data: new SlashCommandBuilder()
@@ -34,7 +35,7 @@ export default {
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
       const focusedValue = interaction.options.getFocused();
-      const choices = await getGachaPools(focusedValue);
+      const choices = await getGachaPools(gachaPool, focusedValue);
       await interaction.respond(
         choices.map((choice) => ({
           name: `${choice.gacha_name} (${choice.gacha_name_alias})`,
@@ -64,7 +65,11 @@ export default {
         return;
       }
 
-      const rankings = await getOdogRankings(gachaId, days as number | "all");
+      const rankings = await getOdogRankings(
+        gachaPool,
+        gachaId,
+        days as number | "all"
+      );
 
       if (rankings.length === 0) {
         await interaction.editReply(
@@ -77,9 +82,11 @@ export default {
       container.setAccentColor(0xffd700); // Gold color for rankings
       container.setSpoiler(true);
 
-      const gachaPool = gachaId ? await getGachaPoolById(gachaId) : null;
-      const gachaName = gachaPool
-        ? `${gachaPool.gacha_name} (${gachaPool.gacha_name_alias})`
+      const gachaPoolInfo = gachaId
+        ? await getGachaPoolById(gachaPool, gachaId)
+        : null;
+      const gachaName = gachaPoolInfo
+        ? `${gachaPoolInfo.gacha_name} (${gachaPoolInfo.gacha_name_alias})`
         : "Global";
 
       const titleText = `Odog Rankings for ${gachaName} (Last ${period})`;

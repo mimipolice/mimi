@@ -45,11 +45,11 @@ export const command: Command = {
 
       if (staffRoleId && ticketCategoryId && logChannelId && panelChannelId && archiveCategoryId) {
         await settingsManager.updateSettings(interaction.guildId!, {
-          staffRoleId,
-          ticketCategoryId,
-          logChannelId,
-          panelChannelId,
-          archiveCategoryId,
+          staffRoleId: staffRoleId,
+          ticketCategoryId: ticketCategoryId,
+          logChannelId: logChannelId,
+          panelChannelId: panelChannelId,
+          archiveCategoryId: archiveCategoryId,
         });
         await interaction.editReply({ content: 'Configuration updated successfully.' });
       } else {

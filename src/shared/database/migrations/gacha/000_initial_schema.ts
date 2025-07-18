@@ -1,9 +1,9 @@
-import { Pool } from 'pg';
-import logger from '../../../utils/logger';
+import { Kysely, sql } from "kysely";
+import logger from "../../../../utils/logger";
 
-export async function up(db: Pool): Promise<void> {
+export async function up(db: Kysely<any>): Promise<void> {
   try {
-    await db.query(`
+    const schema = `
       -- Table for Auto-Reactions
       DO $$
       BEGIN
@@ -76,13 +76,45 @@ export async function up(db: Pool): Promise<void> {
               ON DELETE CASCADE -- 如果伺服器設定被刪除，其所有客服單也一併刪除
       );
 
+      -- Gacha System Tables
+      CREATE TABLE IF NOT EXISTS gacha_users (
+          user_id VARCHAR(255) PRIMARY KEY,
+          nickname VARCHAR(255) NOT NULL,
+          last_daily_claim TIMESTAMP WITH TIME ZONE,
+          last_weekly_claim TIMESTAMP WITH TIME ZONE
+      );
+
+      CREATE TABLE IF NOT EXISTS gacha_pools (
+          gacha_id VARCHAR(255) PRIMARY KEY,
+          gacha_name VARCHAR(255) NOT NULL,
+          gacha_name_alias VARCHAR(255) UNIQUE,
+          pool_type VARCHAR(50) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS gacha_master_cards (
+          card_id SERIAL PRIMARY KEY,
+          pool_type VARCHAR(50) NOT NULL,
+          card_name VARCHAR(255) NOT NULL,
+          rarity INT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS gacha_draw_history (
+          draw_id SERIAL PRIMARY KEY,
+          user_id VARCHAR(255) REFERENCES gacha_users(user_id),
+          card_id INT REFERENCES gacha_master_cards(card_id),
+          user_selected_pool VARCHAR(255) REFERENCES gacha_pools(gacha_id),
+          is_wish BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version VARCHAR(255) PRIMARY KEY
       );
-    `);
-    logger.info('Migration 000_initial_schema completed successfully.');
+    `;
+    await db.executeQuery(sql.raw(schema).compile(db));
+    logger.info("Migration 000_initial_schema completed successfully.");
   } catch (error) {
-    logger.error('Error running migration 000_initial_schema:', error);
+    logger.error("Error running migration 000_initial_schema:", error);
     throw error;
   }
 }

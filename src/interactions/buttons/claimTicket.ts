@@ -1,5 +1,5 @@
 import { ButtonInteraction, EmbedBuilder, GuildMember, Client } from 'discord.js';
-import { pool } from '../../shared/database/queries';
+import { ticketDB } from '../../shared/database';
 import { SettingsManager } from '../../services/SettingsManager';
 import { TicketManager } from '../../services/TicketManager';
 import { MessageFlags } from "discord-api-types/v10";
@@ -22,14 +22,21 @@ export default {
 
     const channelId = interaction.channelId;
 
-    const ticketResult = await pool.query('SELECT * FROM tickets WHERE "channelId" = $1', [channelId]);
-    const ticket = ticketResult.rows[0];
+    const ticket = await ticketDB
+      .selectFrom('tickets')
+      .selectAll()
+      .where('channelId', '=', channelId)
+      .executeTakeFirst();
 
-    if (ticket.claimedById) {
+    if (ticket?.claimedById) {
       return interaction.reply({ content: 'This ticket has already been claimed.', flags: MessageFlags.Ephemeral });
     }
 
-    await pool.query('UPDATE tickets SET "claimedById" = $1 WHERE "channelId" = $2', [interaction.user.id, channelId]);
+    await ticketDB
+      .updateTable('tickets')
+      .set({ claimedById: interaction.user.id })
+      .where('channelId', '=', channelId)
+      .execute();
 
     const originalMessage = await interaction.channel?.messages.fetch(interaction.message.id);
     if (originalMessage) {

@@ -1,3 +1,4 @@
+import { ticketPool } from "./database";
 import {
   Keyword,
   AutoReact,
@@ -13,7 +14,7 @@ export let keywordCache = new Map<string, Keyword[]>();
 
 export async function loadCaches() {
   // Load auto-reactions
-  const autoreacts = await getAllAutoreacts();
+  const autoreacts = await getAllAutoreacts(ticketPool);
   autoReactCache.clear();
   for (const ar of autoreacts) {
     autoReactCache.set(ar.channel_id, ar.emoji);
@@ -21,7 +22,7 @@ export async function loadCaches() {
   console.log(`Loaded ${autoReactCache.size} auto-reactions into cache.`);
 
   // Load keywords
-  const keywords = await getAllKeywords();
+  const keywords = await getAllKeywords(ticketPool);
   keywordCache.clear();
   for (const kw of keywords) {
     if (!keywordCache.has(kw.guild_id)) {

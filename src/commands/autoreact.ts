@@ -2,20 +2,22 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   ChannelType,
+  PermissionFlagsBits,
 } from "discord.js";
 import {
   setAutoreact,
   removeAutoreact,
   getAutoreacts,
 } from "../shared/database/queries";
+import { ticketPool } from "../shared/database";
 import { loadCaches } from "../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
-
 
 export default {
   data: new SlashCommandBuilder()
     .setName("autoreact")
     .setDescription("Manages auto-reactions for channels.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("set")
@@ -63,20 +65,20 @@ export default {
       if (subcommand === "set") {
         const emoji = interaction.options.getString("emoji", true);
         const channel = interaction.options.getChannel("channel", true);
-        await setAutoreact(interaction.guildId, channel.id, emoji);
+        await setAutoreact(ticketPool, interaction.guildId, channel.id, emoji);
         await loadCaches();
         await interaction.editReply(
           `Auto-reaction set to ${emoji} for <#${channel.id}>.`
         );
       } else if (subcommand === "remove") {
         const channel = interaction.options.getChannel("channel", true);
-        await removeAutoreact(interaction.guildId, channel.id);
+        await removeAutoreact(ticketPool, interaction.guildId, channel.id);
         await loadCaches();
         await interaction.editReply(
           `Auto-reaction removed from <#${channel.id}>.`
         );
       } else if (subcommand === "list") {
-        const autoreacts = await getAutoreacts(interaction.guildId);
+        const autoreacts = await getAutoreacts(ticketPool, interaction.guildId);
         if (autoreacts.length === 0) {
           await interaction.editReply("No auto-reactions are set up.");
           return;

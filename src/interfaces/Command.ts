@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, Client, SlashCommandSubcommandsOnlyBuilder, AutocompleteInteraction } from 'discord.js';
 import { SettingsManager } from '../services/SettingsManager';
 import { TicketManager } from '../services/TicketManager';
-import { Pool } from 'pg';
+import { Kysely } from 'kysely';
 
 export interface Command {
   data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
@@ -10,10 +10,12 @@ export interface Command {
     client: Client,
     settingsManager: SettingsManager,
     ticketManager: TicketManager,
-    db: Pool
+    gachaDb: Kysely<any>,
+    ticketDb: Kysely<any>
   ): Promise<void>;
   autocomplete?(
     interaction: AutocompleteInteraction,
-    db: Pool
+    gachaDb: Kysely<any>,
+    ticketDb: Kysely<any>
   ): Promise<void>;
 }

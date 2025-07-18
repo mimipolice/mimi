@@ -7,12 +7,19 @@ const config = {
     token: process.env.DISCORD_TOKEN,
     clientId: process.env.CLIENT_ID,
   },
-  database: {
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    name: process.env.DB_NAME,
+  gachaDatabase: {
+    host: process.env.GACHA_DB_HOST,
+    port: Number(process.env.GACHA_DB_PORT),
+    user: process.env.GACHA_DB_USER,
+    password: process.env.GACHA_DB_PASSWORD,
+    name: process.env.GACHA_DB_NAME,
+  },
+  ticketDatabase: {
+    host: process.env.TICKET_DB_HOST,
+    port: Number(process.env.TICKET_DB_PORT),
+    user: process.env.TICKET_DB_USER,
+    password: process.env.TICKET_DB_PASSWORD,
+    name: process.env.TICKET_DB_NAME,
   },
   // We will add feature-specific configs here later
   // e.g., odog, stock channels
