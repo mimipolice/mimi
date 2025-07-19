@@ -77,7 +77,7 @@ export default {
     if (!interaction.isChatInputCommand()) return;
 
     try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      await interaction.deferReply(); //{ flags: MessageFlags.Ephemeral }
 
       const subcommand = interaction.options.getSubcommand();
 

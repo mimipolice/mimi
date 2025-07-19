@@ -1,7 +1,13 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, Client, SlashCommandSubcommandsOnlyBuilder, AutocompleteInteraction } from 'discord.js';
-import { SettingsManager } from '../services/SettingsManager';
-import { TicketManager } from '../services/TicketManager';
-import { Kysely } from 'kysely';
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  Client,
+  SlashCommandSubcommandsOnlyBuilder,
+  AutocompleteInteraction,
+} from "discord.js";
+import { SettingsManager } from "../services/SettingsManager";
+import { TicketManager } from "../services/TicketManager";
+import { Kysely } from "kysely";
 
 export interface Command {
   data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
