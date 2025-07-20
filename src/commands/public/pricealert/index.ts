@@ -282,7 +282,7 @@ export default {
     const t = translations[interaction.locale] || translations["en-US"];
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const subcommand = interaction.options.getSubcommand();
       const userId = interaction.user.id;

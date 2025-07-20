@@ -6,7 +6,6 @@ import {
   ChatInputCommandInteraction,
   Client,
   ContainerBuilder,
-  MessageFlags,
   SectionBuilder,
   ThumbnailBuilder,
   Locale,
@@ -14,6 +13,7 @@ import {
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
+import { MessageFlags } from "discord-api-types/v10";
 
 const translations = getLocalizations("ping");
 

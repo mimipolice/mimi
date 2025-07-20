@@ -5,11 +5,11 @@ import {
   ButtonStyle,
   Client,
   ContainerBuilder,
-  MessageFlags,
   SectionBuilder,
   ThumbnailBuilder,
 } from "discord.js";
 import { Button } from "../../interfaces/Button";
+import { MessageFlags } from "discord-api-types/v10";
 
 const button: Button = {
   name: "ping_button",

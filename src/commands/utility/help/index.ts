@@ -3,7 +3,6 @@ import {
   ChatInputCommandInteraction,
   Client,
   ContainerBuilder,
-  MessageFlags,
   ActionRowBuilder,
   StringSelectMenuBuilder,
   GuildMember,
@@ -21,6 +20,7 @@ import { capitalize } from "lodash";
 import { readFile } from "fs/promises";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { MessageFlags } from "discord-api-types/v10";
 
 /**
  * Gets all commands grouped by their category.

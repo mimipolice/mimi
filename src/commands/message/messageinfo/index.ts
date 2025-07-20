@@ -2,11 +2,11 @@ import {
   ContextMenuCommandBuilder,
   ApplicationCommandType,
   MessageContextMenuCommandInteraction,
-  Client,
   Locale,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
+import { MessageFlags } from "discord-api-types/v10";
 
 const translations = getLocalizations("messageinfo");
 
@@ -24,7 +24,7 @@ export const command: Command = {
 
     await interaction.reply({
       content: `${t.messageInfo.id}: ${targetMessage.id}\n${t.messageInfo.content}: ${targetMessage.content}`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
