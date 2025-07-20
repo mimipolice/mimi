@@ -30,7 +30,7 @@ for (const file of commandFiles) {
   const command = require(file).default || require(file).command;
 
   if (!command?.data?.name) {
-    console.log(
+    logger.info(
       `[WARNING] The command at ${file} is missing a required "data" or "name" property.`
     );
     continue;
@@ -129,7 +129,7 @@ for (const file of commandFiles) {
 }
 
 // Log all command names to be registered
-console.log(
+logger.info(
   "Attempting to register the following commands:",
   commands.map((c) => c.name)
 );
@@ -138,7 +138,7 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
 
 (async () => {
   try {
-    console.log(
+    logger.info(
       `Started refreshing ${commands.length} application (/) commands.`
     );
 
@@ -147,7 +147,7 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
       { body: commands }
     )) as any[];
 
-    console.log(
+    logger.info(
       `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {

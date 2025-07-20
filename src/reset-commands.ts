@@ -7,17 +7,17 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
 
 (async () => {
   try {
-    console.log("Started clearing application (/) commands.");
+    logger.info("Started clearing application (/) commands.");
 
-    console.log("Clearing global commands...");
+    logger.info("Clearing global commands...");
     await rest.put(Routes.applicationCommands(config.discord.clientId!), {
       body: [],
     });
-    console.log("Successfully cleared global application (/) commands.");
+    logger.info("Successfully cleared global application (/) commands.");
 
     // For guild-specific commands
     if (config.discord.guildId) {
-      console.log(`Clearing commands for guild: ${config.discord.guildId}...`);
+      logger.info(`Clearing commands for guild: ${config.discord.guildId}...`);
       await rest.put(
         Routes.applicationGuildCommands(
           config.discord.clientId!,
@@ -25,9 +25,9 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
         ),
         { body: [] }
       );
-      console.log("Successfully cleared guild application (/) commands.");
+      logger.info("Successfully cleared guild application (/) commands.");
     } else {
-      console.log(
+      logger.info(
         "No GUILD_ID found in config, skipping guild command clearing."
       );
     }
