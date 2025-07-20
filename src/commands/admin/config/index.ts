@@ -3,56 +3,153 @@ import {
   Client,
   SlashCommandBuilder,
   PermissionFlagsBits,
+  Locale,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { SettingsManager } from "../../../services/SettingsManager";
 import { TicketManager } from "../../../services/TicketManager";
 import { MessageFlags } from "discord-api-types/v10";
+import { getLocalizations } from "../../../utils/localization";
+
+const translations = getLocalizations("config");
 
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName("config")
-    .setDescription("Configure the ticket bot for this server.")
+    .setName(translations["en-US"].name)
+    .setDescription(translations["en-US"].description)
+    .setNameLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].name,
+    })
+    .setDescriptionLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].description,
+    })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("set")
-        .setDescription("Set a configuration value.")
+        .setName(translations["en-US"].subcommands.set.name)
+        .setDescription(translations["en-US"].subcommands.set.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.description,
+        })
         .addRoleOption((option) =>
           option
-            .setName("staff_role")
-            .setDescription("The role for ticket staff.")
+            .setName(
+              translations["en-US"].subcommands.set.options.staff_role.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.staff_role
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.staff_role.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.staff_role
+                  .description,
+            })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName("ticket_category")
-            .setDescription("The category to create tickets in.")
+            .setName(
+              translations["en-US"].subcommands.set.options.ticket_category.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.ticket_category
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.ticket_category
+                  .name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.ticket_category
+                  .description,
+            })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName("log_channel")
-            .setDescription("The channel to log ticket events to.")
+            .setName(
+              translations["en-US"].subcommands.set.options.log_channel.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.log_channel
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.log_channel.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.log_channel
+                  .description,
+            })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName("panel_channel")
-            .setDescription("The channel to send the ticket panel to.")
+            .setName(
+              translations["en-US"].subcommands.set.options.panel_channel.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.panel_channel
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.panel_channel
+                  .name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.panel_channel
+                  .description,
+            })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName("archive_category")
-            .setDescription("The category to archive tickets in.")
+            .setName(
+              translations["en-US"].subcommands.set.options.archive_category
+                .name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.archive_category
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.archive_category
+                  .name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.archive_category
+                  .description,
+            })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("view")
-        .setDescription("View the current configuration.")
+        .setName(translations["en-US"].subcommands.view.name)
+        .setDescription(translations["en-US"].subcommands.view.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.view.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.view.description,
+        })
     ),
   async execute(
     interaction: ChatInputCommandInteraction,
@@ -60,21 +157,29 @@ export const command: Command = {
     settingsManager: SettingsManager,
     _ticketManager: TicketManager
   ) {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
+    const t = translations[interaction.locale] || translations["en-US"];
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "set") {
-      const staffRoleId = interaction.options.getRole("staff_role")?.id;
-      const ticketCategoryId =
-        interaction.options.getChannel("ticket_category")?.id;
-      const logChannelId = interaction.options.getChannel("log_channel")?.id;
-      const panelChannelId =
-        interaction.options.getChannel("panel_channel")?.id;
-      const archiveCategoryId =
-        interaction.options.getChannel("archive_category")?.id;
+      const staffRoleId = interaction.options.getRole(
+        t.subcommands.set.options.staff_role.name
+      )?.id;
+      const ticketCategoryId = interaction.options.getChannel(
+        t.subcommands.set.options.ticket_category.name
+      )?.id;
+      const logChannelId = interaction.options.getChannel(
+        t.subcommands.set.options.log_channel.name
+      )?.id;
+      const panelChannelId = interaction.options.getChannel(
+        t.subcommands.set.options.panel_channel.name
+      )?.id;
+      const archiveCategoryId = interaction.options.getChannel(
+        t.subcommands.set.options.archive_category.name
+      )?.id;
 
       if (
         staffRoleId &&
@@ -83,7 +188,7 @@ export const command: Command = {
         panelChannelId &&
         archiveCategoryId
       ) {
-        await settingsManager.updateSettings(interaction.guildId!, {
+        await settingsManager.updateSettings(interaction.guildId, {
           staffRoleId: staffRoleId,
           ticketCategoryId: ticketCategoryId,
           logChannelId: logChannelId,
@@ -91,29 +196,30 @@ export const command: Command = {
           archiveCategoryId: archiveCategoryId,
         });
         await interaction.editReply({
-          content: "Configuration updated successfully.",
+          content: t.subcommands.set.responses.success,
         });
       } else {
         await interaction.editReply({
-          content: "Please provide all the required options.",
+          content: t.subcommands.set.responses.error,
         });
       }
     } else if (subcommand === "view") {
-      const settings = await settingsManager.getSettings(interaction.guildId!);
+      const settings = await settingsManager.getSettings(interaction.guildId);
       if (settings) {
+        const viewResponse = `
+${t.subcommands.view.responses.title}
+${t.subcommands.view.responses.staff_role} <@&${settings.staffRoleId}>
+${t.subcommands.view.responses.ticket_category} <#${settings.ticketCategoryId}>
+${t.subcommands.view.responses.log_channel} <#${settings.logChannelId}>
+${t.subcommands.view.responses.panel_channel} <#${settings.panelChannelId}>
+${t.subcommands.view.responses.archive_category} <#${settings.archiveCategoryId}>
+          `;
         await interaction.editReply({
-          content: `
-**Current Configuration:**
-- Staff Role: <@&${settings.staffRoleId}>
-- Ticket Category: <#${settings.ticketCategoryId}>
-- Log Channel: <#${settings.logChannelId}>
-- Panel Channel: <#${settings.panelChannelId}>
-- Archive Category: <#${settings.archiveCategoryId}>
-          `,
+          content: viewResponse,
         });
       } else {
         await interaction.editReply({
-          content: "No configuration found for this server.",
+          content: t.subcommands.view.responses.no_config,
         });
       }
     }

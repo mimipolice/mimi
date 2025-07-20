@@ -19,11 +19,11 @@ export async function execute(
   gachaDb: Kysely<any>,
   ticketDb: Kysely<any>
 ) {
-  console.log(
-    `[DEBUG] Received interaction: ${interaction.type} | Custom ID: ${
-      "customId" in interaction ? interaction.customId : "N/A"
-    }`
-  );
+  // logger.debug(
+  //   `Received interaction: ${interaction.type} | Custom ID: ${
+  //     "customId" in interaction ? interaction.customId : "N/A"
+  //   }`
+  // );
 
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName) as Command;

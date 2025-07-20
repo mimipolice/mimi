@@ -1,4 +1,9 @@
 {
   "name": "ping",
-  "description": "Checks the bot's latency."
+  "description": "Checks the bot's latency.",
+  "responses": {
+    "pong": "🏓 **Pong!**",
+    "latency": "Latency: `{{latency}}` ms!\n> I've been poked `{{count}}` times",
+    "button_label": "Test Again"
+  }
 }

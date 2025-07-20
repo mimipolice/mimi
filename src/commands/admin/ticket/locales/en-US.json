@@ -1,4 +1,45 @@
 {
   "name": "ticket",
-  "description": "Ticket commands."
+  "description": "Ticket commands.",
+  "subcommands": {
+    "add": {
+      "name": "add",
+      "description": "Add a user to a ticket.",
+      "options": {
+        "user": {
+          "name": "user",
+          "description": "The user to add."
+        }
+      },
+      "responses": {
+        "success": "Successfully added {{userTag}} to the ticket.",
+        "not_ticket": "This command can only be used in a ticket channel.",
+        "user_not_found": "User not found."
+      }
+    },
+    "remove": {
+      "name": "remove",
+      "description": "Remove a user from a ticket.",
+      "options": {
+        "user": {
+          "name": "user",
+          "description": "The user to remove."
+        }
+      },
+      "responses": {
+        "success": "Successfully removed {{userTag}} from the ticket.",
+        "not_ticket": "This command can only be used in a ticket channel.",
+        "user_not_found": "User not found."
+      }
+    },
+    "purge": {
+      "name": "purge",
+      "description": "Permanently delete all tickets and reset the ID counter.",
+      "responses": {
+        "no_permission": "You do not have permission to use this command.",
+        "confirmation_prompt": "⚠️ **DANGER** ⚠️\nThis will permanently delete ALL tickets and reset the ID counter. This action cannot be undone.",
+        "confirm_button": "Confirm Permanent Deletion"
+      }
+    }
+  }
 }

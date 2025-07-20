@@ -3,18 +3,30 @@
   "description": "管理客服單面板。",
   "subcommands": {
     "setup": {
-      "description": "設定客服單面板。"
+      "name": "設定",
+      "description": "設定客服單面板。",
+      "responses": {
+        "no_channel": "❌ 面板頻道尚未設定。請先使用 `/config set panel_channel` 進行設定。",
+        "channel_not_found": "❌ 找不到設定的面板頻道，或該頻道不是文字頻道。",
+        "no_types": "❌ 尚未設定任何客服單類型。請先使用 `/panel add` 新增一個。",
+        "success": "✅ 已成功在 {{channel}} 建立客服單面板。",
+        "error": "❌ 建立面板時發生錯誤。請檢查我的權限並再試一次。"
+      }
     },
     "add": {
+      "name": "新增",
       "description": "新增一個客服單類型。",
       "options": {
         "type_id": {
+          "name": "類型id",
           "description": "此客服單類型的唯一 ID。"
         },
         "label": {
+          "name": "標籤",
           "description": "在按鈕/選項上顯示的文字。"
         },
         "style": {
+          "name": "樣式",
           "description": "按鈕樣式。",
           "choices": {
             "Primary": "主要",
@@ -24,40 +36,75 @@
           }
         },
         "emoji": {
+          "name": "表情符號",
           "description": "要顯示的表情符號。"
         }
+      },
+      "responses": {
+        "success": "✅ 已成功儲存客服單類型 `{{typeId}}`。",
+        "error": "❌ 儲存客服單類型時發生錯誤。"
       }
     },
     "remove": {
+      "name": "移除",
       "description": "移除一個客服單類型。",
       "options": {
         "type_id": {
+          "name": "類型id",
           "description": "要移除的客服單類型的 ID。"
         }
+      },
+      "responses": {
+        "success": "✅ 已成功移除 ID 為 `{{typeId}}` 的客服單類型。",
+        "not_found": "❌ 找不到 ID 為 `{{typeId}}` 的客服單類型。",
+        "error": "❌ 移除客服單類型時發生錯誤。"
       }
     },
     "list": {
-      "description": "列出所有客服單類型。"
+      "name": "列表",
+      "description": "列出所有客服單類型。",
+      "responses": {
+        "no_types": "尚未設定任何客服單類型。",
+        "title": "已設定的客服單類型",
+        "type_line": "**標籤:** {{label}} | **ID:** `{{type_id}}` | **表情符號:** {{emoji}}"
+      }
     },
     "customize": {
+      "name": "自訂",
       "description": "自訂客服單面板的嵌入訊息。",
       "options": {
         "title": {
+          "name": "標題",
           "description": "嵌入訊息的標題。"
         },
         "author_icon_url": {
+          "name": "作者圖示url",
           "description": "嵌入訊息作者圖示的 URL。"
         },
         "thumbnail_url": {
+          "name": "縮圖url",
           "description": "嵌入訊息縮圖的 URL。"
         },
         "footer_icon_url": {
+          "name": "頁腳圖示url",
           "description": "嵌入訊息頁腳圖示的 URL。"
         },
         "message_id": {
+          "name": "訊息id",
           "description": "用作面板說明的訊息 ID。"
         }
+      },
+      "responses": {
+        "no_options": "❌ 您必須提供至少一個選項來自訂。",
+        "message_not_found": "❌ 找不到訊息。",
+        "message_fetch_error": "❌ 無法讀取訊息。請確認 ID 是否正確，且我擁有在此頻道讀取和刪除訊息的權限。",
+        "success": "✅ 客服單面板已成功自訂。",
+        "error": "❌ 自訂面板時發生錯誤。"
       }
     }
-  }
+  },
+  "autocomplete": {
+    "type_id_choice": "{{label}} ({{type_id}})"
+  },
+  "general_error": "處理面板指令時發生錯誤。"
 }

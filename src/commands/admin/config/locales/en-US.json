@@ -1,4 +1,50 @@
 {
   "name": "config",
-  "description": "Configure the ticket bot for this server."
+  "description": "Configure the ticket bot for this server.",
+  "subcommands": {
+    "set": {
+      "name": "set",
+      "description": "Set a configuration value.",
+      "options": {
+        "staff_role": {
+          "name": "staff_role",
+          "description": "The role for ticket staff."
+        },
+        "ticket_category": {
+          "name": "ticket_category",
+          "description": "The category to create tickets in."
+        },
+        "log_channel": {
+          "name": "log_channel",
+          "description": "The channel to log ticket events to."
+        },
+        "panel_channel": {
+          "name": "panel_channel",
+          "description": "The channel to send the ticket panel to."
+        },
+        "archive_category": {
+          "name": "archive_category",
+          "description": "The category to archive tickets in."
+        }
+      },
+      "responses": {
+        "success": "Configuration updated successfully.",
+        "error": "Please provide all the required options."
+      }
+    },
+    "view": {
+      "name": "view",
+      "description": "View the current configuration.",
+      "responses": {
+        "no_config": "No configuration found for this server.",
+        "title": "**Current Configuration:**",
+        "staff_role": "- Staff Role:",
+        "ticket_category": "- Ticket Category:",
+        "log_channel": "- Log Channel:",
+        "panel_channel": "- Panel Channel:",
+        "archive_category": "- Archive Category:"
+      }
+    }
+  },
+  "general_error": "An error occurred while handling the config command."
 }

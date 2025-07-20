@@ -10,6 +10,7 @@ import {
   Client,
   StringSelectMenuBuilder,
   AutocompleteInteraction,
+  Locale,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { SettingsManager } from "../../../services/SettingsManager";
@@ -17,6 +18,9 @@ import { TicketManager } from "../../../services/TicketManager";
 import logger from "../../../utils/logger";
 import { MessageFlags } from "discord-api-types/v10";
 import { ticketDB } from "../../../shared/database";
+import { getLocalizations } from "../../../utils/localization";
+
+const translations = getLocalizations("panel");
 
 function mapStyleToButtonStyle(style: string): ButtonStyle {
   switch (style.toLowerCase()) {
@@ -34,96 +38,307 @@ function mapStyleToButtonStyle(style: string): ButtonStyle {
 
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName("panel")
-    .setDescription("Manage the ticket panel.")
+    .setName(translations["en-US"].name)
+    .setDescription(translations["en-US"].description)
+    .setNameLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].name,
+    })
+    .setDescriptionLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].description,
+    })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
-      subcommand.setName("setup").setDescription("Setup the ticket panel.")
+      subcommand
+        .setName(translations["en-US"].subcommands.setup.name)
+        .setDescription(translations["en-US"].subcommands.setup.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.setup.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.setup.description,
+        })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("add")
-        .setDescription("Add a ticket type.")
+        .setName(translations["en-US"].subcommands.add.name)
+        .setDescription(translations["en-US"].subcommands.add.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+        })
         .addStringOption((option) =>
           option
-            .setName("type_id")
-            .setDescription("The unique ID for this ticket type.")
+            .setName(translations["en-US"].subcommands.add.options.type_id.name)
+            .setDescription(
+              translations["en-US"].subcommands.add.options.type_id.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.type_id.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.type_id
+                  .description,
+            })
             .setRequired(true)
         )
         .addStringOption((option) =>
           option
-            .setName("label")
-            .setDescription("The text to display on the button/option.")
+            .setName(translations["en-US"].subcommands.add.options.label.name)
+            .setDescription(
+              translations["en-US"].subcommands.add.options.label.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.label.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.label.description,
+            })
             .setRequired(true)
         )
         .addStringOption((option) =>
           option
-            .setName("style")
-            .setDescription("The button style.")
+            .setName(translations["en-US"].subcommands.add.options.style.name)
+            .setDescription(
+              translations["en-US"].subcommands.add.options.style.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.style.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.style.description,
+            })
             .setRequired(false)
             .addChoices(
-              { name: "Primary", value: "Primary" },
-              { name: "Secondary", value: "Secondary" },
-              { name: "Success", value: "Success" },
-              { name: "Danger", value: "Danger" }
+              {
+                name: translations["en-US"].subcommands.add.options.style
+                  .choices.Primary,
+                value: "Primary",
+                name_localizations: {
+                  [Locale.ChineseTW]:
+                    translations["zh-TW"].subcommands.add.options.style.choices
+                      .Primary,
+                },
+              },
+              {
+                name: translations["en-US"].subcommands.add.options.style
+                  .choices.Secondary,
+                value: "Secondary",
+                name_localizations: {
+                  [Locale.ChineseTW]:
+                    translations["zh-TW"].subcommands.add.options.style.choices
+                      .Secondary,
+                },
+              },
+              {
+                name: translations["en-US"].subcommands.add.options.style
+                  .choices.Success,
+                value: "Success",
+                name_localizations: {
+                  [Locale.ChineseTW]:
+                    translations["zh-TW"].subcommands.add.options.style.choices
+                      .Success,
+                },
+              },
+              {
+                name: translations["en-US"].subcommands.add.options.style
+                  .choices.Danger,
+                value: "Danger",
+                name_localizations: {
+                  [Locale.ChineseTW]:
+                    translations["zh-TW"].subcommands.add.options.style.choices
+                      .Danger,
+                },
+              }
             )
         )
         .addStringOption((option) =>
           option
-            .setName("emoji")
-            .setDescription("The emoji to display.")
+            .setName(translations["en-US"].subcommands.add.options.emoji.name)
+            .setDescription(
+              translations["en-US"].subcommands.add.options.emoji.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.emoji.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.emoji.description,
+            })
             .setRequired(false)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("remove")
-        .setDescription("Remove a ticket type.")
+        .setName(translations["en-US"].subcommands.remove.name)
+        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.remove.description,
+        })
         .addStringOption((option) =>
           option
-            .setName("type_id")
-            .setDescription("The ID of the ticket type to remove.")
+            .setName(
+              translations["en-US"].subcommands.remove.options.type_id.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.remove.options.type_id
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.remove.options.type_id.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.remove.options.type_id
+                  .description,
+            })
             .setRequired(true)
             .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("List all ticket types.")
+      subcommand
+        .setName(translations["en-US"].subcommands.list.name)
+        .setDescription(translations["en-US"].subcommands.list.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.list.description,
+        })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("customize")
-        .setDescription("Customize the ticket panel's embed.")
+        .setName(translations["en-US"].subcommands.customize.name)
+        .setDescription(translations["en-US"].subcommands.customize.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.customize.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.customize.description,
+        })
         .addStringOption((option) =>
           option
-            .setName("title")
-            .setDescription("The Title for the embed.")
-            .setRequired(false)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("author_icon_url")
-            .setDescription("The author icon URL for the embed.")
-            .setRequired(false)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("thumbnail_url")
-            .setDescription("The thumbnail URL for the embed.")
-            .setRequired(false)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("footer_icon_url")
-            .setDescription("The footer icon URL for the embed.")
-            .setRequired(false)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("message_id")
-            .setDescription(
-              "The ID of the message to use as the panel description."
+            .setName(
+              translations["en-US"].subcommands.customize.options.title.name
             )
+            .setDescription(
+              translations["en-US"].subcommands.customize.options.title
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options.title.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options.title
+                  .description,
+            })
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.customize.options
+                .author_icon_url.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.customize.options
+                .author_icon_url.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .author_icon_url.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .author_icon_url.description,
+            })
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.customize.options.thumbnail_url
+                .name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.customize.options.thumbnail_url
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .thumbnail_url.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .thumbnail_url.description,
+            })
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.customize.options
+                .footer_icon_url.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.customize.options
+                .footer_icon_url.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .footer_icon_url.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options
+                  .footer_icon_url.description,
+            })
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.customize.options.message_id
+                .name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.customize.options.message_id
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options.message_id
+                  .name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.customize.options.message_id
+                  .description,
+            })
             .setRequired(false)
         )
     ),
@@ -135,23 +350,19 @@ export const command: Command = {
     _db: any
   ) {
     if (!interaction.guildId) {
-      await interaction.reply({
-        content: "This command can only be used in a server.",
-        flags: MessageFlags.Ephemeral,
-      });
+      // This command is guild-only, but the check is here for type safety.
       return;
     }
 
+    const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === "setup") {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      try {
+    try {
+      if (subcommand === "setup") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         const settings = await settingsManager.getSettings(interaction.guildId);
         if (!settings || !settings.panelChannelId) {
-          await interaction.editReply(
-            "Panel channel is not configured. Please run `/config set panel_channel` first."
-          );
+          await interaction.editReply(t.subcommands.setup.responses.no_channel);
           return;
         }
 
@@ -160,7 +371,7 @@ export const command: Command = {
         );
         if (!channel || channel.type !== ChannelType.GuildText) {
           await interaction.editReply(
-            "The configured panel channel could not be found or is not a text channel."
+            t.subcommands.setup.responses.channel_not_found
           );
           return;
         }
@@ -173,9 +384,7 @@ export const command: Command = {
           .execute();
 
         if (ticketTypes.length === 0) {
-          await interaction.editReply(
-            "No ticket types have been configured. Please add one with `/panel add` first."
-          );
+          await interaction.editReply(t.subcommands.setup.responses.no_types);
           return;
         }
 
@@ -234,22 +443,28 @@ export const command: Command = {
         }
 
         await interaction.editReply(
-          `Ticket panel has been created in ${channel}.`
+          t.subcommands.setup.responses.success.replace(
+            "{{channel}}",
+            channel.toString()
+          )
         );
-      } catch (error) {
-        logger.error("Error setting up panel:", error);
-        await interaction.editReply(
-          "An error occurred while creating the panel. Please check my permissions and try again."
+      } else if (subcommand === "add") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const typeId = interaction.options.getString(
+          t.subcommands.add.options.type_id.name,
+          true
         );
-      }
-    } else if (subcommand === "add") {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const typeId = interaction.options.getString("type_id", true);
-      const label = interaction.options.getString("label", true);
-      const style = interaction.options.getString("style") || "Secondary";
-      const emoji = interaction.options.getString("emoji");
+        const label = interaction.options.getString(
+          t.subcommands.add.options.label.name,
+          true
+        );
+        const style =
+          interaction.options.getString(t.subcommands.add.options.style.name) ||
+          "Secondary";
+        const emoji = interaction.options.getString(
+          t.subcommands.add.options.emoji.name
+        );
 
-      try {
         await ticketDB
           .insertInto("ticket_types")
           .values({
@@ -260,140 +475,136 @@ export const command: Command = {
             emoji: emoji,
           })
           .execute();
-        await interaction.editReply({
-          content: `Ticket type \`${typeId}\` has been saved.`,
-        });
-      } catch (error) {
-        logger.error("Error saving ticket type:", error);
-        await interaction.editReply({
-          content: "An error occurred while saving the ticket type.",
-        });
-      }
-    } else if (subcommand === "remove") {
-      const typeId = interaction.options.getString("type_id", true);
-      try {
+        await interaction.editReply(
+          t.subcommands.add.responses.success.replace("{{typeId}}", typeId)
+        );
+      } else if (subcommand === "remove") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const typeId = interaction.options.getString(
+          t.subcommands.remove.options.type_id.name,
+          true
+        );
         const result = await ticketDB
           .deleteFrom("ticket_types")
           .where("guild_id", "=", interaction.guildId)
           .where("type_id", "=", typeId)
           .executeTakeFirst();
+
         if (result.numDeletedRows > 0) {
-          await interaction.reply({
-            content: `Ticket type with ID \`${typeId}\` has been removed.`,
-            flags: MessageFlags.Ephemeral,
-          });
-        } else {
-          await interaction.reply({
-            content: `Ticket type with ID \`${typeId}\` not found.`,
-            flags: MessageFlags.Ephemeral,
-          });
-        }
-      } catch (error) {
-        logger.error("Error removing ticket type:", error);
-        await interaction.reply({
-          content: "An error occurred while removing the ticket type.",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-    } else if (subcommand === "list") {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const ticketTypes = await ticketDB
-        .selectFrom("ticket_types")
-        .selectAll()
-        .where("guild_id", "=", interaction.guildId)
-        .orderBy("id")
-        .execute();
-
-      if (ticketTypes.length === 0) {
-        await interaction.editReply({
-          content: "No ticket types configured.",
-        });
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle("Configured Ticket Types")
-        .setDescription(
-          ticketTypes
-            .map(
-              (t) =>
-                `**Label:** ${t.label} | **ID:** \`${
-                  t.type_id
-                }\` | **Emoji:** ${t.emoji || "None"}`
-            )
-            .join("\n")
-        );
-
-      await interaction.editReply({ embeds: [embed] });
-    } else if (subcommand === "customize") {
-      const panelTitle = interaction.options.getString("title");
-      const panelAuthorIconUrl =
-        interaction.options.getString("author_icon_url");
-      const panelThumbnailUrl = interaction.options.getString("thumbnail_url");
-      const panelFooterIconUrl =
-        interaction.options.getString("footer_icon_url");
-      const messageId = interaction.options.getString("message_id");
-
-      if (
-        !panelTitle &&
-        !panelAuthorIconUrl &&
-        !panelThumbnailUrl &&
-        !panelFooterIconUrl &&
-        !messageId
-      ) {
-        await interaction.reply({
-          content: "You must provide at least one option to customize.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      const updateData: { [key: string]: string | null } = {};
-      if (panelTitle) updateData.panelTitle = panelTitle;
-      if (panelAuthorIconUrl)
-        updateData.panelAuthorIconUrl = panelAuthorIconUrl;
-      if (panelThumbnailUrl) updateData.panelThumbnailUrl = panelThumbnailUrl;
-      if (panelFooterIconUrl)
-        updateData.panelFooterIconUrl = panelFooterIconUrl;
-
-      if (messageId) {
-        try {
-          const fetchedMessage = await interaction.channel?.messages.fetch(
-            messageId
+          await interaction.editReply(
+            t.subcommands.remove.responses.success.replace("{{typeId}}", typeId)
           );
-          if (fetchedMessage) {
-            updateData.panelDescription = fetchedMessage.content;
-            await fetchedMessage.delete();
-          } else {
-            await interaction.reply({
-              content: "Message not found.",
-              flags: MessageFlags.Ephemeral,
-            });
-            return;
-          }
-        } catch (error) {
-          logger.error("Failed to fetch message:", error);
-          await interaction.reply({
-            content:
-              "Could not fetch the message. Make sure the ID is correct and I have permission to read and delete messages in this channel.",
-            flags: MessageFlags.Ephemeral,
-          });
+        } else {
+          await interaction.editReply(
+            t.subcommands.remove.responses.not_found.replace(
+              "{{typeId}}",
+              typeId
+            )
+          );
+        }
+      } else if (subcommand === "list") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const ticketTypes = await ticketDB
+          .selectFrom("ticket_types")
+          .selectAll()
+          .where("guild_id", "=", interaction.guildId)
+          .orderBy("id")
+          .execute();
+
+        if (ticketTypes.length === 0) {
+          await interaction.editReply(t.subcommands.list.responses.no_types);
           return;
         }
-      }
 
-      try {
+        const embed = new EmbedBuilder()
+          .setTitle(t.subcommands.list.responses.title)
+          .setDescription(
+            ticketTypes
+              .map((type) =>
+                t.subcommands.list.responses.type_line
+                  .replace("{{label}}", type.label)
+                  .replace("{{type_id}}", type.type_id)
+                  .replace("{{emoji}}", type.emoji || "None")
+              )
+              .join("\n")
+          );
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (subcommand === "customize") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const panelTitle = interaction.options.getString(
+          t.subcommands.customize.options.title.name
+        );
+        const panelAuthorIconUrl = interaction.options.getString(
+          t.subcommands.customize.options.author_icon_url.name
+        );
+        const panelThumbnailUrl = interaction.options.getString(
+          t.subcommands.customize.options.thumbnail_url.name
+        );
+        const panelFooterIconUrl = interaction.options.getString(
+          t.subcommands.customize.options.footer_icon_url.name
+        );
+        const messageId = interaction.options.getString(
+          t.subcommands.customize.options.message_id.name
+        );
+
+        if (
+          !panelTitle &&
+          !panelAuthorIconUrl &&
+          !panelThumbnailUrl &&
+          !panelFooterIconUrl &&
+          !messageId
+        ) {
+          await interaction.editReply(
+            t.subcommands.customize.responses.no_options
+          );
+          return;
+        }
+
+        const updateData: { [key: string]: string | null } = {};
+        if (panelTitle) updateData.panelTitle = panelTitle;
+        if (panelAuthorIconUrl)
+          updateData.panelAuthorIconUrl = panelAuthorIconUrl;
+        if (panelThumbnailUrl) updateData.panelThumbnailUrl = panelThumbnailUrl;
+        if (panelFooterIconUrl)
+          updateData.panelFooterIconUrl = panelFooterIconUrl;
+
+        if (messageId) {
+          try {
+            const fetchedMessage = await interaction.channel?.messages.fetch(
+              messageId
+            );
+            if (fetchedMessage) {
+              updateData.panelDescription = fetchedMessage.content;
+              await fetchedMessage.delete();
+            } else {
+              await interaction.editReply(
+                t.subcommands.customize.responses.message_not_found
+              );
+              return;
+            }
+          } catch (error) {
+            logger.error("Failed to fetch message:", error);
+            await interaction.editReply(
+              t.subcommands.customize.responses.message_fetch_error
+            );
+            return;
+          }
+        }
+
         await settingsManager.updateSettings(interaction.guildId, updateData);
-
+        await interaction.editReply(t.subcommands.customize.responses.success);
+      }
+    } catch (error) {
+      logger.error("Error in panel command:", error);
+      if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: "The ticket panel has been customized.",
+          content: t.general_error,
           flags: MessageFlags.Ephemeral,
         });
-      } catch (error) {
-        logger.error("Error customizing panel:", error);
-        await interaction.reply({
-          content: "An error occurred while customizing the panel.",
-          flags: MessageFlags.Ephemeral,
+      } else {
+        await interaction.editReply({
+          content: t.general_error,
         });
       }
     }
@@ -401,9 +612,13 @@ export const command: Command = {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     if (!interaction.guildId) return;
+    const t = translations[interaction.locale] || translations["en-US"];
     const focused = interaction.options.getFocused(true);
 
-    if (focused.name === "type_id") {
+    if (
+      focused.name === t.subcommands.remove.options.type_id.name ||
+      focused.name === "type_id"
+    ) {
       const ticketTypes = await ticketDB
         .selectFrom("ticket_types")
         .selectAll()
@@ -415,7 +630,9 @@ export const command: Command = {
 
       await interaction.respond(
         filtered.map((choice) => ({
-          name: `${choice.label} (${choice.type_id})`,
+          name: t.autocomplete.type_id_choice
+            .replace("{{label}}", choice.label)
+            .replace("{{type_id}}", choice.type_id),
           value: choice.type_id,
         }))
       );

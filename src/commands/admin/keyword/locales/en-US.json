@@ -1,4 +1,54 @@
 {
   "name": "keyword",
-  "description": "Manages keyword replies."
+  "description": "Manages keyword replies.",
+  "subcommands": {
+    "add": {
+      "name": "add",
+      "description": "Adds or updates a keyword.",
+      "options": {
+        "type": {
+          "name": "type",
+          "description": "The match type.",
+          "choices": {
+            "exact": "Exact Match",
+            "contains": "Contains Match"
+          }
+        },
+        "keyword": {
+          "name": "keyword",
+          "description": "The keyword to listen for."
+        },
+        "reply": {
+          "name": "reply",
+          "description": "The reply message."
+        }
+      },
+      "responses": {
+        "success": "Keyword \"{{keyword}}\" has been added/updated."
+      }
+    },
+    "remove": {
+      "name": "remove",
+      "description": "Removes a keyword.",
+      "options": {
+        "keyword": {
+          "name": "keyword",
+          "description": "The keyword to remove."
+        }
+      },
+      "responses": {
+        "success": "Keyword \"{{keyword}}\" has been removed."
+      }
+    },
+    "list": {
+      "name": "list",
+      "description": "Lists all configured keywords.",
+      "responses": {
+        "no_keywords": "No keywords are set up.",
+        "title": "**Configured Keywords:**",
+        "list_item": "**{{keyword}}** (Type: {{match_type}}):\n> {{reply}}"
+      }
+    }
+  },
+  "general_error": "An error occurred while managing keywords."
 }

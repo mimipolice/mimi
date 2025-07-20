@@ -3,10 +3,21 @@
   "description": "顯示歐狗轉蛋排行榜。",
   "options": {
     "gacha_id": {
-      "description": "要排名的轉蛋池 ID。"
+      "name": "卡池id",
+      "description": "要獲取的卡池ID。"
     },
     "period": {
-      "description": "排名的時間範圍 (例如：7d, all)。"
+      "name": "期間",
+      "description": "排名的時間範圍 預設為 7d (例如：7d, all)。"
     }
+  },
+  "responses": {
+    "invalid_period": "無效的期間格式。請使用 \"all\" 或天數 (例如：\"7d\")。",
+    "no_ranking_data": "找不到指定轉蛋池和期間的排名資料。",
+    "title": "歐狗榜 - {{gachaName}} (最近 {{period}})",
+    "global": "全卡池",
+    "no_top_tier": "沒有頂級抽卡紀錄",
+    "user_rank_line": "**{{rank}}.** {{nickname}} - {{rarityDetails}} (總計: {{totalDraws}})",
+    "error_fetching": "獲取排行榜時發生錯誤。"
   }
 }

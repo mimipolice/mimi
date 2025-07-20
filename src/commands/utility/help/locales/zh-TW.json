@@ -1,5 +1,5 @@
 {
-  "name": "help",
+  "name": "取得協助",
   "description": "顯示所有可用的指令列表。",
   "interface": {
     "title": "指令列表",

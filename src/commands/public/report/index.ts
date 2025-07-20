@@ -7,6 +7,7 @@ import {
   MediaGalleryBuilder,
   SeparatorBuilder,
   ContainerBuilder,
+  Locale,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { gachaPool } from "../../../shared/database";
@@ -18,50 +19,133 @@ import {
 import { generatePriceChart } from "../../../utils/chart-generator";
 import fs from "fs";
 import path from "path";
+import { getLocalizations } from "../../../utils/localization";
+
+const translations = getLocalizations("report");
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("report")
-    .setDescription("Generates a price report for assets.")
+    .setName(translations["en-US"].name)
+    .setDescription(translations["en-US"].description)
+    .setNameLocalizations({
+      [Locale.EnglishUS]: translations["en-US"].name,
+      [Locale.ChineseTW]: translations["zh-TW"].name,
+    })
+    .setDescriptionLocalizations({
+      [Locale.EnglishUS]: translations["en-US"].description,
+      [Locale.ChineseTW]: translations["zh-TW"].description,
+    })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("symbol")
-        .setDescription("Get a detailed report for a single asset")
+        .setName(translations["en-US"].subcommands.symbol.name)
+        .setDescription(translations["en-US"].subcommands.symbol.description)
+        .setNameLocalizations({
+          [Locale.EnglishUS]: translations["en-US"].subcommands.symbol.name,
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.symbol.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.EnglishUS]:
+            translations["en-US"].subcommands.symbol.description,
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.symbol.description,
+        })
         .addStringOption((option) =>
           option
-            .setName("symbol")
-            .setDescription("The symbol or name of the asset")
+            .setName(
+              translations["en-US"].subcommands.symbol.options.symbol.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.symbol.options.symbol
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.symbol.options.symbol.name,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.symbol.options.symbol.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.symbol.options.symbol
+                  .description,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.symbol.options.symbol
+                  .description,
+            })
             .setRequired(true)
             .setAutocomplete(true)
         )
-        .addStringOption(
-          (option) =>
-            option
-              .setName("range")
-              .setDescription("e.g., 7d, 2w, 1m, 6h. Defaults to 7d")
-              .setRequired(false)
-          //.setAutocomplete(true)
+        .addStringOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.symbol.options.range.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.symbol.options.range.description
+            )
+            .setNameLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.symbol.options.range.name,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.symbol.options.range.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.symbol.options.range
+                  .description,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.symbol.options.range
+                  .description,
+            })
+            .setRequired(false)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("list")
-        .setDescription("List all assets with their latest price")
+        .setName(translations["en-US"].subcommands.list.name)
+        .setDescription(translations["en-US"].subcommands.list.description)
+        .setNameLocalizations({
+          [Locale.EnglishUS]: translations["en-US"].subcommands.list.name,
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.EnglishUS]:
+            translations["en-US"].subcommands.list.description,
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.list.description,
+        })
     ),
 
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
       const focusedOption = interaction.options.getFocused(true);
+      const t = translations[interaction.locale] || translations["en-US"];
 
       if (focusedOption.name === "symbol") {
-        const assetListPath = path.join(__dirname, '..', '..', '..', 'config', 'asset-list.json');
-        const assetList = JSON.parse(fs.readFileSync(assetListPath, 'utf8')) as { asset_symbol: string, asset_name: string }[];
-        
+        const assetListPath = path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "config",
+          "asset-list.json"
+        );
+        const assetList = JSON.parse(
+          fs.readFileSync(assetListPath, "utf8")
+        ) as {
+          asset_symbol: string;
+          asset_name: string;
+        }[];
+
         const focusedValue = focusedOption.value.toLowerCase();
-        const choices = assetList.filter(asset => 
-          asset.asset_symbol.toLowerCase().includes(focusedValue) || 
-          asset.asset_name.toLowerCase().includes(focusedValue)
-        ).slice(0, 25);
+        const choices = assetList
+          .filter(
+            (asset) =>
+              asset.asset_symbol.toLowerCase().includes(focusedValue) ||
+              asset.asset_name.toLowerCase().includes(focusedValue)
+          )
+          .slice(0, 25);
 
         await interaction.respond(
           choices.map((choice) => ({
@@ -71,10 +155,10 @@ export default {
         );
       } else if (focusedOption.name === "range") {
         const choices = [
-          { name: "1 Day", value: "1d" },
-          { name: "7 Days", value: "7d" },
-          { name: "1 Month", value: "1m" },
-          { name: "All Time", value: "all" },
+          { name: t.autocomplete.range_1d, value: "1d" },
+          { name: t.autocomplete.range_7d, value: "7d" },
+          { name: t.autocomplete.range_1m, value: "1m" },
+          { name: t.autocomplete.range_all, value: "all" },
         ];
         await interaction.respond(choices);
       }
@@ -86,31 +170,40 @@ export default {
   async execute(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 
+    const t = translations[interaction.locale] || translations["en-US"];
+
     try {
-      await interaction.deferReply(); //{ flags: MessageFlags.Ephemeral }
+      await interaction.deferReply();
 
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {
         const assets = await getAllAssetsWithLatestPrice(gachaPool);
         if (assets.length === 0) {
-          await interaction.editReply("No assets found.");
+          await interaction.editReply(
+            t.responses.no_data.replace("{{symbol}}", "any")
+          );
           return;
         }
 
-        let reply = `**可查詢股票列表**\n-# 目前共有 ${assets.length} 支股票\n`;
+        let reply = `${
+          t.responses.list_title
+        }\n-# ${t.responses.list_total.replace(
+          "{{count}}",
+          assets.length.toString()
+        )}\n`;
         reply += assets
-          .map(
-            (asset) =>
-              `> \`${asset.asset_symbol}\` - ${
-                asset.asset_name
-              }（last update：<t:${Math.floor(
-                asset.timestamp.getTime() / 1000
-              )}:R>）`
+          .map((asset) =>
+            t.responses.list_asset_line
+              .replace("{{symbol}}", asset.asset_symbol)
+              .replace("{{name}}", asset.asset_name)
+              .replace(
+                "{{timestamp}}",
+                Math.floor(asset.timestamp.getTime() / 1000).toString()
+              )
           )
           .join("\n");
-        reply +=
-          "\n\n-# 若更新時間大於`5`分鐘可能是米米機器人出現了問題 請隨時關注最新公告";
+        reply += `\n\n-# ${t.responses.list_footer}`;
 
         await interaction.editReply(reply);
       } else if (subcommand === "symbol") {
@@ -119,9 +212,7 @@ export default {
 
         const since = parseTimeRange(range);
         if (!since) {
-          await interaction.editReply(
-            "Invalid time range. Please use a format like 7d, 2w, 1m, or a preset value."
-          );
+          await interaction.editReply(t.responses.invalid_range);
           return;
         }
 
@@ -136,7 +227,7 @@ export default {
 
         if (history.length === 0) {
           await interaction.editReply(
-            `No data found for symbol "${symbol}" in the selected time range.`
+            t.responses.no_data.replace("{{symbol}}", symbol)
           );
           return;
         }
@@ -168,26 +259,35 @@ export default {
           `# ${assetName} (${symbol})`
         );
         const rangeText = new TextDisplayBuilder().setContent(
-          `> Time Range: ${range}`
+          t.responses.report_range.replace("{{range}}", range)
         );
         const summaryText = new TextDisplayBuilder().setContent(
-          `• **High:** \`${summary.high.toFixed(
-            2
-          )}\`\n• **Low:** \`${summary.low.toFixed(
-            2
-          )}\`\n• **Average:** \`${summary.avg.toFixed(2)}\``
+          `${t.responses.summary_high.replace(
+            "{{price}}",
+            summary.high.toFixed(2)
+          )}\n${t.responses.summary_low.replace(
+            "{{price}}",
+            summary.low.toFixed(2)
+          )}\n${t.responses.summary_avg.replace(
+            "{{price}}",
+            summary.avg.toFixed(2)
+          )}`
         );
         const changeText = new TextDisplayBuilder().setContent(
-          `• **Price:** \`${summary.endPrice.toFixed(
-            2
-          )}\`\n• **Change:** \`${changeSign}${change.toFixed(
-            2
-          )}\` (${changeSign}${changePercent.toFixed(2)}%)`
+          `${t.responses.summary_price.replace(
+            "{{price}}",
+            summary.endPrice.toFixed(2)
+          )}\n${t.responses.summary_change
+            .replace("{{sign}}", changeSign)
+            .replace("{{change}}", change.toFixed(2))
+            .replace("{{percent}}", changePercent.toFixed(2))}`
         );
         const chartImage = new MediaGalleryBuilder().addItems((item) =>
           item
             .setURL("attachment://price-chart.png")
-            .setDescription(`Price chart for ${assetName}`)
+            .setDescription(
+              t.responses.chart_description.replace("{{assetName}}", assetName)
+            )
         );
 
         container.components.push(
@@ -210,12 +310,12 @@ export default {
       console.error("Execute error:", error);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: "An error occurred while fetching the report.",
+          content: t.responses.error_fetching,
           flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.followUp({
-          content: "An error occurred while fetching the report.",
+          content: t.responses.error_fetching,
           flags: MessageFlags.Ephemeral,
         });
       }

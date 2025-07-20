@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   AutocompleteInteraction,
+  Locale,
 } from "discord.js";
 import { ticketPool } from "../../../shared/database";
 import {
@@ -11,44 +12,103 @@ import {
   clearTodos,
 } from "../../../shared/database/queries";
 import { MessageFlags } from "discord-api-types/v10";
+import { getLocalizations } from "../../../utils/localization";
+
+const translations = getLocalizations("todo");
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("todo")
-    .setDescription("Manages your to-do list.")
+    .setName(translations["en-US"].name)
+    .setDescription(translations["en-US"].description)
+    .setNameLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].name,
+    })
+    .setDescriptionLocalizations({
+      [Locale.ChineseTW]: translations["zh-TW"].description,
+    })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("add")
-        .setDescription("Adds an item to your to-do list.")
+        .setName(translations["en-US"].subcommands.add.name)
+        .setDescription(translations["en-US"].subcommands.add.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+        })
         .addStringOption((option) =>
           option
-            .setName("item")
-            .setDescription("The to-do item.")
+            .setName(translations["en-US"].subcommands.add.options.item.name)
+            .setDescription(
+              translations["en-US"].subcommands.add.options.item.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.item.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.add.options.item.description,
+            })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("remove")
-        .setDescription("Removes an item from your to-do list.")
+        .setName(translations["en-US"].subcommands.remove.name)
+        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.remove.description,
+        })
         .addIntegerOption((option) =>
           option
-            .setName("id")
-            .setDescription("The ID of the item to remove.")
+            .setName(translations["en-US"].subcommands.remove.options.id.name)
+            .setDescription(
+              translations["en-US"].subcommands.remove.options.id.description
+            )
+            .setNameLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.remove.options.id.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.remove.options.id.description,
+            })
             .setRequired(true)
             .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("Lists your to-do items.")
+      subcommand
+        .setName(translations["en-US"].subcommands.list.name)
+        .setDescription(translations["en-US"].subcommands.list.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.list.description,
+        })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("clear")
-        .setDescription("Clears your entire to-do list.")
+        .setName(translations["en-US"].subcommands.clear.name)
+        .setDescription(translations["en-US"].subcommands.clear.description)
+        .setNameLocalizations({
+          [Locale.ChineseTW]: translations["zh-TW"].subcommands.clear.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]:
+            translations["zh-TW"].subcommands.clear.description,
+        })
     ),
 
   async autocomplete(interaction: AutocompleteInteraction) {
+    const t = translations[interaction.locale] || translations["en-US"];
     const focusedValue = interaction.options.getFocused();
     const todos = await getTodos(ticketPool, interaction.user.id);
     const choices = todos
@@ -56,7 +116,9 @@ export default {
         todo.item.toLowerCase().includes(focusedValue.toLowerCase())
       )
       .map((todo) => ({
-        name: `[${todo.id}] ${todo.item}`,
+        name: t.autocomplete.id_choice
+          .replace("{{id}}", todo.id.toString())
+          .replace("{{item}}", todo.item),
         value: todo.id,
       }));
     await interaction.respond(choices.slice(0, 25));
@@ -65,6 +127,7 @@ export default {
   async execute(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 
+    const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
     const userId = interaction.user.id;
 
@@ -72,38 +135,54 @@ export default {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       if (subcommand === "add") {
-        const item = interaction.options.getString("item", true);
+        const item = interaction.options.getString(
+          t.subcommands.add.options.item.name,
+          true
+        );
         await addTodo(ticketPool, userId, item);
-        await interaction.editReply(`Added "${item}" to your to-do list.`);
+        await interaction.editReply(
+          t.subcommands.add.responses.success.replace("{{item}}", item)
+        );
       } else if (subcommand === "remove") {
-        const id = interaction.options.getInteger("id", true);
+        const id = interaction.options.getInteger(
+          t.subcommands.remove.options.id.name,
+          true
+        );
         const removedCount = await removeTodo(ticketPool, id, userId);
         if (removedCount > 0) {
-          await interaction.editReply(`Removed to-do item #${id}.`);
+          await interaction.editReply(
+            t.subcommands.remove.responses.success.replace(
+              "{{id}}",
+              id.toString()
+            )
+          );
         } else {
           await interaction.editReply(
-            `Could not find a to-do item with ID #${id} that belongs to you.`
+            t.subcommands.remove.responses.not_found.replace(
+              "{{id}}",
+              id.toString()
+            )
           );
         }
       } else if (subcommand === "list") {
         const todos = await getTodos(ticketPool, userId);
         if (todos.length === 0) {
-          await interaction.editReply("Your to-do list is empty.");
+          await interaction.editReply(t.subcommands.list.responses.empty);
           return;
         }
         const list = todos
           .map((todo) => `**${todo.id}**: ${todo.item}`)
           .join("\n");
-        await interaction.editReply(`**Your To-Do List:**\n${list}`);
+        await interaction.editReply(
+          `${t.subcommands.list.responses.title}\n${list}`
+        );
       } else if (subcommand === "clear") {
         await clearTodos(ticketPool, userId);
-        await interaction.editReply("Your to-do list has been cleared.");
+        await interaction.editReply(t.subcommands.clear.responses.success);
       }
     } catch (error) {
       console.error("Todo command error:", error);
-      await interaction.editReply(
-        "An error occurred while managing your to-do list."
-      );
+      await interaction.editReply(t.general_error);
     }
   },
 };

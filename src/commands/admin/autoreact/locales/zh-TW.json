@@ -3,26 +3,44 @@
   "description": "管理頻道的自動反應。",
   "subcommands": {
     "set": {
+      "name": "設定",
       "description": "為頻道設定自動反應。",
       "options": {
         "emoji": {
+          "name": "表情符號",
           "description": "要用來反應的表情符號。"
         },
         "channel": {
+          "name": "頻道",
           "description": "要設定自動反應的頻道。"
         }
+      },
+      "responses": {
+        "success": "已成功為 <#{{channelId}}> 設定自動反應為 {{emoji}}。"
       }
     },
     "remove": {
+      "name": "移除",
       "description": "移除頻道的自動反應。",
       "options": {
         "channel": {
+          "name": "頻道",
           "description": "要移除自動反應的頻道。"
         }
+      },
+      "responses": {
+        "success": "已成功移除 <#{{channelId}}> 的自動反應。"
       }
     },
     "list": {
-      "description": "列出所有自動反應設定。"
+      "name": "列表",
+      "description": "列出所有自動反應設定。",
+      "responses": {
+        "no_configs": "目前沒有設定任何自動反應。",
+        "title": "**自動反應設定：**",
+        "list_item": "<#{{channelId}}>: {{emoji}}"
+      }
     }
-  }
+  },
+  "general_error": "在管理自動反應時發生錯誤。"
 }

@@ -1,26 +1,47 @@
 import {
   SlashCommandBuilder,
   CommandInteraction,
-  AutocompleteInteraction,
   ContainerBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
+  Locale,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { getOdogRankings } from "../../../shared/database/queries";
 import { odogPool } from "../../../shared/database";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
+import { getLocalizations } from "../../../utils/localization";
+
+const translations = getLocalizations("odog");
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("odog")
-    .setDescription("Shows the Odog gacha rankings.")
+    .setName(translations["en-US"].name)
+    .setDescription(translations["en-US"].description)
+    .setNameLocalizations({
+      [Locale.EnglishUS]: translations["en-US"].name,
+      [Locale.ChineseTW]: translations["zh-TW"].name,
+    })
+    .setDescriptionLocalizations({
+      [Locale.EnglishUS]: translations["en-US"].description,
+      [Locale.ChineseTW]: translations["zh-TW"].description,
+    })
     .setDefaultMemberPermissions(0)
     .addStringOption((option) =>
       option
-        .setName("gacha_id")
-        .setDescription("The ID of the gacha pool to rank.")
+        .setName(translations["en-US"].options.gacha_id.name)
+        .setDescription(translations["en-US"].options.gacha_id.description)
+        .setNameLocalizations({
+          [Locale.EnglishUS]: translations["en-US"].options.gacha_id.name,
+          [Locale.ChineseTW]: translations["zh-TW"].options.gacha_id.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.EnglishUS]:
+            translations["en-US"].options.gacha_id.description,
+          [Locale.ChineseTW]:
+            translations["zh-TW"].options.gacha_id.description,
+        })
         .setRequired(false)
         .setChoices(
           ...Object.entries(poolTypeNames).map(([value, name]) => ({
@@ -31,25 +52,39 @@ export default {
     )
     .addStringOption((option) =>
       option
-        .setName("period")
-        .setDescription("The time period for the rankings (e.g., 7d, all)")
+        .setName(translations["en-US"].options.period.name)
+        .setDescription(translations["en-US"].options.period.description)
+        .setNameLocalizations({
+          [Locale.EnglishUS]: translations["en-US"].options.period.name,
+          [Locale.ChineseTW]: translations["zh-TW"].options.period.name,
+        })
+        .setDescriptionLocalizations({
+          [Locale.EnglishUS]: translations["en-US"].options.period.description,
+          [Locale.ChineseTW]: translations["zh-TW"].options.period.description,
+        })
         .setRequired(false)
     ),
 
   async execute(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 
+    const t = translations[interaction.locale] || translations["en-US"];
+
     await interaction.deferReply();
 
     try {
-      const gachaId = interaction.options.getString("gacha_id");
-      const period = interaction.options.getString("period") ?? "7d";
+      const gachaId = interaction.options.getString(
+        translations["en-US"].options.gacha_id.name
+      );
+      const period =
+        interaction.options.getString(
+          translations["en-US"].options.period.name
+        ) ?? "7d";
       const days = period === "all" ? "all" : parseInt(period.replace("d", ""));
 
       if (isNaN(days as number) && days !== "all") {
         await interaction.editReply({
-          content:
-            'Invalid period format. Use "all" or a number of days (e.g., "7d").',
+          content: t.responses.invalid_period,
         });
         return;
       }
@@ -61,9 +96,7 @@ export default {
       );
 
       if (rankings.length === 0) {
-        await interaction.editReply(
-          "No ranking data found for the specified gacha pool and period."
-        );
+        await interaction.editReply(t.responses.no_ranking_data);
         return;
       }
 
@@ -79,9 +112,11 @@ export default {
         (gachaId && (poolTypeNames as Record<string, string>)[gachaId]) ||
         (gachaPoolInfo
           ? `${gachaPoolInfo.gacha_name} (${gachaPoolInfo.gacha_name_alias})`
-          : "Global");
+          : t.responses.global);
 
-      const titleText = `Odog Rankings for ${gachaName} (Last ${period})`;
+      const titleText = t.responses.title
+        .replace("{{gachaName}}", gachaName)
+        .replace("{{period}}", period);
 
       const title = new TextDisplayBuilder().setContent(`# ${titleText}`);
       container.components.push(title, new SeparatorBuilder());
@@ -92,12 +127,14 @@ export default {
               .sort(([a], [b]) => Number(b) - Number(a))
               .map(([rarity, count]) => `R${rarity}: ${count}`)
               .join(" | ")
-          : "No top-tier draws";
+          : t.responses.no_top_tier;
 
         const userRankText = new TextDisplayBuilder().setContent(
-          `**${index + 1}.** ${
-            user.nickname || `User ${user.user_id}`
-          } - ${rarityDetails} (Total: ${user.total_draws})`
+          t.responses.user_rank_line
+            .replace("{{rank}}", (index + 1).toString())
+            .replace("{{nickname}}", user.nickname || `User ${user.user_id}`)
+            .replace("{{rarityDetails}}", rarityDetails)
+            .replace("{{totalDraws}}", user.total_draws.toString())
         );
         container.components.push(userRankText);
       });
@@ -110,7 +147,7 @@ export default {
       console.error(error);
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({
-          content: "An error occurred while fetching the rankings.",
+          content: t.responses.error_fetching,
         });
       }
     }

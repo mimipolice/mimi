@@ -3,23 +3,43 @@
   "description": "客服單相關指令。",
   "subcommands": {
     "add": {
+      "name": "新增成員",
       "description": "將使用者新增至客服單。",
       "options": {
         "user": {
+          "name": "使用者",
           "description": "要新增的使用者。"
         }
+      },
+      "responses": {
+        "success": "✅ 已成功將 {{userTag}} 新增至此客服單。",
+        "not_ticket": "❌ 此指令只能在客服單頻道中使用。",
+        "user_not_found": "❌ 找不到該使用者。"
       }
     },
     "remove": {
+      "name": "移除成員",
       "description": "將使用者從客服單中移除。",
       "options": {
         "user": {
+          "name": "使用者",
           "description": "要移除的使用者。"
         }
+      },
+      "responses": {
+        "success": "✅ 已成功從此客服單移除 {{userTag}}。",
+        "not_ticket": "❌ 此指令只能在客服單頻道中使用。",
+        "user_not_found": "❌ 找不到該使用者。"
       }
     },
     "purge": {
-      "description": "永久刪除所有客服單並重設 ID 計數器。"
+      "name": "清除",
+      "description": "永久刪除所有客服單並重設 ID 計數器。",
+      "responses": {
+        "no_permission": "❌ 您沒有權限使用此指令。",
+        "confirmation_prompt": "⚠️ **危險** ⚠️\n此操作將永久刪除 **所有** 客服單並重設 ID 計數器。此動作無法復原。",
+        "confirm_button": "確認永久刪除"
+      }
     }
   }
 }

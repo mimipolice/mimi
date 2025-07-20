@@ -1,4 +1,46 @@
 {
   "name": "report",
-  "description": "Generates a price report for assets."
+  "description": "Generates a price report for assets.",
+  "subcommands": {
+    "symbol": {
+      "name": "symbol",
+      "description": "Get a detailed report for a single asset.",
+      "options": {
+        "symbol": {
+          "name": "symbol",
+          "description": "The symbol or name of the asset to query."
+        },
+        "range": {
+          "name": "range",
+          "description": "The time range to query (e.g., 7d, 2w, 1m, 6h, defaults to 7d)."
+        }
+      }
+    },
+    "list": {
+      "name": "list",
+      "description": "List all queryable assets and their latest prices."
+    }
+  },
+  "responses": {
+    "list_title": "**Queryable Asset List**",
+    "list_total": "There are currently {{count}} assets",
+    "list_asset_line": "> `{{symbol}}` - {{name}} (Last update: <t:{{timestamp}}:R>)",
+    "list_footer": "If the update time is more than `5` minutes ago, there might be an issue with the bot. Please check for announcements.",
+    "invalid_range": "Invalid time range. Please use a format like 7d, 2w, 1m, or a preset value.",
+    "no_data": "No data found for symbol `{{symbol}}` in the selected time range.",
+    "report_range": "> Time Range: {{range}}",
+    "summary_high": "• **High:** `{{price}}`",
+    "summary_low": "• **Low:** `{{price}}`",
+    "summary_avg": "• **Average:** `{{price}}`",
+    "summary_price": "• **Price:** `{{price}}`",
+    "summary_change": "• **Change:** `{{sign}}{{change}}` ({{sign}}{{percent}}%)",
+    "chart_description": "Price chart for {{assetName}}",
+    "error_fetching": "An error occurred while fetching the report."
+  },
+  "autocomplete": {
+    "range_1d": "1 Day",
+    "range_7d": "7 Days",
+    "range_1m": "1 Month",
+    "range_all": "All Time"
+  }
 }

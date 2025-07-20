@@ -1,4 +1,46 @@
 {
   "name": "autoreact",
-  "description": "Manages auto-reactions for channels."
+  "description": "Manages auto-reactions for channels.",
+  "subcommands": {
+    "set": {
+      "name": "set",
+      "description": "Sets an auto-reaction for a channel.",
+      "options": {
+        "emoji": {
+          "name": "emoji",
+          "description": "The emoji to react with."
+        },
+        "channel": {
+          "name": "channel",
+          "description": "The channel to set the auto-reaction for."
+        }
+      },
+      "responses": {
+        "success": "Auto-reaction set to {{emoji}} for <#{{channelId}}>."
+      }
+    },
+    "remove": {
+      "name": "remove",
+      "description": "Removes the auto-reaction from a channel.",
+      "options": {
+        "channel": {
+          "name": "channel",
+          "description": "The channel to remove the auto-reaction from."
+        }
+      },
+      "responses": {
+        "success": "Auto-reaction removed from <#{{channelId}}>."
+      }
+    },
+    "list": {
+      "name": "list",
+      "description": "Lists all auto-reaction configurations.",
+      "responses": {
+        "no_configs": "No auto-reactions are set up.",
+        "title": "**Auto-reactions:**",
+        "list_item": "<#{{channelId}}>: {{emoji}}"
+      }
+    }
+  },
+  "general_error": "An error occurred while managing auto-reactions."
 }
