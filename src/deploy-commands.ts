@@ -68,7 +68,12 @@ for (const file of commandFiles) {
     }
 
     command.data.setNameLocalizations(nameLocalizations);
-    command.data.setDescriptionLocalizations(descriptionLocalizations);
+    if (
+      "setDescriptionLocalizations" in command.data &&
+      Object.keys(descriptionLocalizations).length > 0
+    ) {
+      command.data.setDescriptionLocalizations(descriptionLocalizations);
+    }
 
     // --- Recursive function to apply localizations to options ---
     function applyNestedLocalizations(options: any[], translations: any) {

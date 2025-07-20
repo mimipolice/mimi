@@ -3,12 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
-import logger from "./utils/logger.js";
-import { SettingsManager } from "./services/SettingsManager.js";
-import { TicketManager } from "./services/TicketManager.js";
-import { PriceAlerter } from "./services/PriceAlerter.js";
-import { migrateToLatest, gachaDB, ticketDB } from "./shared/database/index.js";
-import { loadCaches } from "./shared/cache.js";
+import logger from "./utils/logger";
+import { SettingsManager } from "./services/SettingsManager";
+import { TicketManager } from "./services/TicketManager";
+import { PriceAlerter } from "./services/PriceAlerter";
+import { migrateToLatest, gachaDB, ticketDB } from "./shared/database/index";
+import { loadCaches } from "./shared/cache";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,

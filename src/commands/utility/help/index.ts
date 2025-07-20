@@ -29,7 +29,7 @@ import { join } from "path";
  */
 function getCommandsByCategory(client: Client): Map<string, Command[]> {
   const categories = new Map<string, Command[]>();
-  const commandCategories = client.commandCategories as Collection<
+  const commandCategories = (client as any).commandCategories as Collection<
     string,
     Collection<string, Command>
   >;

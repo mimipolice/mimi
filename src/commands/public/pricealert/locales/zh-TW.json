@@ -21,6 +21,10 @@
         "price": {
           "name": "價格",
           "description": "目標價格"
+        },
+        "repeatable": {
+          "name": "重複",
+          "description": "提醒是否應該重複"
         }
       },
       "responses": {
@@ -55,6 +59,10 @@
   },
   "autocomplete": {
     "alert_id_choice": "ID: {{id}} - {{assetSymbol}} {{condition}} {{targetPrice}}"
+  },
+  "notification": {
+    "title": "🔔 **股價提醒** 🔔",
+    "body": "您設定的 **{{assetSymbol}}** 價格提醒已觸發！\n\n> **條件:** {{condition}} {{targetPrice}}\n> **目前價格:** {{currentPrice}}"
   },
   "general_error": "處理您的指令時發生錯誤。"
 }

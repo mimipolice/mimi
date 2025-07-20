@@ -59,7 +59,9 @@ export default {
         userId,
         asset.asset_symbol,
         condition as "above" | "below",
-        targetPrice
+        targetPrice,
+        false,
+        interaction.locale
       );
 
       // --- 回覆詳細訊息 ---

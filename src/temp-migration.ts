@@ -1,6 +1,6 @@
-import 'dotenv/config';
-import { Pool } from 'pg';
-import logger from './utils/logger.js';
+import "dotenv/config";
+import { Pool } from "pg";
+import logger from "./utils/logger";
 
 async function runMigration() {
   const db = new Pool({
@@ -12,10 +12,14 @@ async function runMigration() {
   });
 
   try {
-    await db.query('ALTER TABLE guild_settings ADD COLUMN IF NOT EXISTS "archiveCategoryId" VARCHAR(255) NULL;');
-    logger.info('Migration successful: "archiveCategoryId" column added to guild_settings table.');
+    await db.query(
+      'ALTER TABLE guild_settings ADD COLUMN IF NOT EXISTS "archiveCategoryId" VARCHAR(255) NULL;'
+    );
+    logger.info(
+      'Migration successful: "archiveCategoryId" column added to guild_settings table.'
+    );
   } catch (error) {
-    logger.error('Migration failed:', error);
+    logger.error("Migration failed:", error);
   } finally {
     await db.end();
     process.exit(0);

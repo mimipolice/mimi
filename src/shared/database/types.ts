@@ -55,5 +55,7 @@ export interface DB {
     target_price: number;
     created_at: ColumnType<Date, string, string>;
     last_notified_at: ColumnType<Date, string, string> | null;
+    repeatable: ColumnType<boolean, boolean, boolean>;
+    locale: string;
   };
 }

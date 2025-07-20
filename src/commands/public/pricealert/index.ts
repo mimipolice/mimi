@@ -163,6 +163,31 @@ export default {
             })
             .setRequired(true)
         )
+        .addBooleanOption((option) =>
+          option
+            .setName(
+              translations["en-US"].subcommands.set.options.repeatable.name
+            )
+            .setDescription(
+              translations["en-US"].subcommands.set.options.repeatable
+                .description
+            )
+            .setNameLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.set.options.repeatable.name,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.repeatable.name,
+            })
+            .setDescriptionLocalizations({
+              [Locale.EnglishUS]:
+                translations["en-US"].subcommands.set.options.repeatable
+                  .description,
+              [Locale.ChineseTW]:
+                translations["zh-TW"].subcommands.set.options.repeatable
+                  .description,
+            })
+            .setRequired(false)
+        )
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -274,6 +299,10 @@ export default {
           t.subcommands.set.options.price.name,
           true
         );
+        const repeatable =
+          interaction.options.getBoolean(
+            t.subcommands.set.options.repeatable.name
+          ) ?? false;
 
         const asset = assetList.find((a) => a.symbol.toLowerCase() === symbol);
 
@@ -300,7 +329,9 @@ export default {
           userId,
           asset.symbol,
           condition,
-          targetPrice
+          targetPrice,
+          repeatable,
+          interaction.locale
         );
 
         // --- Respond with details ---
@@ -334,6 +365,7 @@ export default {
         }
 
         const alertList = alerts
+          .sort((a, b) => a.target_price - b.target_price)
           .map((alert) => {
             const condition = alert.condition === "above" ? ">" : "<";
             return t.subcommands.list.responses.alert_line

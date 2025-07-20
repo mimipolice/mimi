@@ -1,12 +1,16 @@
-import { Client } from "discord.js";
+import { Client, Locale } from "discord.js";
 import { Pool } from "pg";
 import {
   getAllPriceAlerts,
-  updatePriceAlertNotified,
+  removePriceAlert,
   getAllAssetsWithLatestPrice,
   PriceAlert,
+  updatePriceAlertNotified,
 } from "../shared/database/queries";
 import logger from "../utils/logger";
+import { getLocalizations } from "../utils/localization";
+
+const translations = getLocalizations("pricealert");
 
 export class PriceAlerter {
   private client: Client;
@@ -58,7 +62,11 @@ export class PriceAlerter {
 
         if (conditionMet) {
           await this.sendNotification(alert, currentPrice);
-          await updatePriceAlertNotified(this.pool, alert.id);
+          if (alert.repeatable) {
+            await updatePriceAlertNotified(this.pool, alert.id);
+          } else {
+            await removePriceAlert(this.pool, alert.id, alert.user_id);
+          }
         }
       }
     } catch (error) {
@@ -74,11 +82,20 @@ export class PriceAlerter {
         return;
       }
 
-      const message = `🔔 **股價提醒** 🔔\n您設定的 **${
-        alert.asset_symbol
-      }** 價格提醒已觸發！\n\n> **條件:** ${
-        alert.condition === "above" ? "高於" : "低於"
-      } ${alert.target_price}\n> **目前價格:** ${currentPrice.toFixed(2)}`;
+      const t = translations[alert.locale] || translations["en-US"];
+
+      const conditionText =
+        alert.condition === "above"
+          ? t.subcommands.set.options.condition.choices.above
+          : t.subcommands.set.options.condition.choices.below;
+
+      const message =
+        `${t.notification.title}\n` +
+        t.notification.body
+          .replace("{{assetSymbol}}", alert.asset_symbol)
+          .replace("{{condition}}", conditionText)
+          .replace("{{targetPrice}}", alert.target_price.toString())
+          .replace("{{currentPrice}}", currentPrice.toFixed(2));
 
       await user.send(message);
       logger.info(`Sent price alert notification to ${user.tag}`);

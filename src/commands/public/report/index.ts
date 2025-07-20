@@ -278,7 +278,7 @@ export default {
             "{{price}}",
             summary.endPrice.toFixed(2)
           )}\n${t.responses.summary_change
-            .replace("{{sign}}", changeSign)
+            .replace(/{{sign}}/g, changeSign)
             .replace("{{change}}", change.toFixed(2))
             .replace("{{percent}}", changePercent.toFixed(2))}`
         );

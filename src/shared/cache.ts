@@ -1,7 +1,7 @@
-import logger from "../utils/logger.js";
+import logger from "../utils/logger";
 import { poolTypeNames } from "../config/gacha";
-import { ticketPool } from "./database/index.js";
-import { getAllKeywords } from "./database/queries.js";
+import { ticketPool } from "./database/index";
+import { getAllKeywords } from "./database/queries";
 
 // Define the type based on the expected structure
 export interface GachaPool {

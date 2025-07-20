@@ -656,6 +656,8 @@ export interface PriceAlert {
   condition: "above" | "below";
   target_price: number;
   created_at: Date;
+  repeatable: boolean;
+  locale: string;
 }
 
 export async function createPriceAlert(
@@ -663,13 +665,22 @@ export async function createPriceAlert(
   userId: string,
   assetSymbol: string,
   condition: "above" | "below",
-  targetPrice: number
+  targetPrice: number,
+  repeatable: boolean,
+  locale: string
 ): Promise<void> {
   const query = `
-    INSERT INTO price_alerts (user_id, asset_symbol, condition, target_price)
-    VALUES ($1, $2, $3, $4);
+    INSERT INTO price_alerts (user_id, asset_symbol, condition, target_price, repeatable, locale)
+    VALUES ($1, $2, $3, $4, $5, $6);
   `;
-  await pool.query(query, [userId, assetSymbol, condition, targetPrice]);
+  await pool.query(query, [
+    userId,
+    assetSymbol,
+    condition,
+    targetPrice,
+    repeatable,
+    locale,
+  ]);
 }
 
 export async function getUserPriceAlerts(
@@ -677,7 +688,7 @@ export async function getUserPriceAlerts(
   userId: string
 ): Promise<PriceAlert[]> {
   const query = `
-    SELECT id, asset_symbol, condition, target_price, created_at
+    SELECT id, asset_symbol, condition, target_price, created_at, repeatable, locale
     FROM price_alerts
     WHERE user_id = $1
     ORDER BY created_at DESC;
@@ -701,9 +712,9 @@ export async function removePriceAlert(
 
 export async function getAllPriceAlerts(pool: Pool): Promise<PriceAlert[]> {
   const query = `
-    SELECT id, user_id, asset_symbol, condition, target_price
+    SELECT id, user_id, asset_symbol, condition, target_price, repeatable, locale
     FROM price_alerts
-    WHERE last_notified_at IS NULL OR last_notified_at < NOW() - INTERVAL '1 hour';
+    WHERE last_notified_at IS NULL OR (repeatable = TRUE AND last_notified_at < NOW() - INTERVAL '1 hour');
   `;
   const result = await pool.query(query);
   return result.rows;

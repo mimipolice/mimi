@@ -21,6 +21,10 @@
         "price": {
           "name": "price",
           "description": "The target price"
+        },
+        "repeatable": {
+          "name": "repeatable",
+          "description": "Whether the alert should be repeatable"
         }
       },
       "responses": {
@@ -55,6 +59,10 @@
   },
   "autocomplete": {
     "alert_id_choice": "ID: {{id}} - {{assetSymbol}} {{condition}} {{targetPrice}}"
+  },
+  "notification": {
+    "title": "🔔 **Price Alert** 🔔",
+    "body": "Your price alert for **{{assetSymbol}}** has been triggered!\n\n> **Condition:** {{condition}} {{targetPrice}}\n> **Current Price:** {{currentPrice}}"
   },
   "general_error": "An error occurred while processing your command."
 }
