@@ -16,6 +16,7 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 // ---
 // Load configs
@@ -271,7 +272,7 @@ export default {
         await interaction.respond(choices.slice(0, 25));
       }
     } catch (error) {
-      console.error("Autocomplete error in pricealert:", error);
+      logger.error("Autocomplete error in pricealert:", error);
     }
   },
 
@@ -410,7 +411,7 @@ export default {
         }
       }
     } catch (error) {
-      console.error("Price alert command error:", error);
+      logger.error("Price alert command error:", error);
       const errorMessage = t.general_error;
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({

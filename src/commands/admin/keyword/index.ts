@@ -14,6 +14,7 @@ import {
 import { loadCaches } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const translations = getLocalizations("keyword");
 
@@ -228,7 +229,7 @@ export default {
         );
       }
     } catch (error) {
-      console.error("Keyword command error:", error);
+      logger.error("Keyword command error:", error);
       await interaction.editReply(t.general_error);
     }
   },

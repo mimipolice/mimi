@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-
+import logger from "../../utils/logger";
 interface PriceHistory {
   price: number;
   timestamp: Date;
@@ -505,7 +505,7 @@ export async function getUserReportData(
   pool: Pool,
   userId: string
 ): Promise<any> {
-  console.log(`Fetching report data for user ${userId}...`);
+  logger.info(`Fetching report data for user ${userId}...`);
 
   try {
     // Query 1: Top 3 Commands
@@ -594,7 +594,7 @@ export async function getUserReportData(
       rarityStats,
     };
   } catch (error) {
-    console.error("Error fetching user report data:", error);
+    logger.error("Error fetching user report data:", error);
     return {
       topCommands: "查詢錯誤",
       spendingVsIncome: "查詢錯誤",

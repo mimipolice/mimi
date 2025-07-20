@@ -20,6 +20,7 @@ import { generatePriceChart } from "../../../utils/chart-generator";
 import fs from "fs";
 import path from "path";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const translations = getLocalizations("report");
 
@@ -163,7 +164,7 @@ export default {
         await interaction.respond(choices);
       }
     } catch (error) {
-      console.error("Autocomplete error:", error);
+      logger.error("Autocomplete error:", error);
     }
   },
 
@@ -307,7 +308,7 @@ export default {
         });
       }
     } catch (error) {
-      console.error("Execute error:", error);
+      logger.error("Execute error:", error);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: t.responses.error_fetching,

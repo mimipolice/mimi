@@ -1,4 +1,8 @@
 {
   "name": "Message Info",
-  "description": "Get information about a message."
+  "description": "Get information about a message.",
+  "messageInfo": {
+    "id": "ID",
+    "content": "Content"
+  }
 }

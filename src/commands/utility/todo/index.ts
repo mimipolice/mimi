@@ -13,6 +13,7 @@ import {
 } from "../../../shared/database/queries";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const translations = getLocalizations("todo");
 
@@ -181,7 +182,7 @@ export default {
         await interaction.editReply(t.subcommands.clear.responses.success);
       }
     } catch (error) {
-      console.error("Todo command error:", error);
+      logger.error("Todo command error:", error);
       await interaction.editReply(t.general_error);
     }
   },

@@ -18,15 +18,12 @@ export const command: Command = {
       [Locale.ChineseTW]: translations["zh-TW"].name,
     })
     .setType(ApplicationCommandType.Message),
-  async execute(
-    interaction: MessageContextMenuCommandInteraction,
-    client: Client
-  ) {
+  async execute(interaction: MessageContextMenuCommandInteraction) {
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetMessage = interaction.targetMessage;
 
     await interaction.reply({
-      content: `Message Info:\n- ID: ${targetMessage.id}\n- Content: ${targetMessage.content}`,
+      content: `${t.messageInfo.id}: ${targetMessage.id}\n${t.messageInfo.content}: ${targetMessage.content}`,
       ephemeral: true,
     });
   },

@@ -52,6 +52,33 @@ export async function execute(
         });
       }
     }
+  } else if (interaction.isContextMenuCommand()) {
+    const command = client.commands.get(interaction.commandName) as Command;
+    if (!command) return;
+
+    try {
+      await command.execute(
+        interaction,
+        client,
+        settingsManager,
+        ticketManager,
+        gachaDb,
+        ticketDb
+      );
+    } catch (error) {
+      logger.error("Error executing context menu command:", error);
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({
+          content: "There was an error while executing this command!",
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        await interaction.reply({
+          content: "There was an error while executing this command!",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    }
   } else if (interaction.isButton()) {
     const button = client.buttons.find((b) => {
       if (typeof b.name === "string") {

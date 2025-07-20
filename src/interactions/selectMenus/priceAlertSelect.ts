@@ -4,6 +4,7 @@ import {
   createPriceAlert,
   getAllAssetsWithLatestPrice,
 } from "../../shared/database/queries";
+import logger from "../../utils/logger";
 import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
@@ -81,7 +82,7 @@ export default {
         components: [], // 移除選單
       });
     } catch (error) {
-      console.error("Error executing price alert select menu:", error);
+      logger.error("Error executing price alert select menu:", error);
       await interaction.update({
         content: "處理您的選擇時發生了未預期的錯誤。",
         components: [],

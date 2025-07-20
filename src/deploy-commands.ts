@@ -3,7 +3,7 @@ import { Routes } from "discord-api-types/v10";
 import config from "./config";
 import fs from "node:fs";
 import path from "node:path";
-
+import logger from "./utils/logger";
 const commands = [];
 const commandsPath = path.join(__dirname, "commands");
 
@@ -51,7 +51,7 @@ for (const file of commandFiles) {
       try {
         allTranslations[locale] = require(path.join(localesDir, localeFile));
       } catch (e) {
-        console.error(`Error parsing ${localeFile}`, e);
+        logger.error(`Error parsing ${localeFile}`, e);
       }
     }
 
@@ -151,6 +151,6 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
       `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 })();

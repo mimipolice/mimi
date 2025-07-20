@@ -14,6 +14,7 @@ import { ticketPool } from "../../../shared/database";
 import { loadCaches } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const translations = getLocalizations("autoreact");
 
@@ -175,7 +176,7 @@ export default {
         );
       }
     } catch (error) {
-      console.error("Autoreact command error:", error);
+      logger.error("Autoreact command error:", error);
       await interaction.editReply(t.general_error);
     }
   },

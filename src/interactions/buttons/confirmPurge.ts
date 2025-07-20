@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { ticketPool } from "../../shared/database";
 import { MessageFlags } from "discord-api-types/v10";
+import logger from "../../utils/logger";
 
 export default {
   name: "confirm_purge:",
@@ -44,7 +45,7 @@ export default {
         components: [{ type: 1, components: [disabledButton] }],
       });
     } catch (error) {
-      console.error("Failed to purge tickets:", error);
+      logger.error("Failed to purge tickets:", error);
       await interaction.editReply({
         content:
           "An error occurred while trying to purge the tickets. Please check the logs.",

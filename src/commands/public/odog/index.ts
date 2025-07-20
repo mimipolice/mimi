@@ -12,6 +12,7 @@ import { odogPool } from "../../../shared/database";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const translations = getLocalizations("odog");
 
@@ -144,7 +145,7 @@ export default {
         flags: MessageFlags.IsComponentsV2,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({
           content: t.responses.error_fetching,
