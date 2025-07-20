@@ -9,13 +9,13 @@ import {
   ContainerBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { gachaPool } from "../shared/database";
+import { gachaPool } from "../../shared/database";
 import {
   getAllAssetsWithLatestPrice,
   searchAssets,
   getPriceHistoryWithVolume,
-} from "../shared/database/queries";
-import { generatePriceChart } from "../utils/chart-generator";
+} from "../../shared/database/queries";
+import { generatePriceChart } from "../../utils/chart-generator";
 
 export default {
   data: new SlashCommandBuilder()

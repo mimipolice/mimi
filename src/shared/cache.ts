@@ -1,34 +1,32 @@
-import { ticketPool } from "./database";
-import {
-  Keyword,
-  AutoReact,
-  getAllKeywords,
-  getAllAutoreacts,
-} from "./database/queries";
+import logger from "../utils/logger.js";
+import { poolTypeNames } from "../config/gacha";
 
-export { Keyword };
+// Define the type based on the expected structure
+export interface GachaPool {
+  gacha_id: string;
+  gacha_name: string;
+  gacha_name_alias: string;
+}
 
-// In-memory cache
-export let autoReactCache = new Map<string, string>();
-export let keywordCache = new Map<string, Keyword[]>();
+let gachaPoolsCache: GachaPool[] = [];
 
 export async function loadCaches() {
-  // Load auto-reactions
-  const autoreacts = await getAllAutoreacts(ticketPool);
-  autoReactCache.clear();
-  for (const ar of autoreacts) {
-    autoReactCache.set(ar.channel_id, ar.emoji);
-  }
-  console.log(`Loaded ${autoReactCache.size} auto-reactions into cache.`);
+  await loadGachaPools();
+}
 
-  // Load keywords
-  const keywords = await getAllKeywords(ticketPool);
-  keywordCache.clear();
-  for (const kw of keywords) {
-    if (!keywordCache.has(kw.guild_id)) {
-      keywordCache.set(kw.guild_id, []);
-    }
-    keywordCache.get(kw.guild_id)!.push(kw);
+async function loadGachaPools() {
+  try {
+    gachaPoolsCache = Object.entries(poolTypeNames).map(([id, name]) => ({
+      gacha_id: id,
+      gacha_name: name,
+      gacha_name_alias: name,
+    }));
+    logger.debug(`Successfully cached ${gachaPoolsCache.length} gacha pools.`);
+  } catch (error) {
+    logger.error("Failed to load and cache gacha pools:", error);
   }
-  console.log(`Loaded ${keywords.length} keywords into cache.`);
+}
+
+export function getGachaPoolsCache(): GachaPool[] {
+  return gachaPoolsCache;
 }

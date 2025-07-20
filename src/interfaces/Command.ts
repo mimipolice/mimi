@@ -11,6 +11,9 @@ import { Kysely } from "kysely";
 
 export interface Command {
   data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
+  detailedHelpPath?: string;
+  restrictedRoles?: string[];
+  channelPermissions?: bigint[];
   execute(
     interaction: ChatInputCommandInteraction,
     client: Client,

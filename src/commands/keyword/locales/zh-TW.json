@@ -1,0 +1,35 @@
+{
+  "name": "關鍵字",
+  "description": "管理關鍵字回覆。",
+  "subcommands": {
+    "add": {
+      "description": "新增或更新關鍵字。",
+      "options": {
+        "type": {
+          "description": "比對類型。",
+          "choices": {
+            "exact": "完全比對",
+            "contains": "包含比對"
+          }
+        },
+        "keyword": {
+          "description": "要監聽的關鍵字。"
+        },
+        "reply": {
+          "description": "回覆的訊息。"
+        }
+      }
+    },
+    "remove": {
+      "description": "移除關鍵字。",
+      "options": {
+        "keyword": {
+          "description": "要移除的關鍵字。"
+        }
+      }
+    },
+    "list": {
+      "description": "列出所有已設定的關鍵字。"
+    }
+  }
+}

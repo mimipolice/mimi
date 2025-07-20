@@ -23,6 +23,15 @@ export const ticketPool = new Pool({
   port: Number(process.env.DB_TICKET_PORT),
 });
 
+// Odog Database Pool
+export const odogPool = new Pool({
+  host: process.env.ODOG_DB_HOST,
+  user: process.env.ODOG_DB_USER,
+  password: process.env.ODOG_DB_PASSWORD,
+  database: process.env.ODOG_DB_DATABASE,
+  port: Number(process.env.ODOG_DB_PORT),
+});
+
 // Kysely instances for query building
 export const gachaDB = new Kysely<DB>({
   dialect: new PostgresDialect({ pool: gachaPool }),

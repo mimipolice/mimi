@@ -1,0 +1,15 @@
+{
+  "name": "help",
+  "description": "Displays a list of available commands.",
+  "interface": {
+    "title": "Help Menu",
+    "select_placeholder": "Select a category...",
+    "initial_description": "Please select a category to see the commands within it.",
+    "select_command_prompt": "Please select a command to see its details.",
+    "no_permission": "You do not have permission to use any commands.",
+    "category_title": "{category} Commands",
+    "no_commands_in_category": "No commands found in this category.",
+    "expired_title": "Help Menu Expired",
+    "expired_description": "This help menu has expired. Please use `/help` again."
+  }
+}

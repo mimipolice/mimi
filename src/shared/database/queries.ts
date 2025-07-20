@@ -238,23 +238,6 @@ export async function getGachaPools(
   return result.rows;
 }
 
-export async function getGachaPoolById(
-  pool: Pool,
-  gachaId: string
-): Promise<GachaPool | null> {
-  const query = `
-    SELECT
-      gacha_id,
-      gacha_name,
-      gacha_name_alias
-    FROM gacha_pools
-    WHERE gacha_id = $1
-    LIMIT 1;
-  `;
-  const result = await pool.query(query, [gachaId]);
-  return result.rows[0] || null;
-}
-
 export async function getOdogRankings(
   pool: Pool,
   gacha_id: string | null,
@@ -294,7 +277,7 @@ export async function getOdogRankings(
         gmc.rarity
       FROM gacha_draw_history gdh
       JOIN gacha_master_cards gmc ON gdh.card_id = gmc.card_id
-      JOIN PoolMaxRarity pmr ON gmc.pool_type = pmr.pool_type
+      JOIN PoolMaxRarity pmr ON gdh.user_selected_pool = pmr.pool_type
       ${whereString} -- The time/pool filter is applied here
       AND gmc.rarity >= pmr.max_rarity - 1 -- Filter for top-tier cards
     ),

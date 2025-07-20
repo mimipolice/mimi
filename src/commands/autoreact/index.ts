@@ -8,9 +8,9 @@ import {
   setAutoreact,
   removeAutoreact,
   getAutoreacts,
-} from "../shared/database/queries";
-import { ticketPool } from "../shared/database";
-import { loadCaches } from "../shared/cache";
+} from "../../shared/database/queries";
+import { ticketPool } from "../../shared/database";
+import { loadCaches } from "../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 
 export default {

@@ -1,0 +1,63 @@
+{
+  "name": "面板",
+  "description": "管理客服單面板。",
+  "subcommands": {
+    "setup": {
+      "description": "設定客服單面板。"
+    },
+    "add": {
+      "description": "新增一個客服單類型。",
+      "options": {
+        "type_id": {
+          "description": "此客服單類型的唯一 ID。"
+        },
+        "label": {
+          "description": "在按鈕/選項上顯示的文字。"
+        },
+        "style": {
+          "description": "按鈕樣式。",
+          "choices": {
+            "Primary": "主要",
+            "Secondary": "次要",
+            "Success": "成功",
+            "Danger": "危險"
+          }
+        },
+        "emoji": {
+          "description": "要顯示的表情符號。"
+        }
+      }
+    },
+    "remove": {
+      "description": "移除一個客服單類型。",
+      "options": {
+        "type_id": {
+          "description": "要移除的客服單類型的 ID。"
+        }
+      }
+    },
+    "list": {
+      "description": "列出所有客服單類型。"
+    },
+    "customize": {
+      "description": "自訂客服單面板的嵌入訊息。",
+      "options": {
+        "title": {
+          "description": "嵌入訊息的標題。"
+        },
+        "author_icon_url": {
+          "description": "嵌入訊息作者圖示的 URL。"
+        },
+        "thumbnail_url": {
+          "description": "嵌入訊息縮圖的 URL。"
+        },
+        "footer_icon_url": {
+          "description": "嵌入訊息頁腳圖示的 URL。"
+        },
+        "message_id": {
+          "description": "用作面板說明的訊息 ID。"
+        }
+      }
+    }
+  }
+}

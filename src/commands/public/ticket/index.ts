@@ -6,10 +6,10 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
-import { TicketManager } from "../../services/TicketManager";
-import { ticketPool } from "../../shared/database";
-import { getTicketByChannelId } from "../../shared/database/queries";
+import { Command } from "../../../interfaces/Command";
+import { TicketManager } from "../../../services/TicketManager";
+import { ticketPool } from "../../../shared/database";
+import { getTicketByChannelId } from "../../../shared/database/queries";
 import { MessageFlags } from "discord-api-types/v10";
 
 export const command: Command = {
@@ -61,7 +61,8 @@ export const command: Command = {
         !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)
       ) {
         await interaction.editReply({
-          content: "You do not have permission to use this command.",
+          content:
+            "<:frogfire:1390753587444977714> You do not have permission to use this command.",
         });
         return;
       }

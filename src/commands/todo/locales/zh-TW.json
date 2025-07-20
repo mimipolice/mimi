@@ -1,0 +1,28 @@
+{
+  "name": "待辦事項",
+  "description": "管理您的待辦事項清單。",
+  "subcommands": {
+    "add": {
+      "description": "將項目新增至您的待辦事項清單。",
+      "options": {
+        "item": {
+          "description": "待辦事項。"
+        }
+      }
+    },
+    "remove": {
+      "description": "從您的待辦事項清單中移除一個項目。",
+      "options": {
+        "id": {
+          "description": "要移除的項目 ID。"
+        }
+      }
+    },
+    "list": {
+      "description": "列出您的待辦事項。"
+    },
+    "clear": {
+      "description": "清除您的整個待辦事項清單。"
+    }
+  }
+}

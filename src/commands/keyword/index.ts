@@ -2,20 +2,22 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   AutocompleteInteraction,
+  PermissionFlagsBits,
 } from "discord.js";
-import { ticketPool } from "../shared/database";
+import { ticketPool } from "../../shared/database";
 import {
   addKeyword,
   removeKeyword,
   getKeywords,
-} from "../shared/database/queries";
-import { loadCaches } from "../shared/cache";
+} from "../../shared/database/queries";
+import { loadCaches } from "../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("keyword")
     .setDescription("Manages keyword replies.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("add")

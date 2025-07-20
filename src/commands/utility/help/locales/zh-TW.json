@@ -1,0 +1,15 @@
+{
+  "name": "help",
+  "description": "顯示所有可用的指令列表。",
+  "interface": {
+    "title": "指令列表",
+    "select_placeholder": "請選擇一個分類...",
+    "initial_description": "請選擇一個分類以查看其中的指令。",
+    "select_command_prompt": "請選擇一個指令以查看其詳細說明。",
+    "no_permission": "您沒有權限使用任何指令。",
+    "category_title": "{category} 指令",
+    "no_commands_in_category": "在此分類中找不到任何指令。",
+    "expired_title": "指令列表已過期",
+    "expired_description": "此指令列表已過期。請重新使用 `/help`。"
+  }
+}

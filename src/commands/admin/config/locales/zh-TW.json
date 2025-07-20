@@ -1,0 +1,29 @@
+{
+  "name": "設定",
+  "description": "為此伺服器設定客服機器人。",
+  "subcommands": {
+    "set": {
+      "description": "設定一個設定值。",
+      "options": {
+        "staff_role": {
+          "description": "客服單職員的身分組。"
+        },
+        "ticket_category": {
+          "description": "建立客服單的類別。"
+        },
+        "log_channel": {
+          "description": "記錄客服單事件的頻道。"
+        },
+        "panel_channel": {
+          "description": "發送客服單面板的頻道。"
+        },
+        "archive_category": {
+          "description": "封存客服單的類別。"
+        }
+      }
+    },
+    "view": {
+      "description": "檢視目前的設定。"
+    }
+  }
+}

@@ -8,7 +8,7 @@ const upperCaseLevel = winston.format((info) => {
 });
 
 const logger = winston.createLogger({
-  level: "info",
+  level: process.env.NODE_ENV === "development" ? "debug" : "info",
   // 這是寫入檔案的 format，沒有顏色，所以直接轉大寫即可
   format: winston.format.combine(
     winston.format.timestamp(),

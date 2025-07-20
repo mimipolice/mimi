@@ -3,13 +3,13 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
 } from "discord.js";
-import { ticketPool } from "../shared/database";
+import { ticketPool } from "../../shared/database";
 import {
   addTodo,
   removeTodo,
   getTodos,
   clearTodos,
-} from "../shared/database/queries";
+} from "../../shared/database/queries";
 import { MessageFlags } from "discord-api-types/v10";
 
 export default {

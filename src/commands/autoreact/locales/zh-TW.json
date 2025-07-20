@@ -1,0 +1,28 @@
+{
+  "name": "自動反應",
+  "description": "管理頻道的自動反應。",
+  "subcommands": {
+    "set": {
+      "description": "為頻道設定自動反應。",
+      "options": {
+        "emoji": {
+          "description": "要用來反應的表情符號。"
+        },
+        "channel": {
+          "description": "要設定自動反應的頻道。"
+        }
+      }
+    },
+    "remove": {
+      "description": "移除頻道的自動反應。",
+      "options": {
+        "channel": {
+          "description": "要移除自動反應的頻道。"
+        }
+      }
+    },
+    "list": {
+      "description": "列出所有自動反應設定。"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "客服單",
+  "description": "客服單相關指令。",
+  "subcommands": {
+    "add": {
+      "description": "將使用者新增至客服單。",
+      "options": {
+        "user": {
+          "description": "要新增的使用者。"
+        }
+      }
+    },
+    "remove": {
+      "description": "將使用者從客服單中移除。",
+      "options": {
+        "user": {
+          "description": "要移除的使用者。"
+        }
+      }
+    },
+    "purge": {
+      "description": "永久刪除所有客服單並重設 ID 計數器。"
+    }
+  }
+}

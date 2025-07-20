@@ -1,0 +1,12 @@
+{
+  "name": "歐狗榜",
+  "description": "顯示歐狗轉蛋排行榜。",
+  "options": {
+    "gacha_id": {
+      "description": "要排名的轉蛋池 ID。"
+    },
+    "period": {
+      "description": "排名的時間範圍 (例如：7d, all)。"
+    }
+  }
+}

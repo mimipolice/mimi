@@ -11,12 +11,12 @@ import {
   StringSelectMenuBuilder,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
-import { SettingsManager } from "../../services/SettingsManager";
-import { TicketManager } from "../../services/TicketManager";
-import logger from "../../utils/logger";
+import { Command } from "../../../interfaces/Command";
+import { SettingsManager } from "../../../services/SettingsManager";
+import { TicketManager } from "../../../services/TicketManager";
+import logger from "../../../utils/logger";
 import { MessageFlags } from "discord-api-types/v10";
-import { ticketDB } from "../../shared/database";
+import { ticketDB } from "../../../shared/database";
 
 function mapStyleToButtonStyle(style: string): ButtonStyle {
   switch (style.toLowerCase()) {

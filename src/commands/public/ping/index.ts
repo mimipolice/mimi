@@ -10,12 +10,13 @@ import {
   SectionBuilder,
   ThumbnailBuilder,
 } from "discord.js";
-import { Command } from "../../interfaces/Command";
+import { Command } from "../../../interfaces/Command";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Replies with pong!"),
+  detailedHelpPath: "src/commands/help_docs/public/ping.md",
   async execute(interaction: ChatInputCommandInteraction, client: Client) {
     const initialCount = 0;
 

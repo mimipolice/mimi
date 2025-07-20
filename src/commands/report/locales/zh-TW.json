@@ -1,0 +1,20 @@
+{
+  "name": "報告",
+  "description": "產生資產的價格報告。",
+  "subcommands": {
+    "symbol": {
+      "description": "取得單一資產的詳細報告。",
+      "options": {
+        "symbol": {
+          "description": "要查詢的資產代碼。"
+        },
+        "range": {
+          "description": "查詢的時間範圍 (例如：7d, 2w, 1m, 6h，預設為 7d)。"
+        }
+      }
+    },
+    "list": {
+      "description": "列出所有可查詢的資產及其最新價格。"
+    }
+  }
+}

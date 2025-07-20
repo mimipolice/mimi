@@ -7,17 +7,16 @@ import {
   SeparatorBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import {
-  getOdogRankings,
-  getGachaPools,
-  getGachaPoolById,
-} from "../shared/database/queries";
-import { gachaPool } from "../shared/database";
+import { getOdogRankings } from "../../../shared/database/queries";
+import { odogPool } from "../../../shared/database";
+import { getGachaPoolsCache } from "../../../shared/cache";
+import { poolTypeNames } from "../../../config/gacha";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("odog")
     .setDescription("Shows the Odog gacha rankings.")
+    .setDefaultMemberPermissions(0)
     .addStringOption((option) =>
       option
         .setName("gacha_id")
@@ -34,11 +33,21 @@ export default {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
-      const focusedValue = interaction.options.getFocused();
-      const choices = await getGachaPools(gachaPool, focusedValue);
+      const focusedValue = interaction.options.getFocused().toLowerCase();
+      const choices = getGachaPoolsCache();
+      const filtered = choices
+        .filter(
+          (choice) =>
+            choice.gacha_name.toLowerCase().includes(focusedValue) ||
+            choice.gacha_name_alias.toLowerCase().includes(focusedValue)
+        )
+        .slice(0, 25);
+
       await interaction.respond(
-        choices.map((choice) => ({
-          name: `${choice.gacha_name} (${choice.gacha_name_alias})`,
+        filtered.map((choice) => ({
+          name:
+            (poolTypeNames as Record<string, string>)[choice.gacha_id] ||
+            `${choice.gacha_name} (${choice.gacha_name_alias})`,
           value: choice.gacha_id,
         }))
       );
@@ -66,7 +75,7 @@ export default {
       }
 
       const rankings = await getOdogRankings(
-        gachaPool,
+        odogPool,
         gachaId,
         days as number | "all"
       );
@@ -82,12 +91,15 @@ export default {
       container.setAccentColor(0xffd700); // Gold color for rankings
       container.setSpoiler(true);
 
+      const gachaPools = getGachaPoolsCache();
       const gachaPoolInfo = gachaId
-        ? await getGachaPoolById(gachaPool, gachaId)
+        ? gachaPools.find((p) => p.gacha_id === gachaId)
         : null;
-      const gachaName = gachaPoolInfo
-        ? `${gachaPoolInfo.gacha_name} (${gachaPoolInfo.gacha_name_alias})`
-        : "Global";
+      const gachaName =
+        (gachaId && (poolTypeNames as Record<string, string>)[gachaId]) ||
+        (gachaPoolInfo
+          ? `${gachaPoolInfo.gacha_name} (${gachaPoolInfo.gacha_name_alias})`
+          : "Global");
 
       const titleText = `Odog Rankings for ${gachaName} (Last ${period})`;
 

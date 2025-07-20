@@ -7,7 +7,7 @@ import logger from "./utils/logger.js";
 import { SettingsManager } from "./services/SettingsManager.js";
 import { TicketManager } from "./services/TicketManager.js";
 import { migrateToLatest, gachaDB, ticketDB } from "./shared/database/index.js";
-import config from "./config.js";
+import { loadCaches } from "./shared/cache.js";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -64,7 +64,10 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Initialize Discord client and services
+  // 3. Load Caches
+  await loadCaches();
+
+  // 4. Initialize Discord client and services
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -78,49 +81,57 @@ async function main() {
   const ticketManager = new TicketManager(ticketDB, settingsManager, client);
 
   client.commands = new Collection();
+  client.commandCategories = new Collection();
   client.buttons = new Collection();
   client.modals = new Collection();
   client.selectMenus = new Collection();
 
   // Load Commands
   const commandFoldersPath = path.join(__dirname, "commands");
-  const commandItems = fs.readdirSync(commandFoldersPath);
-  for (const item of commandItems) {
-    const itemPath = path.join(commandFoldersPath, item);
-    const stat = fs.statSync(itemPath);
 
-    if (stat.isDirectory()) {
-      const commandsPath = itemPath;
-      const commandFiles = fs
-        .readdirSync(commandsPath)
-        .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
-      for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const loadedModule = require(filePath);
+  const loadCommandsRecursively = (dir: string, category: string) => {
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const item of items) {
+      const fullPath = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        // If the command is in a subdirectory, like /utility/help/index.ts,
+        // we continue with the same category.
+        loadCommandsRecursively(fullPath, category);
+      } else if (
+        item.isFile() &&
+        (item.name.endsWith(".js") || item.name.endsWith(".ts"))
+      ) {
+        const loadedModule = require(fullPath);
         const command = loadedModule.command || loadedModule.default;
+
         if (command && "data" in command && "execute" in command) {
           client.commands.set(command.data.name, command);
+
+          if (!client.commandCategories.has(category)) {
+            client.commandCategories.set(category, new Collection());
+          }
+          client.commandCategories
+            .get(category)!
+            .set(command.data.name, command);
+          // logger.info(`Loaded command: ${command.data.name} in category: ${category}`);
         } else {
           logger.warn(
-            `The command at ${filePath} is missing a required "data" or "execute" property.`
+            `The command at ${fullPath} is missing a required "data" or "execute" property.`
           );
         }
       }
-    } else if (
-      stat.isFile() &&
-      (item.endsWith(".js") || item.endsWith(".ts"))
-    ) {
-      const filePath = itemPath;
-      const loadedModule = require(filePath);
-      const command = loadedModule.command || loadedModule.default;
-      if (command && "data" in command && "execute" in command) {
-        client.commands.set(command.data.name, command);
-      } else {
-        logger.warn(
-          `The command at ${filePath} is missing a required "data" or "execute" property.`
-        );
-      }
     }
+  };
+
+  const commandCategoryFolders = fs
+    .readdirSync(commandFoldersPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name);
+
+  for (const category of commandCategoryFolders) {
+    const categoryPath = path.join(commandFoldersPath, category);
+    loadCommandsRecursively(categoryPath, category);
   }
 
   // Load Interactions (Buttons, Modals, Select Menus)
@@ -182,7 +193,7 @@ async function main() {
     }
   }
 
-  // 4. Login to Discord
+  // 5. Login to Discord
   client.login(process.env.DISCORD_TOKEN);
 }
 
