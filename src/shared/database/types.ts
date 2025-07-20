@@ -47,4 +47,13 @@ export interface DB {
     button_color: string;
     category_id: string;
   };
+  price_alerts: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    asset_symbol: string;
+    condition: "above" | "below";
+    target_price: number;
+    created_at: ColumnType<Date, string, string>;
+    last_notified_at: ColumnType<Date, string, string> | null;
+  };
 }

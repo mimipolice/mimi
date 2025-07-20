@@ -23,8 +23,8 @@ export const command: Command = {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`ping_button:${initialCount}`)
-        .setLabel("戳我")
-        .setStyle(ButtonStyle.Primary)
+        .setLabel("重新測試")
+        .setStyle(ButtonStyle.Success)
     );
 
     const container = new ContainerBuilder()

@@ -9,13 +9,15 @@ import {
   ContainerBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { gachaPool } from "../../shared/database";
+import { gachaPool } from "../../../shared/database";
 import {
   getAllAssetsWithLatestPrice,
   searchAssets,
   getPriceHistoryWithVolume,
-} from "../../shared/database/queries";
-import { generatePriceChart } from "../../utils/chart-generator";
+} from "../../../shared/database/queries";
+import { generatePriceChart } from "../../../utils/chart-generator";
+import fs from "fs";
+import path from "path";
 
 export default {
   data: new SlashCommandBuilder()
@@ -52,11 +54,19 @@ export default {
       const focusedOption = interaction.options.getFocused(true);
 
       if (focusedOption.name === "symbol") {
-        const choices = await searchAssets(gachaPool, focusedOption.value);
+        const assetListPath = path.join(__dirname, '..', '..', '..', 'config', 'asset-list.json');
+        const assetList = JSON.parse(fs.readFileSync(assetListPath, 'utf8')) as { asset_symbol: string, asset_name: string }[];
+        
+        const focusedValue = focusedOption.value.toLowerCase();
+        const choices = assetList.filter(asset => 
+          asset.asset_symbol.toLowerCase().includes(focusedValue) || 
+          asset.asset_name.toLowerCase().includes(focusedValue)
+        ).slice(0, 25);
+
         await interaction.respond(
           choices.map((choice) => ({
-            name: `${choice.name} (${choice.symbol})`,
-            value: choice.symbol,
+            name: `${choice.asset_name} (${choice.asset_symbol})`,
+            value: choice.asset_symbol,
           }))
         );
       } else if (focusedOption.name === "range") {

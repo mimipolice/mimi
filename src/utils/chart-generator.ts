@@ -155,4 +155,3 @@ export async function generatePriceChart(
 
   return canvas.toBuffer("image/png");
 }
-

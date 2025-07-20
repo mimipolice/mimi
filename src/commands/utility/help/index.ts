@@ -45,7 +45,7 @@ export const command: Command = {
     .setName("help")
     .setDescription("Displays a list of available commands."),
   async execute(interaction: ChatInputCommandInteraction, client: Client) {
-    await interaction.deferReply(); //           fetchReply: true,    flags: MessageFlags.Ephemeral,
+    await interaction.deferReply();
 
     const locales = {
       "en-US": JSON.parse(
@@ -56,10 +56,14 @@ export const command: Command = {
       ).interface,
     };
 
-    let currentLang = "zh-TW";
-    let selectedCategory: string | null = null;
+    // Initial state
+    let state = {
+      lang: "zh-TW",
+      category: null as string | null,
+      command: null as string | null,
+    };
 
-    const getLang = () => locales[currentLang as keyof typeof locales];
+    const getLang = () => locales[state.lang as keyof typeof locales];
 
     const member = interaction.member as GuildMember;
     if (!member) {
@@ -102,19 +106,14 @@ export const command: Command = {
       return;
     }
 
-    const updateReply = async (
-      i?: ChatInputCommandInteraction | any,
-      commandName?: string
-    ) => {
-      const interactionOrUpdate = i || interaction;
-
+    const updateReply = async () => {
       // 1. Build Container
       const container = new ContainerBuilder().setAccentColor(0x5865f2);
 
-      if (commandName && selectedCategory) {
+      if (state.command && state.category) {
         const cmd = commandsByCategory
-          .get(selectedCategory)
-          ?.find((c) => c.data.name === commandName);
+          .get(state.category)
+          ?.find((c) => c.data.name === state.command);
         if (cmd) {
           const appCommand = appCommands.find(
             (ac: ApplicationCommand) => ac.name === cmd.data.name
@@ -125,8 +124,8 @@ export const command: Command = {
             "src",
             "commands",
             "help_docs",
-            currentLang,
-            selectedCategory,
+            state.lang,
+            state.category,
             `${cmd.data.name}.md`
           );
           try {
@@ -141,22 +140,23 @@ export const command: Command = {
               (text) => text.setContent(processedContent)
             );
           } catch (error) {
-            const langName = currentLang === "en-US" ? "英文" : "繁體中文";
+            const langName =
+              state.lang === "en-US" ? "English" : "Traditional Chinese";
             const content =
               (error as NodeJS.ErrnoException).code === "ENOENT"
-                ? `此指令的${langName}說明文件不存在。`
-                : "讀取說明文件時發生錯誤。";
+                ? `The help document for this command in ${langName} does not exist.`
+                : "An error occurred while reading the help document.";
             container.addTextDisplayComponents((text) =>
               text.setContent(content)
             );
           }
         }
-      } else if (selectedCategory) {
+      } else if (state.category) {
         container.addTextDisplayComponents((text) =>
           text.setContent(
             `## ${getLang().category_title.replace(
               "{category}",
-              capitalize(selectedCategory ?? "")
+              capitalize(state.category ?? "")
             )}`
           )
         );
@@ -172,13 +172,13 @@ export const command: Command = {
 
       // 2. Build Components
       const categorySelect = new StringSelectMenuBuilder()
-        .setCustomId("help-category-select")
+        .setCustomId("help:category-select")
         .setPlaceholder(getLang().select_placeholder)
         .addOptions(
           accessibleCategories.map((category) => ({
             label: capitalize(category),
             value: category.toLowerCase(),
-            default: selectedCategory === category.toLowerCase(),
+            default: state.category === category.toLowerCase(),
           }))
         );
       const categoryRow =
@@ -191,9 +191,9 @@ export const command: Command = {
         | ActionRowBuilder<ButtonBuilder>
       )[] = [categoryRow];
 
-      if (selectedCategory) {
+      if (state.category) {
         const accessibleCommands = (
-          commandsByCategory.get(selectedCategory) || []
+          commandsByCategory.get(state.category) || []
         ).filter((cmd) => {
           const permissions = cmd.data.default_member_permissions;
           if (!permissions) return true;
@@ -202,13 +202,13 @@ export const command: Command = {
 
         if (accessibleCommands.length > 0) {
           const commandSelect = new StringSelectMenuBuilder()
-            .setCustomId("help-command-select")
+            .setCustomId("help:command-select")
             .setPlaceholder(getLang().select_placeholder)
             .addOptions(
               accessibleCommands.map((cmd) => ({
                 label: cmd.data.name,
                 value: cmd.data.name,
-                default: commandName === cmd.data.name,
+                default: state.command === cmd.data.name,
               }))
             );
           const commandRow =
@@ -221,19 +221,19 @@ export const command: Command = {
 
       const langRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId("help-lang-zh-TW")
+          .setCustomId("help:lang-zh-TW")
           .setLabel("繁體中文")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(currentLang === "zh-TW"),
+          .setDisabled(state.lang === "zh-TW"),
         new ButtonBuilder()
-          .setCustomId("help-lang-en-US")
+          .setCustomId("help:lang-en-US")
           .setLabel("English")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(currentLang === "en-US")
+          .setDisabled(state.lang === "en-US")
       );
       components.push(langRow);
 
-      await interactionOrUpdate.editReply({
+      await interaction.editReply({
         components: [container, ...components],
         flags: MessageFlags.IsComponentsV2,
       });
@@ -249,24 +249,28 @@ export const command: Command = {
 
     collector.on("collect", async (i) => {
       await i.deferUpdate();
-      let command: string | undefined = undefined;
 
-      if (i.isButton()) {
-        currentLang = i.customId.substring("help-lang-".length);
-        selectedCategory = null; // Reset category on lang change
-      } else if (i.isStringSelectMenu()) {
-        if (i.customId === "help-category-select") {
-          selectedCategory = i.values[0];
-        } else if (i.customId === "help-command-select") {
-          command = i.values[0];
+      if (i.isStringSelectMenu()) {
+        if (i.customId === "help:category-select") {
+          state.category = i.values[0];
+          state.command = null; // Reset command when category changes
+        } else if (i.customId === "help:command-select") {
+          state.command = i.values[0];
+        }
+      } else if (i.isButton()) {
+        if (i.customId === "help:lang-zh-TW") {
+          state.lang = "zh-TW";
+        } else if (i.customId === "help:lang-en-US") {
+          state.lang = "en-US";
         }
       }
-      await updateReply(i, command);
+
+      await updateReply();
     });
 
     collector.on("end", async (collected, reason) => {
       if (reason === "time") {
-        const translations = getLang();
+        const translations = locales[state.lang as keyof typeof locales];
         const expiredContainer = new ContainerBuilder()
           .setAccentColor(0xed4245)
           .addTextDisplayComponents(

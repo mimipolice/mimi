@@ -1,5 +1,5 @@
 export const poolTypeNames = {
-  all: "主卡池",
+  main: "主卡池",
   special: "典藏卡池",
   summer: "泳裝卡池",
   vd: "情人節卡池",
@@ -13,7 +13,7 @@ export const poolTypeNames = {
 };
 
 export const notifyRarities = {
-  all: [6, 7],
+  main: [6, 7],
   special: [4, 5],
   summer: [5, 6],
   vd: [5, 6],

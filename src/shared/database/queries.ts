@@ -176,19 +176,36 @@ export async function getPriceHistoryWithVolume(
   symbol: string,
   timeRange: string
 ): Promise<any[]> {
-  const timeCondition = buildTimeCondition(timeRange, "mt");
+  const timeCondition = buildTimeCondition(timeRange, "aph");
 
   const query = `
+    WITH PriceHistory AS (
+      SELECT
+        to_timestamp(floor(extract('epoch' from aph.timestamp) / 1800) * 1800) AS timestamp_bucket,
+        (array_agg(aph.price ORDER BY aph.timestamp DESC))[1] as price
+      FROM asset_price_history aph
+      JOIN virtual_assets va ON aph.asset_id = va.asset_id
+      WHERE va.asset_symbol = $1
+        ${timeCondition}
+      GROUP BY timestamp_bucket
+    ),
+    VolumeHistory AS (
+      SELECT
+        to_timestamp(floor(extract('epoch' from mt.timestamp) / 1800) * 1800) AS timestamp_bucket,
+        SUM(mt.quantity) as volume
+      FROM market_transactions mt
+      JOIN virtual_assets va ON mt.asset_id = va.asset_id
+      WHERE va.asset_symbol = $1
+        ${buildTimeCondition(timeRange, "mt")}
+      GROUP BY timestamp_bucket
+    )
     SELECT
-      AVG(mt.price_per_unit) as price,
-      SUM(mt.quantity) as volume,
-      to_timestamp(floor(extract('epoch' from mt.timestamp) / 1800) * 1800) AS timestamp
-    FROM market_transactions mt
-    JOIN virtual_assets va ON mt.asset_id = va.asset_id
-    WHERE va.asset_symbol = $1
-      ${timeCondition}
-    GROUP BY 3 -- Group by the 3rd column (timestamp)
-    ORDER BY 3 ASC; -- Order by the 3rd column (timestamp)
+      ph.timestamp_bucket as timestamp,
+      ph.price,
+      COALESCE(vh.volume, 0) as volume
+    FROM PriceHistory ph
+    LEFT JOIN VolumeHistory vh ON ph.timestamp_bucket = vh.timestamp_bucket
+    ORDER BY ph.timestamp_bucket ASC;
   `;
 
   const result = await pool.query(query, [symbol]);
@@ -248,7 +265,7 @@ export async function getOdogRankings(
   let paramIndex = 1;
 
   if (gacha_id) {
-    whereClauses.push(`gdh.user_selected_pool = $${paramIndex++}`);
+    whereClauses.push(`gmc.pool_type = $${paramIndex++}`);
     queryParams.push(gacha_id);
   }
 
@@ -261,8 +278,6 @@ export async function getOdogRankings(
 
   const query = `
     WITH PoolMaxRarity AS (
-      -- Determine the absolute max rarity for each pool type directly from the master card table.
-      -- This is the definitive source of truth for a pool's max rarity.
       SELECT
         pool_type,
         MAX(rarity) as max_rarity
@@ -270,19 +285,16 @@ export async function getOdogRankings(
       GROUP BY pool_type
     ),
     AllTopTierDraws AS (
-      -- Select draws within the specified time period that meet the top-tier criteria
-      -- based on the definitive max rarity of their pool type.
       SELECT
         gdh.user_id,
         gmc.rarity
       FROM gacha_draw_history gdh
       JOIN gacha_master_cards gmc ON gdh.card_id = gmc.card_id
-      JOIN PoolMaxRarity pmr ON gdh.user_selected_pool = pmr.pool_type
+      JOIN PoolMaxRarity pmr ON gmc.pool_type = pmr.pool_type
       ${whereString} -- The time/pool filter is applied here
-      AND gmc.rarity >= pmr.max_rarity - 1 -- Filter for top-tier cards
+      AND gmc.rarity >= pmr.max_rarity - 1
     ),
     UserRarityCounts AS (
-      -- Count the top-tier draws for each user and rarity
       SELECT
         user_id,
         rarity,
@@ -291,7 +303,6 @@ export async function getOdogRankings(
       GROUP BY user_id, rarity
     ),
     AggregatedStats AS (
-      -- Aggregate stats for each user, creating specific columns for sorting
       SELECT
         urc.user_id,
         SUM(urc.draw_count) AS total_draws,
@@ -306,7 +317,6 @@ export async function getOdogRankings(
       FROM UserRarityCounts urc
       GROUP BY urc.user_id
     )
-    -- Final selection and ordering
     SELECT
       gu.user_id,
       gu.nickname,
@@ -636,4 +646,77 @@ export async function getTicketByChannelId(
   `;
   const result = await pool.query(query, [channelId]);
   return result;
+}
+
+// Price Alert Queries
+export interface PriceAlert {
+  id: number;
+  user_id: string;
+  asset_symbol: string;
+  condition: "above" | "below";
+  target_price: number;
+  created_at: Date;
+}
+
+export async function createPriceAlert(
+  pool: Pool,
+  userId: string,
+  assetSymbol: string,
+  condition: "above" | "below",
+  targetPrice: number
+): Promise<void> {
+  const query = `
+    INSERT INTO price_alerts (user_id, asset_symbol, condition, target_price)
+    VALUES ($1, $2, $3, $4);
+  `;
+  await pool.query(query, [userId, assetSymbol, condition, targetPrice]);
+}
+
+export async function getUserPriceAlerts(
+  pool: Pool,
+  userId: string
+): Promise<PriceAlert[]> {
+  const query = `
+    SELECT id, asset_symbol, condition, target_price, created_at
+    FROM price_alerts
+    WHERE user_id = $1
+    ORDER BY created_at DESC;
+  `;
+  const result = await pool.query(query, [userId]);
+  return result.rows;
+}
+
+export async function removePriceAlert(
+  pool: Pool,
+  alertId: number,
+  userId: string
+): Promise<number> {
+  const query = `
+    DELETE FROM price_alerts
+    WHERE id = $1 AND user_id = $2;
+  `;
+  const result = await pool.query(query, [alertId, userId]);
+  return result.rowCount ?? 0;
+}
+
+export async function getAllPriceAlerts(pool: Pool): Promise<PriceAlert[]> {
+  const query = `
+    SELECT id, user_id, asset_symbol, condition, target_price
+    FROM price_alerts
+    WHERE last_notified_at IS NULL OR last_notified_at < NOW() - INTERVAL '1 hour';
+  `;
+  const result = await pool.query(query);
+  return result.rows;
+}
+
+export async function updatePriceAlertNotified(
+  pool: Pool,
+  alertId: number
+): Promise<void> {
+  const query = `
+    UPDATE price_alerts
+    SET last_notified_at = NOW()
+    WHERE id = $1;
+  `;
+  await pool.query(query, [alertId]);
 }

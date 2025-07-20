@@ -6,6 +6,7 @@ import { Client, Collection, GatewayIntentBits } from "discord.js";
 import logger from "./utils/logger.js";
 import { SettingsManager } from "./services/SettingsManager.js";
 import { TicketManager } from "./services/TicketManager.js";
+import { PriceAlerter } from "./services/PriceAlerter.js";
 import { migrateToLatest, gachaDB, ticketDB } from "./shared/database/index.js";
 import { loadCaches } from "./shared/cache.js";
 
@@ -79,6 +80,7 @@ async function main() {
 
   const settingsManager = new SettingsManager(ticketDB);
   const ticketManager = new TicketManager(ticketDB, settingsManager, client);
+  const priceAlerter = new PriceAlerter(client, pool);
 
   client.commands = new Collection();
   client.commandCategories = new Collection();
@@ -195,6 +197,16 @@ async function main() {
 
   // 5. Login to Discord
   client.login(process.env.DISCORD_TOKEN);
+
+  // 6. Start background services
+  client.once("ready", () => {
+    if (!client.user) {
+      logger.error("Client user is not available.");
+      return;
+    }
+    logger.info(`Logged in as ${client.user.tag}!`);
+    priceAlerter.start();
+  });
 }
 
 main().catch((error) => {

@@ -1,0 +1,50 @@
+[
+  {
+    "asset_symbol": "APPLG",
+    "asset_name": "蘋果典藏"
+  },
+  {
+    "asset_symbol": "AZGC",
+    "asset_name": "亞馬遜雲創"
+  },
+  {
+    "asset_symbol": "GCR",
+    "asset_name": "嘎核心指標"
+  },
+  {
+    "asset_symbol": "HOLO",
+    "asset_name": "Hololive"
+  },
+  {
+    "asset_symbol": "LOVE",
+    "asset_name": "愛馬仕"
+  },
+  {
+    "asset_symbol": "MAID",
+    "asset_name": "女僕特斯"
+  },
+  {
+    "asset_symbol": "MYTHIC",
+    "asset_name": "神話金控"
+  },
+  {
+    "asset_symbol": "NVGX",
+    "asset_name": "輝達圖核"
+  },
+  {
+    "asset_symbol": "SEGA",
+    "asset_name": "世嘉遊戲"
+  },
+  {
+    "asset_symbol": "SOLCR",
+    "asset_name": "Solara Crest"
+  },
+  {
+    "asset_symbol": "UNRA",
+    "asset_name": "UNION ARENA"
+  },
+  {
+    "asset_symbol": "WAVE",
+    "asset_name": "夏日狂熱"
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "name": "pricealert",
+  "description": "Manage price alerts for assets.",
+  "subcommands": {
+    "set": {
+      "name": "set",
+      "description": "Set a new price alert.",
+      "options": {
+        "symbol": {
+          "name": "symbol",
+          "description": "The symbol of the asset"
+        },
+        "condition": {
+          "name": "condition",
+          "description": "The condition for the alert (e.g., above, below)",
+          "choices": {
+            "above": "Above",
+            "below": "Below"
+          }
+        },
+        "price": {
+          "name": "price",
+          "description": "The target price"
+        }
+      },
+      "responses": {
+        "success": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** {{currentPrice}}",
+        "no_current_price": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** Not available",
+        "asset_not_found": "❌ Could not find an asset with the symbol `{{symbol}}`."
+      }
+    },
+    "list": {
+      "name": "list",
+      "description": "List your active price alerts.",
+      "responses": {
+        "no_alerts": "You have no active price alerts.",
+        "title": "**Your active price alerts:**",
+        "alert_line": "> `ID: {{id}}` - **{{assetSymbol}}** {{condition}} **{{targetPrice}}** (Set: <t:{{timestamp}}:R>)"
+      }
+    },
+    "remove": {
+      "name": "remove",
+      "description": "Remove a price alert.",
+      "options": {
+        "alert_id": {
+          "name": "alert_id",
+          "description": "The ID of the alert to remove"
+        }
+      },
+      "responses": {
+        "success": "✅ Successfully removed alert ID: `{{alertId}}`.",
+        "not_found": "❌ Could not find your alert with ID: `{{alertId}}`, or it has already been removed."
+      }
+    }
+  },
+  "autocomplete": {
+    "alert_id_choice": "ID: {{id}} - {{assetSymbol}} {{condition}} {{targetPrice}}"
+  },
+  "general_error": "An error occurred while processing your command."
+}

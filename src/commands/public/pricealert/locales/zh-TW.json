@@ -1,0 +1,60 @@
+{
+  "name": "股價提醒",
+  "description": "管理資產的股價提醒。",
+  "subcommands": {
+    "set": {
+      "name": "設定",
+      "description": "設定一個新的股價提醒。",
+      "options": {
+        "symbol": {
+          "name": "股票代號",
+          "description": "資產的股票代號"
+        },
+        "condition": {
+          "name": "條件",
+          "description": "提醒的條件 (例如：高於、低於)",
+          "choices": {
+            "above": "高於",
+            "below": "低於"
+          }
+        },
+        "price": {
+          "name": "價格",
+          "description": "目標價格"
+        }
+      },
+      "responses": {
+        "success": "✅ **已成功設定價格提醒！**\n> **公司:** {{assetName}} ({{assetSymbol}})\n> **條件:** 當價格 **{{condition}} {{targetPrice}}**\n> **目前價格:** {{currentPrice}}",
+        "no_current_price": "✅ **已成功設定價格提醒！**\n> **公司:** {{assetName}} ({{assetSymbol}})\n> **條件:** 當價格 **{{condition}} {{targetPrice}}**\n> **目前價格:** 尚無資料",
+        "asset_not_found": "❌ 找不到股票代號為「{{symbol}}」的股票。"
+      }
+    },
+    "list": {
+      "name": "列表",
+      "description": "列出您目前有效的股價提醒。",
+      "responses": {
+        "no_alerts": "您目前沒有設定任何價格提醒。",
+        "title": "**您設定的價格提醒：**",
+        "alert_line": "> `ID: {{id}}` - **{{assetSymbol}}** {{condition}} **{{targetPrice}}** (設定於: <t:{{timestamp}}:R>)"
+      }
+    },
+    "remove": {
+      "name": "移除",
+      "description": "移除一個股價提醒。",
+      "options": {
+        "alert_id": {
+          "name": "提醒id",
+          "description": "要移除的提醒ID"
+        }
+      },
+      "responses": {
+        "success": "✅ 已成功移除提醒 ID: `{{alertId}}`。",
+        "not_found": "❌ 找不到屬於您的提醒 ID: `{{alertId}}`，或它已被移除。"
+      }
+    }
+  },
+  "autocomplete": {
+    "alert_id_choice": "ID: {{id}} - {{assetSymbol}} {{condition}} {{targetPrice}}"
+  },
+  "general_error": "處理您的指令時發生錯誤。"
+}

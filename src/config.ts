@@ -6,6 +6,7 @@ const config = {
   discord: {
     token: process.env.DISCORD_TOKEN,
     clientId: process.env.CLIENT_ID,
+    guildId: process.env.DEV_GUILD_ID, // For guild-specific commands
   },
   gachaDatabase: {
     host: process.env.GACHA_DB_HOST,

@@ -22,7 +22,12 @@ export default {
         .setName("gacha_id")
         .setDescription("The ID of the gacha pool to rank.")
         .setRequired(false)
-        .setAutocomplete(true)
+        .setChoices(
+          ...Object.entries(poolTypeNames).map(([value, name]) => ({
+            name,
+            value,
+          }))
+        )
     )
     .addStringOption((option) =>
       option
@@ -30,31 +35,6 @@ export default {
         .setDescription("The time period for the rankings (e.g., 7d, all)")
         .setRequired(false)
     ),
-
-  async autocomplete(interaction: AutocompleteInteraction) {
-    try {
-      const focusedValue = interaction.options.getFocused().toLowerCase();
-      const choices = getGachaPoolsCache();
-      const filtered = choices
-        .filter(
-          (choice) =>
-            choice.gacha_name.toLowerCase().includes(focusedValue) ||
-            choice.gacha_name_alias.toLowerCase().includes(focusedValue)
-        )
-        .slice(0, 25);
-
-      await interaction.respond(
-        filtered.map((choice) => ({
-          name:
-            (poolTypeNames as Record<string, string>)[choice.gacha_id] ||
-            `${choice.gacha_name} (${choice.gacha_name_alias})`,
-          value: choice.gacha_id,
-        }))
-      );
-    } catch (error) {
-      console.error("Autocomplete error:", error);
-    }
-  },
 
   async execute(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
