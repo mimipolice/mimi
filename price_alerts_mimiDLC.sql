@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS price_alerts (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  asset_symbol VARCHAR(10) NOT NULL,
+  condition VARCHAR(10) NOT NULL, -- 'above' or 'below'
+  target_price NUMERIC(18, 8) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  last_notified_at TIMESTAMP WITH TIME ZONE,
+  repeatable BOOLEAN NOT NULL DEFAULT FALSE,
+  locale VARCHAR(10) NOT NULL DEFAULT 'en-US'
+);

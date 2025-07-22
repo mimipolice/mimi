@@ -6,6 +6,7 @@ import path from "node:path";
 import logger from "./utils/logger";
 const commands = [];
 const commandsPath = path.join(__dirname, "commands");
+const excludedFolders = ["admin"];
 
 // Recursive function to get all command files
 function getCommandFiles(dir: string): string[] {
@@ -125,6 +126,11 @@ for (const file of commandFiles) {
   }
   // --- End Localizations ---
 
+  const commandFolder = path.basename(path.dirname(file));
+  if (!excludedFolders.includes(commandFolder)) {
+    command.data.setIntegrationTypes([0, 1]); // 0 = Guild Install, 1 = User Install
+    command.data.setContexts([0, 1, 2]); // 0 = Guild, 1 = Bot DM, 2 = Private Channel
+  }
   commands.push(command.data.toJSON());
 }
 

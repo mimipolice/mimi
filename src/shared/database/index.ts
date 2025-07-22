@@ -2,34 +2,44 @@ import { Pool } from "pg";
 import path from "path";
 import logger from "../../utils/logger";
 import { Kysely, PostgresDialect } from "kysely";
-import { DB } from "./types";
+import { DB, MimiDLCDB } from "./types";
 import { promises as fs } from "fs";
+import config from "../../config";
 
 // Gacha Database Pool
 export const gachaPool = new Pool({
-  host: process.env.DB_GACHA_HOST,
-  database: process.env.DB_GACHA_NAME,
-  user: process.env.DB_GACHA_USER,
-  password: process.env.DB_GACHA_PASSWORD,
-  port: Number(process.env.DB_GACHA_PORT),
+  host: config.gachaDatabase.host,
+  database: config.gachaDatabase.name,
+  user: config.gachaDatabase.user,
+  password: config.gachaDatabase.password,
+  port: config.gachaDatabase.port,
 });
 
 // Ticket Database Pool
 export const ticketPool = new Pool({
-  host: process.env.DB_TICKET_HOST,
-  database: process.env.DB_TICKET_NAME,
-  user: process.env.DB_TICKET_USER,
-  password: process.env.DB_TICKET_PASSWORD,
-  port: Number(process.env.DB_TICKET_PORT),
+  host: config.ticketDatabase.host,
+  database: config.ticketDatabase.name,
+  user: config.ticketDatabase.user,
+  password: config.ticketDatabase.password,
+  port: config.ticketDatabase.port,
 });
 
 // Odog Database Pool
 export const odogPool = new Pool({
-  host: process.env.ODOG_DB_HOST,
-  user: process.env.ODOG_DB_USER,
-  password: process.env.ODOG_DB_PASSWORD,
-  database: process.env.ODOG_DB_DATABASE,
-  port: Number(process.env.ODOG_DB_PORT),
+  host: config.odogDatabase.host,
+  user: config.odogDatabase.user,
+  password: config.odogDatabase.password,
+  database: config.odogDatabase.name,
+  port: config.odogDatabase.port,
+});
+
+// mimiDLC Database Pool
+export const mimiDLCPool = new Pool({
+  host: config.mimiDLCDatabase.host,
+  database: config.mimiDLCDatabase.name,
+  user: config.mimiDLCDatabase.user,
+  password: config.mimiDLCDatabase.password,
+  port: config.mimiDLCDatabase.port,
 });
 
 // Kysely instances for query building
@@ -39,6 +49,10 @@ export const gachaDB = new Kysely<DB>({
 
 export const ticketDB = new Kysely<DB>({
   dialect: new PostgresDialect({ pool: ticketPool }),
+});
+
+export const mimiDLCDb = new Kysely<MimiDLCDB>({
+  dialect: new PostgresDialect({ pool: mimiDLCPool }),
 });
 
 // A more robust, manual migration runner

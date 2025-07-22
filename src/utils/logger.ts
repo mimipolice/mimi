@@ -33,6 +33,7 @@ const logger = winston.createLogger({
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
+      level: "debug",
       // 2. (修改) 調整 Console 的 format 組合
       format: winston.format.combine(
         // 重要：調整了以下 format 的順序

@@ -253,10 +253,7 @@ export default {
       const t = translations[interaction.locale] || translations["en-US"];
 
       if (focusedOption.name === "alert_id") {
-        const userAlerts = await getUserPriceAlerts(
-          gachaPool,
-          interaction.user.id
-        );
+        const userAlerts = await getUserPriceAlerts(interaction.user.id);
         const choices = userAlerts.map((alert) => {
           const condition =
             alert.condition === "above"
@@ -326,7 +323,6 @@ export default {
 
         // --- Create alert ---
         await createPriceAlert(
-          gachaPool,
           userId,
           asset.symbol,
           condition,
@@ -359,7 +355,7 @@ export default {
 
         await interaction.editReply(reply);
       } else if (subcommand === "list") {
-        const alerts = await getUserPriceAlerts(gachaPool, userId);
+        const alerts = await getUserPriceAlerts(userId);
         if (alerts.length === 0) {
           await interaction.editReply(t.subcommands.list.responses.no_alerts);
           return;
@@ -392,7 +388,7 @@ export default {
           ),
           10
         );
-        const removedCount = await removePriceAlert(gachaPool, alertId, userId);
+        const removedCount = await removePriceAlert(alertId, userId);
 
         if (removedCount > 0) {
           await interaction.editReply(

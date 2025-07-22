@@ -1,5 +1,5 @@
 import { Client, Locale } from "discord.js";
-import { Pool } from "pg";
+import { mimiDLCPool } from "../shared/database";
 import {
   getAllPriceAlerts,
   removePriceAlert,
@@ -14,12 +14,10 @@ const translations = getLocalizations("pricealert");
 
 export class PriceAlerter {
   private client: Client;
-  private pool: Pool;
   private interval: NodeJS.Timeout | null = null;
 
-  constructor(client: Client, pool: Pool) {
+  constructor(client: Client) {
     this.client = client;
-    this.pool = pool;
   }
 
   public start(checkIntervalMs: number = 60000) {
@@ -40,12 +38,12 @@ export class PriceAlerter {
 
   private async checkAlerts() {
     try {
-      const alerts = await getAllPriceAlerts(this.pool);
+      const alerts = await getAllPriceAlerts();
       if (alerts.length === 0) {
         return;
       }
 
-      const assets = await getAllAssetsWithLatestPrice(this.pool);
+      const assets = await getAllAssetsWithLatestPrice(mimiDLCPool);
       const priceMap = new Map(
         assets.map((asset) => [asset.asset_symbol, asset.price])
       );
@@ -63,9 +61,9 @@ export class PriceAlerter {
         if (conditionMet) {
           await this.sendNotification(alert, currentPrice);
           if (alert.repeatable) {
-            await updatePriceAlertNotified(this.pool, alert.id);
+            await updatePriceAlertNotified(alert.id);
           } else {
-            await removePriceAlert(this.pool, alert.id, alert.user_id);
+            await removePriceAlert(alert.id, alert.user_id);
           }
         }
       }

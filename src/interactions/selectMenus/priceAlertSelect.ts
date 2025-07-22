@@ -56,7 +56,6 @@ export default {
 
       // --- 建立提醒 ---
       await createPriceAlert(
-        gachaPool,
         userId,
         asset.asset_symbol,
         condition as "above" | "below",

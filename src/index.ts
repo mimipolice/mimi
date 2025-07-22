@@ -4,6 +4,7 @@ import path from "node:path";
 import { Pool } from "pg";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import logger from "./utils/logger";
+import { errorHandler } from "./utils/errorHandler";
 import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
@@ -50,16 +51,16 @@ async function main() {
 
   // 2. Ensure databases exist and run migrations
   try {
-    await migrateToLatest(
-      gachaDB,
-      "gacha",
-      path.join(__dirname, "shared/database/migrations/gacha")
-    );
-    await migrateToLatest(
-      ticketDB,
-      "ticket",
-      path.join(__dirname, "shared/database/migrations/ticket")
-    );
+    // await migrateToLatest(
+    //   gachaDB,
+    //   "gacha",
+    //   path.join(__dirname, "shared/database/migrations/gacha")
+    // );
+    // await migrateToLatest(
+    //   ticketDB,
+    //   "ticket",
+    //   path.join(__dirname, "shared/database/migrations/ticket")
+    // );
   } catch (error) {
     logger.error("Database migration failed during startup:", error);
     process.exit(1);
@@ -80,7 +81,7 @@ async function main() {
 
   const settingsManager = new SettingsManager(ticketDB);
   const ticketManager = new TicketManager(ticketDB, settingsManager, client);
-  const priceAlerter = new PriceAlerter(client, pool);
+  const priceAlerter = new PriceAlerter(client);
 
   client.commands = new Collection();
   client.commandCategories = new Collection();
@@ -161,6 +162,15 @@ async function main() {
       }
     }
   }
+
+  // Register error and warning handlers
+  client.on("error", (error) => {
+    errorHandler.handleClientError(client, error);
+  });
+
+  client.on("warn", (warning) => {
+    errorHandler.handleClientWarning(client, warning);
+  });
 
   // Load Events
   const eventsPath = path.join(__dirname, "events");

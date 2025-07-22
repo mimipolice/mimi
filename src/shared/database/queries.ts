@@ -1,4 +1,6 @@
 import { Pool } from "pg";
+import { sql } from "kysely";
+import { mimiDLCDb } from ".";
 import logger from "../../utils/logger";
 interface PriceHistory {
   price: number;
@@ -661,7 +663,6 @@ export interface PriceAlert {
 }
 
 export async function createPriceAlert(
-  pool: Pool,
   userId: string,
   assetSymbol: string,
   condition: "above" | "below",
@@ -669,65 +670,116 @@ export async function createPriceAlert(
   repeatable: boolean,
   locale: string
 ): Promise<void> {
-  const query = `
-    INSERT INTO price_alerts (user_id, asset_symbol, condition, target_price, repeatable, locale)
-    VALUES ($1, $2, $3, $4, $5, $6);
-  `;
-  await pool.query(query, [
-    userId,
-    assetSymbol,
-    condition,
-    targetPrice,
-    repeatable,
-    locale,
-  ]);
+  await mimiDLCDb
+    .insertInto("price_alerts")
+    .values({
+      user_id: userId,
+      asset_symbol: assetSymbol,
+      condition: condition,
+      target_price: targetPrice,
+      created_at: new Date().toISOString(),
+      repeatable: repeatable,
+      locale: locale,
+    })
+    .execute();
 }
 
 export async function getUserPriceAlerts(
-  pool: Pool,
   userId: string
 ): Promise<PriceAlert[]> {
-  const query = `
-    SELECT id, asset_symbol, condition, target_price, created_at, repeatable, locale
-    FROM price_alerts
-    WHERE user_id = $1
-    ORDER BY created_at DESC;
-  `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
+  return await mimiDLCDb
+    .selectFrom("price_alerts")
+    .selectAll()
+    .where("user_id", "=", userId)
+    .orderBy("created_at", "desc")
+    .execute();
 }
 
 export async function removePriceAlert(
-  pool: Pool,
   alertId: number,
+  userId: string
+): Promise<bigint> {
+  const result = await mimiDLCDb
+    .deleteFrom("price_alerts")
+    .where("id", "=", alertId)
+    .where("user_id", "=", userId)
+    .executeTakeFirst();
+  return result.numDeletedRows;
+}
+
+export async function getAllPriceAlerts(): Promise<PriceAlert[]> {
+  return await mimiDLCDb
+    .selectFrom("price_alerts")
+    .selectAll()
+    .where((eb) =>
+      eb.or([
+        eb("last_notified_at", "is", null),
+        eb.and([
+          eb("repeatable", "=", true),
+          sql<boolean>`last_notified_at < NOW() - INTERVAL '1 hour'`,
+        ]),
+      ])
+    )
+    .execute();
+}
+
+export async function updatePriceAlertNotified(alertId: number): Promise<void> {
+  await mimiDLCDb
+    .updateTable("price_alerts")
+    .set({ last_notified_at: new Date().toISOString() })
+    .where("id", "=", alertId)
+    .execute();
+}
+
+// AI Conversation Queries
+export interface ConversationMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export async function createConversation(
+  pool: Pool,
   userId: string
 ): Promise<number> {
   const query = `
-    DELETE FROM price_alerts
-    WHERE id = $1 AND user_id = $2;
+    INSERT INTO ai_conversations (user_id)
+    VALUES ($1)
+    RETURNING id;
   `;
-  const result = await pool.query(query, [alertId, userId]);
-  return result.rowCount ?? 0;
+  const result = await pool.query(query, [userId]);
+  return result.rows[0].id;
 }
 
-export async function getAllPriceAlerts(pool: Pool): Promise<PriceAlert[]> {
+export async function getConversationHistory(
+  pool: Pool,
+  conversationId: number
+): Promise<ConversationMessage[]> {
   const query = `
-    SELECT id, user_id, asset_symbol, condition, target_price, repeatable, locale
-    FROM price_alerts
-    WHERE last_notified_at IS NULL OR (repeatable = TRUE AND last_notified_at < NOW() - INTERVAL '1 hour');
+    SELECT role, content
+    FROM ai_conversation_messages
+    WHERE conversation_id = $1
+    ORDER BY created_at ASC;
   `;
-  const result = await pool.query(query);
+  const result = await pool.query(query, [conversationId]);
   return result.rows;
 }
 
-export async function updatePriceAlertNotified(
+export async function addConversationMessage(
   pool: Pool,
-  alertId: number
+  conversationId: number,
+  role: "user" | "assistant",
+  content: string
 ): Promise<void> {
   const query = `
-    UPDATE price_alerts
-    SET last_notified_at = NOW()
+    INSERT INTO ai_conversation_messages (conversation_id, role, content)
+    VALUES ($1, $2, $3);
+  `;
+  await pool.query(query, [conversationId, role, content]);
+  // Also update the updated_at timestamp on the parent conversation
+  const updateQuery = `
+    UPDATE ai_conversations
+    SET updated_at = NOW()
     WHERE id = $1;
   `;
-  await pool.query(query, [alertId]);
+  await pool.query(updateQuery, [conversationId]);
 }
