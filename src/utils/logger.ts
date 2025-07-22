@@ -29,32 +29,31 @@ const logger = winston.createLogger({
   ],
 });
 
-// 開發環境下，新增 console 輸出
-if (process.env.NODE_ENV !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      level: "debug",
-      // 2. (修改) 調整 Console 的 format 組合
-      format: winston.format.combine(
-        // 重要：調整了以下 format 的順序
-        winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), // 步驟一：先加上時間戳
-        upperCaseLevel(), // 步驟二：將 level 轉為大寫 (此時還是純文字)
-        winston.format.colorize(), // 步驟三：對已經大寫的 level 上色
-        winston.format.printf(({ level, message, timestamp, ...rest }) => {
-          // 3. (修改) 簡化 printf 函式
-          // 現在傳入的 'level' 已經是處理好的「彩色大寫字串」，例如：`\u001b[32mINFO\u001b[39m`
-          // 所以我們不再需要手動呼叫 toUpperCase()
-          const levelStr = `[${level}]`;
-          const timestampStr = timestamp;
-          const messageStr = message;
-          const metaStr = Object.keys(rest).length
-            ? JSON.stringify(rest, null, 2)
-            : "";
-          return `${levelStr} ${timestampStr}: ${messageStr} ${metaStr}`;
-        })
-      ),
-    })
-  );
-}
+// 無論在哪個環境，都新增 console 輸出，但 level 會根據環境變動
+logger.add(
+  new winston.transports.Console({
+    // 在 development 顯示 debug，在 production 顯示 info
+    level: process.env.NODE_ENV === "development" ? "debug" : "info",
+    // 2. (修改) 調整 Console 的 format 組合
+    format: winston.format.combine(
+      // 重要：調整了以下 format 的順序
+      winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), // 步驟一：先加上時間戳
+      upperCaseLevel(), // 步驟二：將 level 轉為大寫 (此時還是純文字)
+      winston.format.colorize(), // 步驟三：對已經大寫的 level 上色
+      winston.format.printf(({ level, message, timestamp, ...rest }) => {
+        // 3. (修改) 簡化 printf 函式
+        // 現在傳入的 'level' 已經是處理好的「彩色大寫字串」，例如：`\u001b[32mINFO\u001b[39m`
+        // 所以我們不再需要手動呼叫 toUpperCase()
+        const levelStr = `[${level}]`;
+        const timestampStr = timestamp;
+        const messageStr = message;
+        const metaStr = Object.keys(rest).length
+          ? JSON.stringify(rest, null, 2)
+          : "";
+        return `${levelStr} ${timestampStr}: ${messageStr} ${metaStr}`;
+      })
+    ),
+  })
+);
 
 export default logger;
