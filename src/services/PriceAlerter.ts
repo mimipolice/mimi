@@ -1,5 +1,5 @@
 import { Client, Locale } from "discord.js";
-import { mimiDLCPool } from "../shared/database";
+import { gachaPool } from "../shared/database";
 import {
   getAllPriceAlerts,
   removePriceAlert,
@@ -43,7 +43,7 @@ export class PriceAlerter {
         return;
       }
 
-      const assets = await getAllAssetsWithLatestPrice(mimiDLCPool);
+      const assets = await getAllAssetsWithLatestPrice(gachaPool);
       const priceMap = new Map(
         assets.map((asset) => [asset.asset_symbol, asset.price])
       );
