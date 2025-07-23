@@ -5,6 +5,7 @@ import {
   Locale,
   EmbedBuilder,
   PermissionsBitField,
+  MessageFlags,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
@@ -73,14 +74,6 @@ export const command: Command = {
             .join("\n")
         : "無紀錄";
 
-    console.log("--- USERINFO DEBUG ---");
-    console.log("Translations:", t);
-    console.log("Target User:", targetUser);
-    console.log("Top Guilds:", topGuildsContent);
-    console.log("Top Commands:", topCommandsContent);
-    console.log("Recent Transactions:", recentTransactionsContent);
-    console.log("Total Cards:", totalCards);
-    console.log("--- END USERINFO DEBUG ---");
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle(t.embed.title.replace("{username}", targetUser.username))
@@ -126,7 +119,7 @@ export const command: Command = {
 
     await interaction.reply({
       embeds: [embed],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };

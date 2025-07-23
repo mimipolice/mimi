@@ -4,7 +4,7 @@ import {
   Locale,
   EmbedBuilder,
   PermissionsBitField,
-  User,
+  MessageFlags,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
@@ -129,7 +129,7 @@ export const command: Command = {
 
     await interaction.reply({
       embeds: [embed],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
