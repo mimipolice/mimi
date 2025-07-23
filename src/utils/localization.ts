@@ -27,19 +27,21 @@ export function getLocalizations(commandName: string): Record<string, any> {
   return translations;
 }
 
-function findCommandDir(commandName: string): string | null {
-  const commandsBasePath = path.join(__dirname, "..", "commands");
-  const categories = fs.readdirSync(commandsBasePath);
+function findCommandDir(
+  commandName: string,
+  dir: string = path.join(__dirname, "..", "commands")
+): string | null {
+  const items = fs.readdirSync(dir, { withFileTypes: true });
 
-  for (const category of categories) {
-    const categoryPath = path.join(commandsBasePath, category);
-    if (fs.statSync(categoryPath).isDirectory()) {
-      const commandPath = path.join(categoryPath, commandName);
-      if (
-        fs.existsSync(commandPath) &&
-        fs.statSync(commandPath).isDirectory()
-      ) {
-        return commandPath;
+  for (const item of items) {
+    const fullPath = path.join(dir, item.name);
+    if (item.isDirectory()) {
+      if (item.name === commandName) {
+        return fullPath;
+      }
+      const foundPath = findCommandDir(commandName, fullPath);
+      if (foundPath) {
+        return foundPath;
       }
     }
   }

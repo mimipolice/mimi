@@ -7,6 +7,7 @@ import {
   ContextMenuCommandBuilder,
   UserContextMenuCommandInteraction,
   MessageContextMenuCommandInteraction,
+  SlashCommandOptionsOnlyBuilder,
 } from "discord.js";
 import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
@@ -16,8 +17,10 @@ export interface Command {
   data:
     | SlashCommandBuilder
     | SlashCommandSubcommandsOnlyBuilder
-    | ContextMenuCommandBuilder;
+    | ContextMenuCommandBuilder
+    | SlashCommandOptionsOnlyBuilder;
   detailedHelpPath?: string;
+  guildOnly?: boolean;
   restrictedRoles?: string[];
   channelPermissions?: bigint[];
   execute(

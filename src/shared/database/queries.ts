@@ -783,3 +783,81 @@ export async function addConversationMessage(
   `;
   await pool.query(updateQuery, [conversationId]);
 }
+
+// User Info Queries
+export interface UserTopGuild {
+  guild_id: string;
+  usage_count: number;
+}
+
+export async function getUserTopActiveGuilds(
+  pool: Pool,
+  userId: string
+): Promise<UserTopGuild[]> {
+  const query = `
+    SELECT guild_id, COUNT(id) as usage_count
+    FROM command_usage_stats
+    WHERE user_id = $1
+    GROUP BY guild_id
+    ORDER BY usage_count DESC
+    LIMIT 10;
+  `;
+  const result = await pool.query(query, [userId]);
+  return result.rows;
+}
+
+export interface UserTopCommand {
+  command_name: string;
+  usage_count: number;
+}
+
+export async function getUserTopCommands(
+  pool: Pool,
+  userId: string
+): Promise<UserTopCommand[]> {
+  const query = `
+    SELECT command_name, COUNT(id) as usage_count
+    FROM command_usage_stats
+    WHERE user_id = $1
+    GROUP BY command_name
+    ORDER BY usage_count DESC
+    LIMIT 10;
+  `;
+  const result = await pool.query(query, [userId]);
+  return result.rows;
+}
+
+export interface UserTransaction {
+  sender_id: string;
+  receiver_id: string;
+  amount: number;
+  created_at: Date;
+}
+
+export async function getUserRecentTransactions(
+  pool: Pool,
+  userId: string
+): Promise<UserTransaction[]> {
+  const query = `
+    SELECT sender_id, receiver_id, gross_amount as amount, created_at
+    FROM user_transaction_history
+    WHERE sender_id = $1 OR receiver_id = $1
+    ORDER BY created_at DESC
+    LIMIT 10;
+  `;
+  const result = await pool.query(query, [userId]);
+  return result.rows;
+}
+
+export async function getUserTotalCardCount(
+  pool: Pool,
+  userId: string
+): Promise<number> {
+  const query = `
+    SELECT SUM(quantity) as total_card_count
+    FROM gacha_user_collections
+    WHERE user_id = $1;
+  `;
+  const result = await pool.query(query, [userId]);
+  return parseInt(result.rows[0]?.total_card_count, 10) || 0;
+}

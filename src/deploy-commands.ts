@@ -4,9 +4,10 @@ import config from "./config";
 import fs from "node:fs";
 import path from "node:path";
 import logger from "./utils/logger";
-const commands = [];
+const guildCommands = [];
+const globalCommands = [];
 const commandsPath = path.join(__dirname, "commands");
-const excludedFolders = ["admin"];
+const devOnlyFolders = ["user", "message"];
 
 // Recursive function to get all command files
 function getCommandFiles(dir: string): string[] {
@@ -126,36 +127,61 @@ for (const file of commandFiles) {
   }
   // --- End Localizations ---
 
-  const commandFolder = path.basename(path.dirname(file));
-  if (!excludedFolders.includes(commandFolder)) {
+  const commandFolder = path.relative(commandsPath, file).split(path.sep)[0];
+
+  if (command.guildOnly || devOnlyFolders.includes(commandFolder)) {
+    guildCommands.push(command.data.toJSON());
+  } else {
     command.data.setIntegrationTypes([0, 1]); // 0 = Guild Install, 1 = User Install
     command.data.setContexts([0, 1, 2]); // 0 = Guild, 1 = Bot DM, 2 = Private Channel
+    globalCommands.push(command.data.toJSON());
   }
-  commands.push(command.data.toJSON());
 }
 
 // Log all command names to be registered
 logger.info(
-  "Attempting to register the following commands:",
-  commands.map((c) => c.name)
+  "Attempting to register the following global commands:",
+  globalCommands.map((c) => c.name)
+);
+logger.info(
+  "Attempting to register the following guild commands:",
+  guildCommands.map((c) => c.name)
 );
 
 const rest = new REST({ version: "10" }).setToken(config.discord.token!);
 
 (async () => {
   try {
-    logger.info(
-      `Started refreshing ${commands.length} application (/) commands.`
-    );
+    // Deploy Global Commands
+    if (globalCommands.length > 0) {
+      logger.info(
+        `Started refreshing ${globalCommands.length} application (/) commands.`
+      );
+      const data = (await rest.put(
+        Routes.applicationCommands(config.discord.clientId!),
+        { body: globalCommands }
+      )) as any[];
+      logger.info(
+        `Successfully reloaded ${data.length} global application (/) commands.`
+      );
+    }
 
-    const data = (await rest.put(
-      Routes.applicationCommands(config.discord.clientId!),
-      { body: commands }
-    )) as any[];
-
-    logger.info(
-      `Successfully reloaded ${data.length} application (/) commands.`
-    );
+    // Deploy Guild-specific Commands
+    if (guildCommands.length > 0 && config.discord.guildId) {
+      logger.info(
+        `Started refreshing ${guildCommands.length} guild application (/) commands.`
+      );
+      const data = (await rest.put(
+        Routes.applicationGuildCommands(
+          config.discord.clientId!,
+          config.discord.guildId
+        ),
+        { body: guildCommands }
+      )) as any[];
+      logger.info(
+        `Successfully reloaded ${data.length} guild application (/) commands.`
+      );
+    }
   } catch (error) {
     logger.error(error);
   }

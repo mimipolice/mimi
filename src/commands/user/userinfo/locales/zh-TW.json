@@ -1,0 +1,12 @@
+{
+  "name": "用戶資訊",
+  "description": "取得用戶的相關資訊。",
+  "embed": {
+    "title": "{username} 的用戶資訊",
+    "fields": {
+      "id": "ID",
+      "tag": "標籤",
+      "createdAt": "帳號建立於"
+    }
+  }
+}
