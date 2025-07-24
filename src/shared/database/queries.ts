@@ -696,11 +696,40 @@ export interface UserTransaction {
   created_at: Date;
 }
 
+export interface SpendingBreakdown {
+  transaction_type: string;
+  total_amount: number;
+}
+
+export interface PortfolioItem {
+  asset_name: string;
+  quantity: number;
+  total_value: number;
+}
+
+export interface TopSender {
+  sender_id: string;
+  count: number;
+  total_amount: number;
+}
+
+export interface TopReceiver {
+  receiver_id: string;
+  count: number;
+  total_amount: number;
+}
+
 export interface UserInfoData {
   top_guilds: UserTopGuild[];
   top_commands: UserTopCommand[];
   recent_transactions: UserTransaction[];
   total_cards: number;
+  total_spent: number;
+  total_received: number;
+  spending_breakdown: SpendingBreakdown[];
+  portfolio: PortfolioItem[];
+  top_senders: TopSender[];
+  top_receivers: TopReceiver[];
 }
 
 export async function getUserInfoData(
@@ -708,9 +737,58 @@ export async function getUserInfoData(
   userId: string
 ): Promise<UserInfoData> {
   const query = `
-    WITH TopGuilds AS (
+    WITH TransactionSummary AS (
+      SELECT
+        COALESCE(SUM(CASE WHEN sender_id = $1 THEN gross_amount ELSE 0 END), 0) AS total_spent,
+        COALESCE(SUM(CASE WHEN receiver_id = $1 THEN gross_amount ELSE 0 END), 0) AS total_received
+      FROM user_transaction_history
+      WHERE sender_id = $1 OR receiver_id = $1
+    ),
+    SpendingBreakdown AS (
+      SELECT
+        jsonb_agg(jsonb_build_object('transaction_type', transaction_type, 'total_amount', total_amount)) AS data
+      FROM (
+        SELECT transaction_type, SUM(gross_amount)::int AS total_amount
+        FROM user_transaction_history
+        WHERE sender_id = $1
+        GROUP BY transaction_type
+        ORDER BY total_amount DESC
+      ) AS sub
+    ),
+    Portfolio AS (
+      SELECT
+        jsonb_agg(jsonb_build_object('asset_name', va.asset_name, 'quantity', pp.quantity, 'total_value', pp.quantity * va.current_price)) AS data
+      FROM player_portfolios pp
+      JOIN virtual_assets va ON pp.asset_id = va.asset_id
+      WHERE pp.user_id = $1
+    ),
+    TopSenders AS (
+      SELECT
+        jsonb_agg(jsonb_build_object('sender_id', sender_id::text, 'count', count, 'total_amount', total_amount) ORDER BY count DESC) AS data
+      FROM (
+        SELECT sender_id, COUNT(*)::int AS count, SUM(gross_amount)::int AS total_amount
+        FROM user_transaction_history
+        WHERE receiver_id = $1 AND sender_id != $1
+        GROUP BY sender_id
+        ORDER BY count DESC
+        LIMIT 10
+      ) AS sub
+    ),
+    TopReceivers AS (
+      SELECT
+        jsonb_agg(jsonb_build_object('receiver_id', receiver_id::text, 'count', count, 'total_amount', total_amount) ORDER BY count DESC) AS data
+      FROM (
+        SELECT receiver_id, COUNT(*)::int AS count, SUM(gross_amount)::int AS total_amount
+        FROM user_transaction_history
+        WHERE sender_id = $1 AND receiver_id != $1
+        GROUP BY receiver_id
+        ORDER BY count DESC
+        LIMIT 10
+      ) AS sub
+    ),
+    TopGuilds AS (
         SELECT
-            jsonb_agg(jsonb_build_object('guild_id', guild_id, 'usage_count', usage_count) ORDER BY usage_count DESC) AS data
+            jsonb_agg(jsonb_build_object('guild_id', guild_id::text, 'usage_count', usage_count) ORDER BY usage_count DESC) AS data
         FROM (
             SELECT guild_id, COUNT(id)::int AS usage_count
             FROM command_usage_stats WHERE user_id = $1
@@ -728,9 +806,9 @@ export async function getUserInfoData(
     ),
     RecentTransactions AS (
         SELECT
-            jsonb_agg(jsonb_build_object('sender_id', sender_id, 'receiver_id', receiver_id, 'amount', gross_amount, 'created_at', created_at) ORDER BY created_at DESC) AS data
+            jsonb_agg(jsonb_build_object('sender_id', sender_id::text, 'receiver_id', receiver_id::text, 'amount', net_amount, 'created_at', created_at) ORDER BY created_at DESC) AS data
         FROM (
-            SELECT sender_id, receiver_id, gross_amount, created_at
+            SELECT sender_id, receiver_id, net_amount, created_at
             FROM user_transaction_history WHERE sender_id = $1 OR receiver_id = $1
             ORDER BY created_at DESC LIMIT 10
         ) AS sub
@@ -743,7 +821,13 @@ export async function getUserInfoData(
         (SELECT data FROM TopGuilds) AS top_guilds,
         (SELECT data FROM TopCommands) AS top_commands,
         (SELECT data FROM RecentTransactions) AS recent_transactions,
-        (SELECT data FROM TotalCards) AS total_cards;
+        (SELECT data FROM TotalCards) AS total_cards,
+        (SELECT total_spent FROM TransactionSummary) AS total_spent,
+        (SELECT total_received FROM TransactionSummary) AS total_received,
+        (SELECT data FROM SpendingBreakdown) AS spending_breakdown,
+        (SELECT data FROM Portfolio) AS portfolio,
+        (SELECT data FROM TopSenders) AS top_senders,
+        (SELECT data FROM TopReceivers) AS top_receivers;
   `;
   const result = await pool.query(query, [userId]);
   const row = result.rows[0];
@@ -753,5 +837,11 @@ export async function getUserInfoData(
     top_commands: row.top_commands || [],
     recent_transactions: row.recent_transactions || [],
     total_cards: parseInt(row.total_cards, 10) || 0,
+    total_spent: parseInt(row.total_spent, 10) || 0,
+    total_received: parseInt(row.total_received, 10) || 0,
+    spending_breakdown: row.spending_breakdown || [],
+    portfolio: row.portfolio || [],
+    top_senders: row.top_senders || [],
+    top_receivers: row.top_receivers || [],
   };
 }
