@@ -259,13 +259,13 @@ export const command: Command = {
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId("show_financial_disabled")
-          .setLabel("財務總覽")
+          .setCustomId("show_interactions_disabled")
+          .setLabel("互動排行")
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId("show_interactions_disabled")
-          .setLabel("互動排行")
+          .setCustomId("show_financial_disabled")
+          .setLabel("財務總覽")
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
