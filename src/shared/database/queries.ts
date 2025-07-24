@@ -790,41 +790,9 @@ export interface UserTopGuild {
   usage_count: number;
 }
 
-export async function getUserTopActiveGuilds(
-  pool: Pool,
-  userId: string
-): Promise<UserTopGuild[]> {
-  const query = `
-    SELECT guild_id, COUNT(id) as usage_count
-    FROM command_usage_stats
-    WHERE user_id = $1
-    GROUP BY guild_id
-    ORDER BY usage_count DESC
-    LIMIT 10;
-  `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
-}
-
 export interface UserTopCommand {
   command_name: string;
   usage_count: number;
-}
-
-export async function getUserTopCommands(
-  pool: Pool,
-  userId: string
-): Promise<UserTopCommand[]> {
-  const query = `
-    SELECT command_name, COUNT(id) as usage_count
-    FROM command_usage_stats
-    WHERE user_id = $1
-    GROUP BY command_name
-    ORDER BY usage_count DESC
-    LIMIT 10;
-  `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
 }
 
 export interface UserTransaction {
@@ -834,30 +802,62 @@ export interface UserTransaction {
   created_at: Date;
 }
 
-export async function getUserRecentTransactions(
-  pool: Pool,
-  userId: string
-): Promise<UserTransaction[]> {
-  const query = `
-    SELECT sender_id, receiver_id, gross_amount as amount, created_at
-    FROM user_transaction_history
-    WHERE sender_id = $1 OR receiver_id = $1
-    ORDER BY created_at DESC
-    LIMIT 10;
-  `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
+export interface UserInfoData {
+  top_guilds: UserTopGuild[];
+  top_commands: UserTopCommand[];
+  recent_transactions: UserTransaction[];
+  total_cards: number;
 }
 
-export async function getUserTotalCardCount(
+export async function getUserInfoData(
   pool: Pool,
   userId: string
-): Promise<number> {
+): Promise<UserInfoData> {
   const query = `
-    SELECT SUM(quantity) as total_card_count
-    FROM gacha_user_collections
-    WHERE user_id = $1;
+    WITH TopGuilds AS (
+        SELECT
+            jsonb_agg(jsonb_build_object('guild_id', guild_id, 'usage_count', usage_count) ORDER BY usage_count DESC) AS data
+        FROM (
+            SELECT guild_id, COUNT(id)::int AS usage_count
+            FROM command_usage_stats WHERE user_id = $1
+            GROUP BY guild_id ORDER BY usage_count DESC LIMIT 10
+        ) AS sub
+    ),
+    TopCommands AS (
+        SELECT
+            jsonb_agg(jsonb_build_object('command_name', command_name, 'usage_count', usage_count) ORDER BY usage_count DESC) AS data
+        FROM (
+            SELECT command_name, COUNT(id)::int AS usage_count
+            FROM command_usage_stats WHERE user_id = $1
+            GROUP BY command_name ORDER BY usage_count DESC LIMIT 10
+        ) AS sub
+    ),
+    RecentTransactions AS (
+        SELECT
+            jsonb_agg(jsonb_build_object('sender_id', sender_id, 'receiver_id', receiver_id, 'amount', gross_amount, 'created_at', created_at) ORDER BY created_at DESC) AS data
+        FROM (
+            SELECT sender_id, receiver_id, gross_amount, created_at
+            FROM user_transaction_history WHERE sender_id = $1 OR receiver_id = $1
+            ORDER BY created_at DESC LIMIT 10
+        ) AS sub
+    ),
+    TotalCards AS (
+        SELECT SUM(quantity) AS data
+        FROM gacha_user_collections WHERE user_id = $1
+    )
+    SELECT
+        (SELECT data FROM TopGuilds) AS top_guilds,
+        (SELECT data FROM TopCommands) AS top_commands,
+        (SELECT data FROM RecentTransactions) AS recent_transactions,
+        (SELECT data FROM TotalCards) AS total_cards;
   `;
   const result = await pool.query(query, [userId]);
-  return parseInt(result.rows[0]?.total_card_count, 10) || 0;
+  const row = result.rows[0];
+
+  return {
+    top_guilds: row.top_guilds || [],
+    top_commands: row.top_commands || [],
+    recent_transactions: row.recent_transactions || [],
+    total_cards: parseInt(row.total_cards, 10) || 0,
+  };
 }
