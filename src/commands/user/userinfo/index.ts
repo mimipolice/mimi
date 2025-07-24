@@ -135,9 +135,8 @@ export const command: Command = {
             .join("\n")
         : "無紀錄";
 
-    const embeds = [
-      // Page 1: General & Activity
-      new EmbedBuilder()
+    const embeds: { [key: string]: EmbedBuilder } = {
+      general: new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle(t.embed.title.replace("{username}", targetUser.username))
         .setThumbnail(targetUser.displayAvatarURL())
@@ -152,8 +151,7 @@ export const command: Command = {
           { name: "📊 最活躍的伺服器", value: topGuildsContent, inline: false },
           { name: "🚀 最常用指令", value: topCommandsContent, inline: false }
         ),
-      // Page 2: Financial Overview
-      new EmbedBuilder()
+      financial: new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle(t.embed.title.replace("{username}", targetUser.username))
         .setThumbnail(targetUser.displayAvatarURL())
@@ -170,8 +168,7 @@ export const command: Command = {
           },
           { name: "📈 股票投資組合", value: portfolioContent, inline: false }
         ),
-      // Page 3: Top Interactions
-      new EmbedBuilder()
+      interactions: new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle(t.embed.title.replace("{username}", targetUser.username))
         .setThumbnail(targetUser.displayAvatarURL())
@@ -187,8 +184,7 @@ export const command: Command = {
             inline: true,
           }
         ),
-      // Page 4: Details
-      new EmbedBuilder()
+      details: new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle(t.embed.title.replace("{username}", targetUser.username))
         .setThumbnail(targetUser.displayAvatarURL())
@@ -204,32 +200,36 @@ export const command: Command = {
             inline: false,
           }
         ),
-    ];
+    };
 
-    let currentPage = 0;
-
-    const createActionRow = (page: number) => {
+    const createActionRow = (activeCategory: string) => {
       return new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId("prev_page")
-          .setLabel("⬅️ 上一頁")
+          .setCustomId("show_general")
+          .setLabel("綜合資訊")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(page === 0),
+          .setDisabled(activeCategory === "general"),
         new ButtonBuilder()
-          .setCustomId("next_page")
-          .setLabel("下一頁 ➡️")
+          .setCustomId("show_financial")
+          .setLabel("財務總覽")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(page === embeds.length - 1)
+          .setDisabled(activeCategory === "financial"),
+        new ButtonBuilder()
+          .setCustomId("show_interactions")
+          .setLabel("互動排行")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(activeCategory === "interactions"),
+        new ButtonBuilder()
+          .setCustomId("show_details")
+          .setLabel("詳細記錄")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(activeCategory === "details")
       );
     };
 
     const message = await interaction.reply({
-      embeds: [
-        embeds[currentPage].setFooter({
-          text: `頁面 ${currentPage + 1}/${embeds.length}`,
-        }),
-      ],
-      components: [createActionRow(currentPage)],
+      embeds: [embeds["general"]],
+      components: [createActionRow("general")],
       flags: MessageFlags.Ephemeral,
     });
 
@@ -244,32 +244,33 @@ export const command: Command = {
         return;
       }
 
-      if (i.customId === "prev_page") {
-        currentPage--;
-      } else if (i.customId === "next_page") {
-        currentPage++;
-      }
-
+      const category = i.customId.split("_")[1];
       await i.update({
-        embeds: [
-          embeds[currentPage].setFooter({
-            text: `頁面 ${currentPage + 1}/${embeds.length}`,
-          }),
-        ],
-        components: [createActionRow(currentPage)],
+        embeds: [embeds[category]],
+        components: [createActionRow(category)],
       });
     });
 
     collector.on("end", async () => {
       const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId("prev_page_disabled")
-          .setLabel("⬅️ 上一頁")
+          .setCustomId("show_general_disabled")
+          .setLabel("綜合資訊")
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId("next_page_disabled")
-          .setLabel("下一頁 ➡️")
+          .setCustomId("show_financial_disabled")
+          .setLabel("財務總覽")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId("show_interactions_disabled")
+          .setLabel("互動排行")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId("show_details_disabled")
+          .setLabel("詳細記錄")
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true)
       );
