@@ -5,7 +5,7 @@
 
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.21.0-7289DA?logo=discord&logoColor=white)](https://discord.js.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5.8.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-≥18.0.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-≥24.0.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 ## 專案簡介
 
@@ -43,7 +43,7 @@
 
 ### 先決條件
 
-*   [Node.js](https://nodejs.org/) (建議版本 18.x 或更高)
+*   [Node.js](https://nodejs.org/) (建議版本 24.x 或更高)
 *   [npm](https://www.npmjs.com/)
 *   [PostgreSQL](https://www.postgresql.org/) 資料庫
 
