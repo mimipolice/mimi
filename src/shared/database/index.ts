@@ -1,4 +1,9 @@
-import { Pool } from "pg";
+import { Pool, types } from "pg";
+
+// Force int8 to be parsed as string
+types.setTypeParser(20, (val) => {
+  return val;
+});
 import path from "path";
 import logger from "../../utils/logger";
 import { Kysely, PostgresDialect } from "kysely";
