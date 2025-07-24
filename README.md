@@ -4,7 +4,7 @@
 一個功能強大、模組化且易於擴展的 Discord 機器人，旨在提升伺服器管理效率與社群互動體驗。
 
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.21.0-7289DA?logo=discord&logoColor=white)](https://discord.js.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-v5.8.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-v5.9.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-≥24.0.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 ## 專案簡介
