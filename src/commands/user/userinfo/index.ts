@@ -235,7 +235,7 @@ export const command: Command = {
 
     const collector = message.createMessageComponentCollector({
       componentType: ComponentType.Button,
-      time: 60000, // 60 seconds
+      //time: 60000, // 60 seconds
     });
 
     collector.on("collect", async (i) => {
