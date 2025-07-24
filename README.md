@@ -51,8 +51,8 @@
 
 1.  **複製專案**
     ```bash
-    git clone https://github.com/your-username/your-repo-name.git
-    cd your-repo-name
+    git clone https://github.com/956zs/mimi.git
+    cd mimi
     ```
 
 2.  **安裝依賴**
@@ -96,6 +96,3 @@
 
 我們非常歡迎社群的貢獻！無論是回報錯誤、提出功能建議，或是直接提交程式碼，都對專案有極大的幫助。請參考我們的 [貢獻指南 (CONTRIBUTING.md)](CONTRIBUTING.md) 來了解詳細流程。
 
-## 授權條款
-
-本專案採用 [MIT License](LICENSE) 授權。
