@@ -176,12 +176,12 @@ export const command: Command = {
           {
             name: "🎁 最常轉帳給您的人",
             value: topSendersContent,
-            inline: true,
+            inline: false,
           },
           {
             name: "💸 您最常轉帳的人",
             value: topReceiversContent,
-            inline: true,
+            inline: false,
           }
         ),
       details: new EmbedBuilder()
