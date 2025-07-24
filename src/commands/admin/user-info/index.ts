@@ -9,10 +9,10 @@ import {
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
 import {
-  getUserTopActiveGuilds,
-  getUserTopCommands,
-  getUserRecentTransactions,
-  getUserTotalCardCount,
+  getUserInfoData,
+  UserTopGuild,
+  UserTopCommand,
+  UserTransaction,
 } from "../../../shared/database/queries";
 import { gachaPool } from "../../../shared/database";
 
@@ -42,18 +42,13 @@ export const command: Command = {
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
 
-    const [topGuilds, topCommands, recentTransactions, totalCards] =
-      await Promise.all([
-        getUserTopActiveGuilds(gachaPool, targetUser.id),
-        getUserTopCommands(gachaPool, targetUser.id),
-        getUserRecentTransactions(gachaPool, targetUser.id),
-        getUserTotalCardCount(gachaPool, targetUser.id),
-      ]);
+    const { top_guilds, top_commands, recent_transactions, total_cards } =
+      await getUserInfoData(gachaPool, targetUser.id);
 
     const topGuildsContent =
-      topGuilds.length > 0
-        ? topGuilds
-            .map((g, i) => {
+      top_guilds.length > 0
+        ? top_guilds
+            .map((g: UserTopGuild, i: number) => {
               const guild = interaction.client.guilds.cache.get(g.guild_id);
               return `${i + 1}. ${
                 guild ? `${guild.id} ${guild.name}` : g.guild_id
@@ -63,18 +58,19 @@ export const command: Command = {
         : "無紀錄";
 
     const topCommandsContent =
-      topCommands.length > 0
-        ? topCommands
+      top_commands.length > 0
+        ? top_commands
             .map(
-              (c, i) => `${i + 1}. ${c.command_name} - (${c.usage_count} 次)`
+              (c: UserTopCommand, i: number) =>
+                `${i + 1}. ${c.command_name} - (${c.usage_count} 次)`
             )
             .join("\n")
         : "無紀錄";
 
     const recentTransactionsContent =
-      recentTransactions.length > 0
-        ? recentTransactions
-            .map((tx) => {
+      recent_transactions.length > 0
+        ? recent_transactions
+            .map((tx: UserTransaction) => {
               const isSender = tx.sender_id === targetUser.id;
               const otherPartyId = isSender ? tx.receiver_id : tx.sender_id;
               const arrow = isSender ? "➡️" : "⬅️";
@@ -121,7 +117,7 @@ export const command: Command = {
         },
         {
           name: "🃏 卡片收藏總覽",
-          value: `總持有卡片數量： ${totalCards} 張`,
+          value: `總持有卡片數量： ${total_cards} 張`,
           inline: false,
         }
       )
