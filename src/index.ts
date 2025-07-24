@@ -220,7 +220,7 @@ async function main() {
       return;
     }
     logger.info(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity("米米", { type: ActivityType.Watching });
+    client.user.setActivity("米米><", { type: ActivityType.Custom });
     priceAlerter.start();
   });
 }
