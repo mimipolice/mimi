@@ -2,7 +2,12 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
-import { Client, Collection, GatewayIntentBits } from "discord.js";
+import {
+  ActivityType,
+  Client,
+  Collection,
+  GatewayIntentBits,
+} from "discord.js";
 import logger from "./utils/logger";
 import { errorHandler } from "./utils/errorHandler";
 import { SettingsManager } from "./services/SettingsManager";
@@ -215,6 +220,7 @@ async function main() {
       return;
     }
     logger.info(`Logged in as ${client.user.tag}!`);
+    client.user.setActivity("米米", { type: ActivityType.Watching });
     priceAlerter.start();
   });
 }
