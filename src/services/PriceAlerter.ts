@@ -20,11 +20,10 @@ export class PriceAlerter {
     this.client = client;
   }
 
-  public start(checkIntervalMs: number = 60000) {
+  public start(checkIntervalMs: number = 120000) {
     if (this.interval) {
       this.stop();
     }
-    logger.info("PriceAlerter started.");
     this.interval = setInterval(() => this.checkAlerts(), checkIntervalMs);
   }
 
@@ -96,7 +95,6 @@ export class PriceAlerter {
           .replace("{{currentPrice}}", currentPrice.toFixed(2));
 
       await user.send(message);
-      logger.info(`Sent price alert notification to ${user.tag}`);
     } catch (error) {
       logger.error(`Failed to send price alert DM to ${alert.user_id}:`, error);
     }
