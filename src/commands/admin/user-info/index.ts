@@ -306,56 +306,53 @@ export const command: Command = {
     });
 
     collector.on("collect", async (i) => {
-      if (i.user.id !== interaction.user.id) {
-        await i.reply({ content: "這不是給您用的按鈕！", ephemeral: true });
-        return;
-      }
-
-      const [action, category, value] = i.customId.split("_");
-
-      if (action === "details" && category === "more") {
-        const offset = parseInt(value, 10);
-        const newTransactions = await getRecentTransactions(
-          gachaPool,
-          targetUser.id,
-          offset,
-          10
-        );
-        recent_transactions.push(...newTransactions);
-        recentTransactionsContent = formatTransactions(recent_transactions);
-
-        if (recentTransactionsContent.length > 1024) {
-          recentTransactionsContent =
-            recentTransactionsContent.substring(0, 1020) + "\n...";
+      try {
+        if (i.user.id !== interaction.user.id) {
+          await i.reply({ content: "這不是給您用的按鈕！", ephemeral: true });
+          return;
         }
 
-        embeds["details"].setFields(
-          {
-            name: "💳 最近交易紀錄",
-            value: recentTransactionsContent || "無紀錄",
-            inline: false,
-          },
-          {
-            name: "🃏 卡片收藏總覽",
-            value: `總持有卡片數量： ${total_cards} 張`,
-            inline: false,
+        const [action, category, value] = i.customId.split("_");
+
+        if (action === "details" && category === "more") {
+          const offset = parseInt(value, 10);
+          const newTransactions = await getRecentTransactions(
+            gachaPool,
+            targetUser.id,
+            offset,
+            10
+          );
+
+          if (newTransactions.length > 0) {
+            const newContent = formatTransactions(newTransactions);
+            if (embeds["details"].data.fields!.length < 25) {
+              embeds["details"].addFields({
+                name: `💳 最近交易紀錄 (續 ${offset / 10 + 1})`,
+                value: newContent,
+                inline: false,
+              });
+            }
           }
-        );
 
-        await i.update({
-          embeds: [embeds["details"]],
-          components: [
-            createActionRow("details", offset, total_transactions_count),
-          ],
-        });
-        return;
-      }
+          await i.update({
+            embeds: [embeds["details"]],
+            components: [
+              createActionRow("details", offset, total_transactions_count),
+            ],
+          });
+          return;
+        }
 
-      if (action === "show") {
-        await i.update({
-          embeds: [embeds[category]],
-          components: [createActionRow(category, 0, total_transactions_count)],
-        });
+        if (action === "show") {
+          await i.update({
+            embeds: [embeds[category]],
+            components: [
+              createActionRow(category, 0, total_transactions_count),
+            ],
+          });
+        }
+      } catch (error) {
+        errorHandler.handleInteractionError(i, error, interaction.client);
       }
     });
 
