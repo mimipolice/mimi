@@ -33,7 +33,7 @@ async function main() {
     try {
       if (!fs.existsSync(transcriptPath)) {
         fs.mkdirSync(transcriptPath, { recursive: true });
-        logger.info(`Created transcript directory at: ${transcriptPath}`);
+        fs.mkdirSync(transcriptPath, { recursive: true });
       }
     } catch (error: any) {
       if (error.code === "EACCES") {
