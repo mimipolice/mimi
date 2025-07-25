@@ -116,6 +116,10 @@ export const command: Command = {
         : "無紀錄";
 
     let recentTransactionsContent = formatTransactions(recent_transactions);
+    if (recentTransactionsContent.length > 1024) {
+      recentTransactionsContent =
+        recentTransactionsContent.substring(0, 1020) + "\n...";
+    }
 
     const transactionTypeMap: { [key: string]: string } = {
       OIL_TRANSFER: "油幣轉帳",
