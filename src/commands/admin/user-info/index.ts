@@ -74,7 +74,7 @@ export const command: Command = {
       gachaPool,
       targetUser.id,
       0,
-      10
+      15
     );
 
     const topGuildsContent =
@@ -105,7 +105,7 @@ export const command: Command = {
             .map((tx: UserTransaction) => {
               const isSender = tx.sender_id === targetUser.id;
               const otherPartyId = isSender ? tx.receiver_id : tx.sender_id;
-              const arrow = isSender ? "➡️" : "⬅️";
+              const arrow = isSender ? "🢂" : "🢀";
               const action = isSender ? "轉給" : "收到";
               const timestamp = `<t:${Math.floor(
                 new Date(tx.created_at).getTime() / 1000
@@ -284,10 +284,10 @@ export const command: Command = {
 
       if (activeCategory === "details") {
         const moreButton = new ButtonBuilder()
-          .setCustomId(`details_more_${currentOffset + 10}`)
+          .setCustomId(`details_more_${currentOffset + 15}`)
           .setLabel("查看更多")
           .setStyle(ButtonStyle.Success)
-          .setDisabled(currentOffset + 10 >= total);
+          .setDisabled(currentOffset + 15 >= total);
         row.addComponents(moreButton);
       }
 
@@ -320,14 +320,14 @@ export const command: Command = {
             gachaPool,
             targetUser.id,
             offset,
-            10
+            15
           );
 
           if (newTransactions.length > 0) {
             const newContent = formatTransactions(newTransactions);
             if (embeds["details"].data.fields!.length < 25) {
               embeds["details"].addFields({
-                name: `💳 最近交易紀錄 (續 ${offset / 10 + 1})`,
+                name: `💳 最近交易紀錄 (續 ${offset / 15 + 1})`,
                 value: newContent,
                 inline: false,
               });
