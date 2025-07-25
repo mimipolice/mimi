@@ -1,7 +1,6 @@
 import { Pool } from "pg";
 import { sql } from "kysely";
 import { mimiDLCDb } from ".";
-import logger from "../../utils/logger";
 interface PriceHistory {
   price: number;
   timestamp: Date;
@@ -727,9 +726,34 @@ export interface UserInfoData {
   total_spent: number;
   total_received: number;
   spending_breakdown: SpendingBreakdown[];
+  income_breakdown: SpendingBreakdown[];
   portfolio: PortfolioItem[];
   top_senders: TopSender[];
   top_receivers: TopReceiver[];
+  oil_balance: number;
+  oil_ticket_balance: number;
+  total_transactions_count: number;
+}
+
+export async function getRecentTransactions(
+  pool: Pool,
+  userId: string,
+  offset: number,
+  limit: number
+): Promise<UserTransaction[]> {
+  const query = `
+    SELECT sender_id, receiver_id, net_amount, created_at
+    FROM user_transaction_history
+    WHERE sender_id = $1 OR receiver_id = $1
+    ORDER BY created_at DESC
+    OFFSET $2
+    LIMIT $3;
+  `;
+  const result = await pool.query(query, [userId, offset, limit]);
+  return result.rows.map((row) => ({
+    ...row,
+    amount: row.net_amount,
+  }));
 }
 
 export async function getUserInfoData(
@@ -754,6 +778,17 @@ export async function getUserInfoData(
         GROUP BY transaction_type
         ORDER BY total_amount DESC
       ) AS sub
+    ),
+    IncomeBreakdown AS (
+        SELECT
+            jsonb_agg(jsonb_build_object('transaction_type', transaction_type, 'total_amount', total_amount)) AS data
+        FROM (
+            SELECT transaction_type, SUM(gross_amount)::int AS total_amount
+            FROM user_transaction_history
+            WHERE receiver_id = $1
+            GROUP BY transaction_type
+            ORDER BY total_amount DESC
+        ) AS sub
     ),
     Portfolio AS (
       SELECT
@@ -804,30 +839,33 @@ export async function getUserInfoData(
             GROUP BY command_name ORDER BY usage_count DESC LIMIT 10
         ) AS sub
     ),
-    RecentTransactions AS (
-        SELECT
-            jsonb_agg(jsonb_build_object('sender_id', sender_id::text, 'receiver_id', receiver_id::text, 'amount', net_amount, 'created_at', created_at) ORDER BY created_at DESC) AS data
-        FROM (
-            SELECT sender_id, receiver_id, net_amount, created_at
-            FROM user_transaction_history WHERE sender_id = $1 OR receiver_id = $1
-            ORDER BY created_at DESC LIMIT 10
-        ) AS sub
-    ),
     TotalCards AS (
         SELECT SUM(quantity) AS data
         FROM gacha_user_collections WHERE user_id = $1
+    ),
+    TotalTransactions AS (
+        SELECT COUNT(*)::int AS count
+        FROM user_transaction_history
+        WHERE sender_id = $1 OR receiver_id = $1
+    ),
+    UserBalances AS (
+        SELECT oil_balance, oil_ticket_balance
+        FROM gacha_users WHERE user_id = $1
     )
     SELECT
         (SELECT data FROM TopGuilds) AS top_guilds,
         (SELECT data FROM TopCommands) AS top_commands,
-        (SELECT data FROM RecentTransactions) AS recent_transactions,
         (SELECT data FROM TotalCards) AS total_cards,
+        (SELECT count FROM TotalTransactions) AS total_transactions_count,
         (SELECT total_spent FROM TransactionSummary) AS total_spent,
         (SELECT total_received FROM TransactionSummary) AS total_received,
         (SELECT data FROM SpendingBreakdown) AS spending_breakdown,
+        (SELECT data FROM IncomeBreakdown) AS income_breakdown,
         (SELECT data FROM Portfolio) AS portfolio,
         (SELECT data FROM TopSenders) AS top_senders,
-        (SELECT data FROM TopReceivers) AS top_receivers;
+        (SELECT data FROM TopReceivers) AS top_receivers,
+        (SELECT oil_balance FROM UserBalances) AS oil_balance,
+        (SELECT oil_ticket_balance FROM UserBalances) AS oil_ticket_balance;
   `;
   const result = await pool.query(query, [userId]);
   const row = result.rows[0];
@@ -835,13 +873,17 @@ export async function getUserInfoData(
   return {
     top_guilds: row.top_guilds || [],
     top_commands: row.top_commands || [],
-    recent_transactions: row.recent_transactions || [],
+    recent_transactions: [], // This will be fetched separately
     total_cards: parseInt(row.total_cards, 10) || 0,
+    total_transactions_count: parseInt(row.total_transactions_count, 10) || 0,
     total_spent: parseInt(row.total_spent, 10) || 0,
     total_received: parseInt(row.total_received, 10) || 0,
     spending_breakdown: row.spending_breakdown || [],
+    income_breakdown: row.income_breakdown || [],
     portfolio: row.portfolio || [],
     top_senders: row.top_senders || [],
     top_receivers: row.top_receivers || [],
+    oil_balance: parseInt(row.oil_balance, 10) || 0,
+    oil_ticket_balance: parseInt(row.oil_ticket_balance, 10) || 0,
   };
 }

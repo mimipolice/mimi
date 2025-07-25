@@ -14,6 +14,7 @@ import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
 import {
   getUserInfoData,
+  getRecentTransactions,
   UserTopGuild,
   UserTopCommand,
   UserTransaction,
@@ -53,15 +54,25 @@ export const command: Command = {
     const {
       top_guilds,
       top_commands,
-      recent_transactions,
       total_cards,
+      total_transactions_count,
       total_spent,
       total_received,
       spending_breakdown,
+      income_breakdown,
       portfolio,
       top_senders,
       top_receivers,
+      oil_balance,
+      oil_ticket_balance,
     } = await getUserInfoData(gachaPool, targetUser.id);
+
+    let recent_transactions = await getRecentTransactions(
+      gachaPool,
+      targetUser.id,
+      0,
+      10
+    );
 
     const topGuildsContent =
       top_guilds.length > 0
@@ -85,9 +96,9 @@ export const command: Command = {
             .join("\n")
         : "無紀錄";
 
-    const recentTransactionsContent =
-      recent_transactions.length > 0
-        ? recent_transactions
+    const formatTransactions = (transactions: UserTransaction[]) =>
+      transactions.length > 0
+        ? transactions
             .map((tx: UserTransaction) => {
               const isSender = tx.sender_id === targetUser.id;
               const otherPartyId = isSender ? tx.receiver_id : tx.sender_id;
@@ -101,15 +112,33 @@ export const command: Command = {
             .join("\n")
         : "無紀錄";
 
-    const spendingBreakdownContent =
-      spending_breakdown.length > 0
-        ? spending_breakdown
+    let recentTransactionsContent = formatTransactions(recent_transactions);
+
+    const transactionTypeMap: { [key: string]: string } = {
+      OIL_TRANSFER: "油幣轉帳",
+      GACHA_PULL: "轉蛋",
+      ASSET_PURCHASE: "資產購買",
+      ASSET_SALE: "資產出售",
+      ADMIN_ADJUSTMENT: "管理員調整",
+      DAILY_REWARD: "每日簽到",
+    };
+
+    const formatBreakdown = (breakdown: SpendingBreakdown[]) => {
+      return breakdown.length > 0
+        ? breakdown
             .map(
               (item: SpendingBreakdown) =>
-                `${item.transaction_type}: ${item.total_amount} 元`
+                `${
+                  transactionTypeMap[item.transaction_type] ||
+                  item.transaction_type
+                }: ${item.total_amount} 元`
             )
             .join("\n")
         : "無紀錄";
+    };
+
+    const spendingBreakdownContent = formatBreakdown(spending_breakdown);
+    const incomeBreakdownContent = formatBreakdown(income_breakdown);
 
     const portfolioContent =
       portfolio.length > 0
@@ -167,16 +196,26 @@ export const command: Command = {
         .setThumbnail(targetUser.displayAvatarURL())
         .addFields(
           {
+            name: "💰 帳戶餘額",
+            value: `油幣: ${oil_balance} 元\n油票: ${oil_ticket_balance} 張`,
+            inline: false,
+          },
+          {
             name: "💸 總轉入/總轉出",
             value: `總轉入: ${total_received} 元\n總轉出: ${total_spent} 元`,
             inline: false,
           },
           {
-            name: "🧾 油幣花費項目",
+            name: "🧾 主要支出項目",
             value: spendingBreakdownContent,
             inline: false,
           },
-          { name: "📈 股票投資組合", value: portfolioContent, inline: false }
+          {
+            name: "📈 主要收入來源",
+            value: incomeBreakdownContent,
+            inline: false,
+          },
+          { name: "📊 股票投資組合", value: portfolioContent, inline: false }
         ),
       interactions: new EmbedBuilder()
         .setColor(0x5865f2)
@@ -212,8 +251,12 @@ export const command: Command = {
         ),
     };
 
-    const createActionRow = (activeCategory: string) => {
-      return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    const createActionRow = (
+      activeCategory: string,
+      currentOffset = 0,
+      total = 0
+    ) => {
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId("show_general")
           .setLabel("綜合資訊")
@@ -235,17 +278,28 @@ export const command: Command = {
           .setStyle(ButtonStyle.Primary)
           .setDisabled(activeCategory === "details")
       );
+
+      if (activeCategory === "details") {
+        const moreButton = new ButtonBuilder()
+          .setCustomId(`details_more_${currentOffset + 10}`)
+          .setLabel("查看更多")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(currentOffset + 10 >= total);
+        row.addComponents(moreButton);
+      }
+
+      return row;
     };
 
     const message = await interaction.reply({
       embeds: [embeds["general"]],
-      components: [createActionRow("general")],
+      components: [createActionRow("general", 0, total_transactions_count)],
       flags: MessageFlags.Ephemeral,
     });
 
     const collector = message.createMessageComponentCollector({
       componentType: ComponentType.Button,
-      //time: 60000, // 60 seconds
+      // time: 60000, // 60 seconds
     });
 
     collector.on("collect", async (i) => {
@@ -254,36 +308,69 @@ export const command: Command = {
         return;
       }
 
-      const category = i.customId.split("_")[1];
-      await i.update({
-        embeds: [embeds[category]],
-        components: [createActionRow(category)],
-      });
+      const [action, category, value] = i.customId.split("_");
+
+      if (action === "details" && category === "more") {
+        const offset = parseInt(value, 10);
+        const newTransactions = await getRecentTransactions(
+          gachaPool,
+          targetUser.id,
+          offset,
+          10
+        );
+        recent_transactions.push(...newTransactions);
+        recentTransactionsContent = formatTransactions(recent_transactions);
+
+        if (recentTransactionsContent.length > 1024) {
+          recentTransactionsContent =
+            recentTransactionsContent.substring(0, 1020) + "\n...";
+        }
+
+        embeds["details"].setFields(
+          {
+            name: "💳 最近交易紀錄",
+            value: recentTransactionsContent || "無紀錄",
+            inline: false,
+          },
+          {
+            name: "🃏 卡片收藏總覽",
+            value: `總持有卡片數量： ${total_cards} 張`,
+            inline: false,
+          }
+        );
+
+        await i.update({
+          embeds: [embeds["details"]],
+          components: [
+            createActionRow("details", offset, total_transactions_count),
+          ],
+        });
+        return;
+      }
+
+      if (action === "show") {
+        await i.update({
+          embeds: [embeds[category]],
+          components: [createActionRow(category, 0, total_transactions_count)],
+        });
+      }
     });
 
     collector.on("end", async () => {
-      const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId("show_general_disabled")
-          .setLabel("綜合資訊")
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true),
-        new ButtonBuilder()
-          .setCustomId("show_interactions_disabled")
-          .setLabel("互動排行")
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true),
-        new ButtonBuilder()
-          .setCustomId("show_financial_disabled")
-          .setLabel("財務總覽")
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true),
-        new ButtonBuilder()
-          .setCustomId("show_details_disabled")
-          .setLabel("詳細記錄")
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true)
-      );
+      const finalMessage = await interaction.fetchReply();
+      // Create a new disabled row
+      const disabledRow = new ActionRowBuilder<ButtonBuilder>();
+      for (const row of finalMessage.components) {
+        if (row.type === ComponentType.ActionRow) {
+          for (const component of row.components) {
+            if (component.type === ComponentType.Button) {
+              const newButton = new ButtonBuilder(component.data);
+              newButton.setDisabled(true);
+              disabledRow.addComponents(newButton);
+            }
+          }
+        }
+      }
       await message.edit({ components: [disabledRow] });
     });
   },
