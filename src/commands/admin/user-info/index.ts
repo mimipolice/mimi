@@ -9,9 +9,12 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  DiscordAPIError,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
+import { errorHandler } from "../../../utils/errorHandler";
+import logger from "../../../utils/logger";
 import {
   getUserInfoData,
   getRecentTransactions,
@@ -357,21 +360,32 @@ export const command: Command = {
     });
 
     collector.on("end", async () => {
-      const finalMessage = await interaction.fetchReply();
-      // Create a new disabled row
-      const disabledRow = new ActionRowBuilder<ButtonBuilder>();
-      for (const row of finalMessage.components) {
-        if (row.type === ComponentType.ActionRow) {
-          for (const component of row.components) {
-            if (component.type === ComponentType.Button) {
-              const newButton = new ButtonBuilder(component.data);
-              newButton.setDisabled(true);
-              disabledRow.addComponents(newButton);
+      try {
+        const finalMessage = await interaction.fetchReply();
+        // Create a new disabled row
+        const disabledRow = new ActionRowBuilder<ButtonBuilder>();
+        for (const row of finalMessage.components) {
+          if (row.type === ComponentType.ActionRow) {
+            for (const component of row.components) {
+              if (component.type === ComponentType.Button) {
+                const newButton = new ButtonBuilder(component.data);
+                newButton.setDisabled(true);
+                disabledRow.addComponents(newButton);
+              }
             }
           }
         }
+        await message.edit({ components: [disabledRow] });
+      } catch (error) {
+        // Suppress errors on collector end, as the interaction may have expired
+        if (error instanceof DiscordAPIError && error.code === 10062) {
+          // Unknown interaction
+          return;
+        }
+        logger.warn(
+          `[user-info] Failed to disable components on collector end: ${error}`
+        );
       }
-      await message.edit({ components: [disabledRow] });
     });
   },
 };
