@@ -155,7 +155,7 @@ async function main() {
       const filePath = path.join(interactionsPath, file);
       const interaction = require(filePath).default;
       if (interaction && interaction.name && interaction.execute) {
-        if (folder === "buttons" && typeof interaction.name === "string") {
+        if (folder === "buttons") {
           client.buttons.set(interaction.name, interaction);
         }
         if (folder === "modals")

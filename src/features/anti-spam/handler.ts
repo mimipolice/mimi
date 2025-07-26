@@ -12,7 +12,7 @@ import {
 import config from "../../config";
 import logger from "../../utils/logger";
 import { getAntiSpamLogChannel } from "../../shared/database/queries";
-import { formatDistanceToNowStrict } from "date-fns"; // 推薦使用 date-fns 或類似庫來處理時間格式化
+import { formatDistanceStrict } from "date-fns"; // 推薦使用 date-fns 或類似庫來處理時間格式化
 
 // --- 1. Types and Data Structures ---
 // [優化] 使用 punishedUntil 取代 isNotified，記錄懲罰到期時間
@@ -23,7 +23,8 @@ interface UserMessageData {
 
 const userMessageHistory = new Collection<string, UserMessageData>();
 const { antiSpam } = config;
-const TIMEOUT_DURATION_STRING = formatDistanceToNowStrict(
+const TIMEOUT_DURATION_STRING = formatDistanceStrict(
+  0,
   antiSpam.timeoutDuration
 );
 

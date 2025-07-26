@@ -58,6 +58,8 @@ export async function execute(
       const button = client.buttons.find((b) => {
         if (typeof b.name === "string") {
           return interaction.customId.startsWith(b.name);
+        } else if (b.name instanceof RegExp) {
+          return b.name.test(interaction.customId);
         }
         return false;
       });

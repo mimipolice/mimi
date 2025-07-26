@@ -1,69 +1,35 @@
 import {
+  ActionRowBuilder,
   ButtonInteraction,
-  Client,
-  EmbedBuilder,
-  TextChannel,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } from "discord.js";
 import { Button } from "../../interfaces/Button";
-import config from "../../config";
-import logger from "../../utils/logger";
 
 const button: Button = {
   name: "appeal",
-  execute: async (interaction: ButtonInteraction, client: Client) => {
-    await interaction.reply({
-      content:
-        "Your appeal has been submitted to the administrators. They will review it shortly.",
-      ephemeral: true,
-    });
-
+  execute: async (interaction: ButtonInteraction) => {
     const [, userId, guildId] = interaction.customId.split(":");
+    const messageId = interaction.message.id;
 
-    try {
-      const guild = await client.guilds.fetch(guildId);
-      if (!guild) {
-        logger.warn(`[Appeal] Guild ${guildId} not found.`);
-        return;
-      }
+    const modal = new ModalBuilder()
+      .setCustomId(`anti_spam_appeal_modal:${userId}:${guildId}:${messageId}`)
+      .setTitle("Appeal Timeout");
 
-      const appealingUser = await client.users.fetch(userId);
-      const adminChannel = await client.channels.fetch(
-        config.antiSpam.adminChannelId
-      );
+    const reasonInput = new TextInputBuilder()
+      .setCustomId("appealReason")
+      .setLabel("Reason for Appeal")
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true);
 
-      if (!(adminChannel instanceof TextChannel)) {
-        logger.error(
-          `[Appeal] Admin channel ${config.antiSpam.adminChannelId} is not a text channel.`
-        );
-        return;
-      }
+    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+      reasonInput
+    );
 
-      const appealEmbed = new EmbedBuilder()
-        .setTitle("📢 Timeout Appeal")
-        .setColor("Yellow")
-        .setDescription(
-          `User ${appealingUser.toString()} (${
-            appealingUser.tag
-          }) is appealing their automated timeout.`
-        )
-        .addFields({
-          name: "User ID",
-          value: userId,
-          inline: true,
-        })
-        .setTimestamp()
-        .setFooter({
-          text: `Appeal from ${guild.name}`,
-          iconURL: guild.iconURL() || undefined,
-        });
+    modal.addComponents(actionRow);
 
-      await adminChannel.send({ embeds: [appealEmbed] });
-    } catch (error) {
-      logger.error(
-        `[Appeal] Error processing appeal for user ${userId}:`,
-        error
-      );
-    }
+    await interaction.showModal(modal);
   },
 };
 
