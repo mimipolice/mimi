@@ -145,7 +145,7 @@ export const command: Command = {
       "trade:sell": "交易：賣出",
       transfer_receive: "接收轉帳",
       transfer_send: "發送轉帳",
-      unknown: "未知",
+      unknown: "轉帳",
       "wish:expand_slot": "擴充許願欄位",
       "wish:upgrade_power": "升級許願能量",
       OIL_TRANSFER: "油幣轉帳",
@@ -157,17 +157,60 @@ export const command: Command = {
     };
 
     const formatBreakdown = (breakdown: SpendingBreakdown[]) => {
-      return breakdown.length > 0
-        ? breakdown
-            .map(
-              (item: SpendingBreakdown) =>
-                `${
-                  transactionTypeMap[item.transaction_type] ||
-                  item.transaction_type
-                }: ${item.total_amount} 元`
-            )
-            .join("\n")
-        : "無紀錄";
+      if (breakdown.length === 0) {
+        return "無紀錄";
+      }
+
+      const categoryMap: { [key: string]: string } = {
+        game: "遊戲",
+        reward: "獎勵",
+        stock: "股市",
+        trade: "交易",
+        card: "卡牌",
+        wish: "願望",
+        transfer: "轉帳",
+        other: "其他",
+      };
+
+      const categorized: { [key: string]: string[] } = {};
+
+      breakdown.forEach((item: SpendingBreakdown) => {
+        const type = item.transaction_type;
+        let category = "other";
+
+        if (type.startsWith("game:")) category = "game";
+        else if (type.startsWith("reward:")) category = "reward";
+        else if (type.startsWith("stock:")) category = "stock";
+        else if (type.startsWith("trade:")) category = "trade";
+        else if (type.startsWith("card:")) category = "card";
+        else if (type.startsWith("wish:")) category = "wish";
+        else if (type.startsWith("transfer")) category = "transfer";
+
+        if (!categorized[category]) {
+          categorized[category] = [];
+        }
+        categorized[category].push(
+          `  • ${
+            transactionTypeMap[item.transaction_type] || item.transaction_type
+          }: ${item.total_amount} 元`
+        );
+      });
+
+      const formattedString = Object.keys(categorized)
+        .sort((a, b) => {
+          const order = Object.keys(categoryMap);
+          return order.indexOf(a) - order.indexOf(b);
+        })
+        .map((category) => {
+          const title = categoryMap[category] || "其他";
+          return `\n=== ${title} ===\n${categorized[category].join("\n")}`;
+        })
+        .join("");
+
+      if (formattedString.length > 1024) {
+        return formattedString.substring(0, 1020) + "\n...";
+      }
+      return formattedString;
     };
 
     const spendingBreakdownContent = formatBreakdown(spending_breakdown);
