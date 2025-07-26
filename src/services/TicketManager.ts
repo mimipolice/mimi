@@ -244,10 +244,12 @@ export class TicketManager {
       .where("channelId", "=", channel.id)
       .execute();
 
-    await channel.permissionOverwrites.edit(owner.id, { ViewChannel: false });
-    await channel.permissionOverwrites.edit(guild.roles.everyone, {
-      ViewChannel: false,
-    });
+    if (channel.permissionOverwrites.cache.has(owner.id)) {
+      await channel.permissionOverwrites.delete(owner.id);
+    }
+    if (channel.permissionOverwrites.cache.has(guild.roles.everyone.id)) {
+      await channel.permissionOverwrites.delete(guild.roles.everyone.id);
+    }
 
     if (settings && settings.archiveCategoryId) {
       try {
