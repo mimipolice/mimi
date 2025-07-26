@@ -164,14 +164,31 @@ async function handleSpamAction(
 
     const adminChannel = await message.client.channels.fetch(logChannelId);
     if (adminChannel instanceof TextChannel) {
+      // 在 handleSpamAction 的 embed 建立部分
       const embed = new EmbedBuilder()
         .setTitle("🛡️ Automatic Timeout (Spam Detected)")
         .setColor("Red")
         .addFields(
-          // ... fields ...
+          {
+            name: "👤 User",
+            value: `${member.toString()} (${member.id})`,
+            inline: true,
+          },
+          {
+            name: "🔗 Triggering Message",
+            value: `[Click to view](${message.url})`,
+            inline: true,
+          },
+          { name: "📜 Reason", value: reason, inline: false },
+          {
+            name: "🕒 Time",
+            value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+            inline: false,
+          },
           { name: "⏳ Duration", value: TIMEOUT_DURATION_STRING, inline: true } // [優化] 使用動態時間字串
-        );
-      // ... a lot of fields ...
+        )
+        .setThumbnail(member.user.displayAvatarURL())
+        .setFooter({ text: `Anti-Spam System | ${message.guild.name}` });
       await adminChannel.send({ embeds: [embed] });
     }
   } catch (adminNotifyError) {
