@@ -1,4 +1,9 @@
-import { ButtonInteraction, Client, EmbedBuilder } from "discord.js";
+import {
+  ButtonInteraction,
+  Client,
+  EmbedBuilder,
+  MessageFlags,
+} from "discord.js";
 import { Button } from "../../interfaces/Button";
 
 const appealReviewButton: Button = {
@@ -8,7 +13,10 @@ const appealReviewButton: Button = {
 
     const guild = await client.guilds.fetch(guildId);
     if (!guild) {
-      await interaction.reply({ content: "Guild not found.", ephemeral: true });
+      await interaction.reply({
+        content: "Guild not found.",
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
 
@@ -16,7 +24,7 @@ const appealReviewButton: Button = {
     if (!member) {
       await interaction.reply({
         content: "Member not found in this guild.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -34,19 +42,16 @@ const appealReviewButton: Button = {
           .catch(() => {
             console.log(`Could not DM user ${userId}`);
           });
-        newEmbed
-          .setTitle("Appeal Approved")
-          .setColor("Green")
-          .addFields({
-            name: "Moderator",
-            value: interaction.user.toString(),
-            inline: true,
-          });
+        newEmbed.setTitle("Appeal Approved").setColor("Green").addFields({
+          name: "Moderator",
+          value: interaction.user.toString(),
+          inline: true,
+        });
       } catch (error) {
         console.error(error);
         await interaction.reply({
           content: "Failed to remove timeout.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -55,14 +60,11 @@ const appealReviewButton: Button = {
         await member.send("Your appeal has been denied.").catch(() => {
           console.log(`Could not DM user ${userId}`);
         });
-        newEmbed
-          .setTitle("Appeal Denied")
-          .setColor("Red")
-          .addFields({
-            name: "Moderator",
-            value: interaction.user.toString(),
-            inline: true,
-          });
+        newEmbed.setTitle("Appeal Denied").setColor("Red").addFields({
+          name: "Moderator",
+          value: interaction.user.toString(),
+          inline: true,
+        });
       } catch (error) {
         console.error(error);
       }
@@ -73,7 +75,7 @@ const appealReviewButton: Button = {
       content: `The appeal has been ${
         action === "appeal_approve" ? "approved" : "denied"
       }.`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
