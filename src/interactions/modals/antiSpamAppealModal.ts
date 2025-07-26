@@ -100,6 +100,14 @@ const modal: Modal = {
 
       await logChannel.send({ embeds: [reviewEmbed], components: [row] });
 
+      if (message) {
+        await message.edit({
+          content: message.content,
+          embeds: message.embeds,
+          components: [],
+        });
+      }
+
       await interaction.editReply({
         content: "Your appeal has been successfully submitted for review.",
       });
