@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
   ModalSubmitInteraction,
   TextChannel,
+  MessageFlags,
 } from "discord.js";
 import { Modal } from "../../interfaces/Modal";
 import { AntiSpamSettingsManager } from "../../services/AntiSpamSettingsManager";
@@ -22,7 +23,7 @@ const modal: Modal = {
     const [, userId, guildId, messageId] = customId.split(":");
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const appealReason = interaction.fields.getTextInputValue("appealReason");
 
@@ -116,7 +117,7 @@ const modal: Modal = {
         await interaction.reply({
           content:
             "An error occurred while submitting your appeal. Please try again later.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }

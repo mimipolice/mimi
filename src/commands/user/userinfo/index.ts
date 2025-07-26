@@ -381,7 +381,10 @@ export const command: Command = {
     collector.on("collect", async (i) => {
       try {
         if (i.user.id !== interaction.user.id) {
-          await i.reply({ content: "這不是給您用的按鈕！", ephemeral: true });
+          await i.reply({
+            content: "這不是給您用的按鈕！",
+            flags: MessageFlags.Ephemeral,
+          });
           return;
         }
 
