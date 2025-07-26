@@ -772,9 +772,9 @@ export async function getUserInfoData(
       SELECT
         jsonb_agg(jsonb_build_object('transaction_type', transaction_type, 'total_amount', total_amount) ORDER BY total_amount DESC) AS data
       FROM (
-        SELECT transaction_type, SUM(gross_amount)::int AS total_amount
-        FROM user_transaction_history
-        WHERE sender_id = $1
+        SELECT transaction_type, SUM(ABS(change_amount))::int AS total_amount
+        FROM balance_history
+        WHERE user_id = $1 AND change_amount < 0 AND transaction_type IS NOT NULL
         GROUP BY transaction_type
       ) AS sub
     ),
@@ -782,9 +782,9 @@ export async function getUserInfoData(
       SELECT
         jsonb_agg(jsonb_build_object('transaction_type', transaction_type, 'total_amount', total_amount) ORDER BY total_amount DESC) AS data
       FROM (
-        SELECT transaction_type, SUM(gross_amount)::int AS total_amount
-        FROM user_transaction_history
-        WHERE receiver_id = $1
+        SELECT transaction_type, SUM(change_amount)::int AS total_amount
+        FROM balance_history
+        WHERE user_id = $1 AND change_amount > 0 AND transaction_type IS NOT NULL
         GROUP BY transaction_type
       ) AS sub
     ),
