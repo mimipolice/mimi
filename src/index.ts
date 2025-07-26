@@ -13,8 +13,9 @@ import { errorHandler } from "./utils/errorHandler";
 import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
-import { migrateToLatest, gachaDB, ticketDB } from "./shared/database/index";
+import { gachaDB, ticketDB } from "./shared/database/index";
 import { loadCaches } from "./shared/cache";
+import appealButton from "./features/anti-spam/appealButton";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -154,8 +155,9 @@ async function main() {
       const filePath = path.join(interactionsPath, file);
       const interaction = require(filePath).default;
       if (interaction && interaction.name && interaction.execute) {
-        if (folder === "buttons")
+        if (folder === "buttons" && typeof interaction.name === "string") {
           client.buttons.set(interaction.name, interaction);
+        }
         if (folder === "modals")
           client.modals.set(interaction.name, interaction);
         if (folder === "selectMenus")
@@ -166,6 +168,11 @@ async function main() {
         );
       }
     }
+  }
+
+  // Manually register feature-specific interactions
+  if (typeof appealButton.name === "string") {
+    client.buttons.set(appealButton.name, appealButton);
   }
 
   // Register error and warning handlers

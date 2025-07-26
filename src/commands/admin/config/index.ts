@@ -10,6 +10,10 @@ import { SettingsManager } from "../../../services/SettingsManager";
 import { TicketManager } from "../../../services/TicketManager";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
+import {
+  getAntiSpamLogChannel,
+  setAntiSpamLogChannel,
+} from "../../../shared/database/queries";
 
 const translations = getLocalizations("config");
 
@@ -138,6 +142,14 @@ export const command: Command = {
             })
             .setRequired(true)
         )
+        .addChannelOption((option) =>
+          option
+            .setName("anti_spam_log_channel")
+            .setDescription(
+              "Set the channel for anti-spam logs. (防洗版日誌頻道)"
+            )
+            .setRequired(false)
+        )
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -181,6 +193,17 @@ export const command: Command = {
         t.subcommands.set.options.archive_category.name
       )?.id;
 
+      // This is not ideal, as it requires all settings at once.
+      // A better implementation would update settings individually.
+      // For now, we will just handle the new option separately.
+
+      const antiSpamLogChannelId = interaction.options.getChannel(
+        "anti_spam_log_channel"
+      )?.id;
+
+      let updated = false;
+      let responseContent = "";
+
       if (
         staffRoleId &&
         ticketCategoryId &&
@@ -195,18 +218,34 @@ export const command: Command = {
           panelChannelId: panelChannelId,
           archiveCategoryId: archiveCategoryId,
         });
-        await interaction.editReply({
-          content: t.subcommands.set.responses.success,
-        });
+        responseContent += t.subcommands.set.responses.success + "\n";
+        updated = true;
+      }
+
+      if (antiSpamLogChannelId) {
+        await setAntiSpamLogChannel(interaction.guildId, antiSpamLogChannelId);
+        responseContent += `Anti-spam log channel set to <#${antiSpamLogChannelId}>.\n`;
+        updated = true;
+      }
+
+      if (updated) {
+        await interaction.editReply({ content: responseContent });
       } else {
         await interaction.editReply({
-          content: t.subcommands.set.responses.error,
+          content:
+            "No settings were provided to update. Please provide at least one option.",
         });
       }
     } else if (subcommand === "view") {
       const settings = await settingsManager.getSettings(interaction.guildId);
+      const antiSpamLogChannel = await getAntiSpamLogChannel(
+        interaction.guildId
+      );
+
+      let viewResponse = t.subcommands.view.responses.no_config;
+
       if (settings) {
-        const viewResponse = `
+        viewResponse = `
 ${t.subcommands.view.responses.title}
 ${t.subcommands.view.responses.staff_role} <@&${settings.staffRoleId}>
 ${t.subcommands.view.responses.ticket_category} <#${settings.ticketCategoryId}>
@@ -214,14 +253,18 @@ ${t.subcommands.view.responses.log_channel} <#${settings.logChannelId}>
 ${t.subcommands.view.responses.panel_channel} <#${settings.panelChannelId}>
 ${t.subcommands.view.responses.archive_category} <#${settings.archiveCategoryId}>
           `;
-        await interaction.editReply({
-          content: viewResponse,
-        });
-      } else {
-        await interaction.editReply({
-          content: t.subcommands.view.responses.no_config,
-        });
       }
+
+      if (antiSpamLogChannel) {
+        if (viewResponse === t.subcommands.view.responses.no_config) {
+          viewResponse = "**Anti-Spam Settings**\n";
+        }
+        viewResponse += `\n**Anti-Spam Log Channel**: <#${antiSpamLogChannel}>`;
+      }
+
+      await interaction.editReply({
+        content: viewResponse,
+      });
     }
   },
 };

@@ -6,6 +6,7 @@ import {
   ThreadChannel,
 } from "discord.js";
 import { getKeywordsCache } from "../shared/cache";
+import { handleAntiSpam } from "../features/anti-spam/handler";
 
 module.exports = {
   name: Events.MessageCreate,
@@ -14,6 +15,9 @@ module.exports = {
     if (message.author.bot || !message.guild) {
       return;
     }
+
+    // Anti-spam check
+    await handleAntiSpam(message);
 
     const keywords = getKeywordsCache();
     const guildKeywords = keywords.filter(

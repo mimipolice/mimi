@@ -77,4 +77,10 @@ export interface MimiDLCDB {
     repeatable: ColumnType<boolean, boolean, boolean>;
     locale: string;
   };
+  anti_spam_logs: {
+    guild_id: string;
+    log_channel_id: string;
+    created_at: ColumnType<Date, string, string>;
+    updated_at: ColumnType<Date, string, string>;
+  };
 }

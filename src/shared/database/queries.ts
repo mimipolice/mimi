@@ -624,6 +624,39 @@ export async function updatePriceAlertNotified(alertId: number): Promise<void> {
     .execute();
 }
 
+// Anti-Spam Log Channel Queries
+export async function getAntiSpamLogChannel(
+  guildId: string
+): Promise<string | null> {
+  const result = await mimiDLCDb
+    .selectFrom("anti_spam_logs")
+    .select("log_channel_id")
+    .where("guild_id", "=", guildId)
+    .executeTakeFirst();
+  return result?.log_channel_id ?? null;
+}
+
+export async function setAntiSpamLogChannel(
+  guildId: string,
+  channelId: string
+): Promise<void> {
+  await mimiDLCDb
+    .insertInto("anti_spam_logs")
+    .values({
+      guild_id: guildId,
+      log_channel_id: channelId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .onConflict((oc) =>
+      oc.column("guild_id").doUpdateSet({
+        log_channel_id: channelId,
+        updated_at: new Date().toISOString(),
+      })
+    )
+    .execute();
+}
+
 // AI Conversation Queries
 export interface ConversationMessage {
   role: "user" | "assistant" | "system";

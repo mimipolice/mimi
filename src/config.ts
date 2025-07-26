@@ -36,6 +36,22 @@ const config = {
     password: process.env.ODOG_DB_PASSWORD,
     name: process.env.ODOG_DB_DATABASE,
   },
+  antiSpam: {
+    // Single-channel spam settings
+    spamThreshold: 5,
+    timeWindow: 5 * 1000, // 5 seconds
+    // Multi-channel spam settings
+    multiChannelSpamThreshold: 4, // 4 messages in 4 different channels within 10 seconds
+    multiChannelTimeWindow: 10 * 1000, // 10 seconds
+    // General settings
+    timeoutDuration: 24 * 60 * 60 * 1000, // 24 hours
+    adminChannelId: process.env.ANTISPAM_ADMIN_CHANNEL_ID || "",
+    ignoredRoles: process.env.ANTISPAM_IGNORED_ROLES?.split(",") || [],
+    ignoredUsers: process.env.ANTISPAM_IGNORED_USERS?.split(",") || [],
+    // Memory cleanup settings
+    memoryCleanupInterval: 60 * 60 * 1000, // 1 hour
+    inactiveUserThreshold: 2 * 60 * 60 * 1000, // 2 hours
+  },
   // We will add feature-specific configs here later
   // e.g., odog, stock channels
 };
