@@ -1,4 +1,4 @@
-import { Kysely, Selectable } from "kysely";
+import { Kysely, Selectable, sql } from "kysely";
 import { DB, Ticket as TicketTable } from "../shared/database/types";
 import { TicketStatus } from "../types/ticket";
 
@@ -36,7 +36,9 @@ export class TicketRepository {
     guildId: string;
     channelId: string;
     ownerId: string;
+    guildTicketId: number; // 新增這個參數
   }): Promise<void> {
+    // 返回類型應為 Promise<void> 或其他適當類型
     await this.db
       .insertInto("tickets")
       .values({
@@ -45,6 +47,15 @@ export class TicketRepository {
         createdAt: new Date().toISOString(),
       })
       .execute();
+  }
+
+  async findMaxGuildTicketId(guildId: string): Promise<number> {
+    const result = await this.db
+      .selectFrom("tickets")
+      .select(sql<number>`max("guildTicketId")`.as("maxId"))
+      .where("guildId", "=", guildId)
+      .executeTakeFirst();
+    return result?.maxId || 0;
   }
 
   async closeTicket(

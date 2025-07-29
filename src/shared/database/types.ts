@@ -17,6 +17,7 @@ export interface DB {
   tickets: {
     id: ColumnType<number, never, never>;
     guildId: string;
+    guildTicketId: number;
     channelId: string;
     ownerId: string;
     claimedById: string | null;

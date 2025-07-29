@@ -59,10 +59,19 @@ export class TicketManager {
       const settings = await this._validateAndGetSettings(guild.id);
       await this._checkForExistingTicket(guild.id, user.id);
 
-      const channel = await this._createTicketChannel(guild, user, settings);
+      const maxId = await this.ticketRepository.findMaxGuildTicketId(guild.id);
+      const newGuildTicketId = (maxId || 0) + 1;
+
+      const channel = await this._createTicketChannel(
+        guild,
+        user,
+        settings,
+        newGuildTicketId
+      );
 
       await this.ticketRepository.createTicket({
         guildId: guild.id,
+        guildTicketId: newGuildTicketId,
         channelId: channel.id,
         ownerId: user.id,
       });
@@ -182,7 +191,8 @@ export class TicketManager {
   private async _createTicketChannel(
     guild: Guild,
     user: User,
-    settings: GuildSettings
+    settings: GuildSettings,
+    newGuildTicketId: number
   ): Promise<TextChannel> {
     const permissionOverwrites: OverwriteResolvable[] = [
       {
@@ -204,7 +214,7 @@ export class TicketManager {
 
     try {
       const channel = await guild.channels.create({
-        name: `ticket-${user.username}`,
+        name: `ticket-${newGuildTicketId}`,
         type: ChannelType.GuildText,
         parent: settings.ticketCategoryId,
         permissionOverwrites,
@@ -300,7 +310,7 @@ export class TicketManager {
       .addFields(
         {
           name: "<:id:1395852626360275166> Ticket ID",
-          value: ticket.id.toString(),
+          value: ticket.guildTicketId.toString(),
           inline: true,
         },
         {

@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS guild_settings (
 
 -- 資料表 2: tickets (儲存每一張客服單的詳細資訊)
 CREATE TABLE IF NOT EXISTS tickets (
-    id SERIAL PRIMARY KEY,                        -- 自動遞增的客服單流水號
+    id SERIAL PRIMARY KEY,                        -- Global unique ID (internal use)
+    "guildTicketId" INTEGER NOT NULL,             -- User-facing ID, unique per guild
     "guildId" VARCHAR(255) NOT NULL,              -- 所屬伺服器的 ID
     "channelId" VARCHAR(255) NOT NULL UNIQUE,     -- 對應頻道的 ID，應為唯一
     "ownerId" VARCHAR(255) NOT NULL,              -- 創建者的使用者 ID
@@ -65,11 +66,13 @@ CREATE TABLE IF NOT EXISTS tickets (
     "feedbackRating" SMALLINT NULL CHECK ("feedbackRating" >= 1 AND "feedbackRating" <= 5), -- 1-5 星評價
     "feedbackComment" TEXT NULL,                  -- 使用者文字反饋
 
-    -- 建立一個外鍵約束，以便於數據完整性管理 (可選，但推薦)
+    -- Ensures guildTicketId is unique for each guild
+    UNIQUE ("guildId", "guildTicketId"),
+
     CONSTRAINT fk_guild
         FOREIGN KEY("guildId")
         REFERENCES guild_settings("guildId")
-        ON DELETE CASCADE -- 如果伺服器設定被刪除，其所有客服單也一併刪除
+        ON DELETE CASCADE
 );
 
 
