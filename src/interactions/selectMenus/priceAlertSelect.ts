@@ -3,6 +3,7 @@ import { gachaPool } from "../../shared/database";
 import {
   createPriceAlert,
   getAllAssetsWithLatestPrice,
+  findNextAvailablePriceAlertId,
 } from "../../shared/database/queries";
 import logger from "../../utils/logger";
 import path from "path";
@@ -55,7 +56,9 @@ export default {
       const currentPrice = currentAsset ? currentAsset.price : null;
 
       // --- 建立提醒 ---
+      const nextId = await findNextAvailablePriceAlertId(userId);
       await createPriceAlert(
+        nextId,
         userId,
         asset.asset_symbol,
         condition as "above" | "below",
