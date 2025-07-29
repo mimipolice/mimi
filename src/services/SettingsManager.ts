@@ -3,7 +3,7 @@ import NodeCache from "node-cache";
 import logger from "../utils/logger";
 import { DB } from "../shared/database/types";
 
-interface GuildSettings {
+export interface GuildSettings {
   guildId: string;
   panelChannelId: string | null;
   ticketCategoryId: string | null;

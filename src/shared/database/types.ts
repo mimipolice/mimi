@@ -65,6 +65,8 @@ export interface DB {
   };
 }
 
+export type Ticket = DB["tickets"];
+
 export interface MimiDLCDB {
   price_alerts: {
     id: ColumnType<number, never, never>;
