@@ -69,7 +69,7 @@ export type Ticket = DB["tickets"];
 
 export interface MimiDLCDB {
   price_alerts: {
-    id: ColumnType<number, never, never>;
+    id: number;
     user_id: string;
     asset_symbol: string;
     condition: "above" | "below";

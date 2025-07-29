@@ -11,6 +11,7 @@ import {
   getUserPriceAlerts,
   removePriceAlert,
   getAllAssetsWithLatestPrice,
+  findNextAvailablePriceAlertId,
 } from "../../../shared/database/queries";
 import fs from "fs";
 import path from "path";
@@ -322,7 +323,9 @@ export default {
         const currentPrice = currentAsset ? currentAsset.price : null;
 
         // --- Create alert ---
+        const nextId = await findNextAvailablePriceAlertId(userId);
         await createPriceAlert(
+          nextId,
           userId,
           asset.symbol,
           condition,
