@@ -1,7 +1,8 @@
 import logger from "../utils/logger";
 import { poolTypeNames } from "../config/gacha";
 import { ticketPool } from "./database/index";
-import { getAllKeywords } from "./database/queries";
+import { getKeywordsByGuild } from "./database/queries";
+import NodeCache from "node-cache";
 
 // Define the type based on the expected structure
 export interface GachaPool {
@@ -19,7 +20,7 @@ export interface Keyword {
 }
 
 let gachaPoolsCache: GachaPool[] = [];
-let keywordsCache: Keyword[] = [];
+const keywordsCache = new NodeCache({ stdTTL: 3600 });
 
 export async function loadCaches() {
   await loadGachaPools();
@@ -41,8 +42,11 @@ async function loadGachaPools() {
 
 async function loadKeywords() {
   try {
-    keywordsCache = await getAllKeywords(ticketPool);
-    logger.debug(`Successfully cached ${keywordsCache.length} keywords.`);
+    // This is not ideal, but we'll fetch for all guilds for now.
+    // This should be refactored to cache per guild.
+    const allKeywords = await getKeywordsByGuild(ticketPool, "*");
+    keywordsCache.set("keywords", allKeywords);
+    logger.debug(`Successfully cached ${allKeywords.length} keywords.`);
   } catch (error) {
     logger.error("Failed to load and cache keywords:", error);
   }
@@ -52,6 +56,12 @@ export function getGachaPoolsCache(): GachaPool[] {
   return gachaPoolsCache;
 }
 
-export function getKeywordsCache(): Keyword[] {
-  return keywordsCache;
+export function getKeywordsCache(): Keyword[] | undefined {
+  return keywordsCache.get<Keyword[]>("keywords");
+}
+
+export function flushKeywordsCache() {
+  keywordsCache.flushAll();
+  logger.debug("Keywords cache flushed.");
+  loadKeywords();
 }

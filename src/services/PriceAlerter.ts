@@ -9,8 +9,10 @@ import {
 } from "../shared/database/queries";
 import logger from "../utils/logger";
 import { getLocalizations } from "../utils/localization";
+import NodeCache from "node-cache";
 
 const translations = getLocalizations("pricealert");
+const priceCache = new NodeCache({ stdTTL: 60 });
 
 export class PriceAlerter {
   private client: Client;
@@ -37,15 +39,20 @@ export class PriceAlerter {
 
   private async checkAlerts() {
     try {
+      let priceMap = priceCache.get<Map<string, number>>("assetPrices");
+
+      if (!priceMap) {
+        const assets = await getAllAssetsWithLatestPrice(gachaPool);
+        priceMap = new Map(
+          assets.map((asset) => [asset.asset_symbol, asset.price])
+        );
+        priceCache.set("assetPrices", priceMap);
+      }
+
       const alerts = await getAllPriceAlerts();
       if (alerts.length === 0) {
         return;
       }
-
-      const assets = await getAllAssetsWithLatestPrice(gachaPool);
-      const priceMap = new Map(
-        assets.map((asset) => [asset.asset_symbol, asset.price])
-      );
 
       for (const alert of alerts) {
         const currentPrice = priceMap.get(alert.asset_symbol);

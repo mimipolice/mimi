@@ -9,9 +9,9 @@ import { ticketPool } from "../../../shared/database";
 import {
   addKeyword,
   removeKeyword,
-  getKeywords,
+  getKeywordsByGuild,
 } from "../../../shared/database/queries";
-import { loadCaches } from "../../../shared/cache";
+import { flushKeywordsCache } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
@@ -161,7 +161,7 @@ export default {
   async autocomplete(interaction: AutocompleteInteraction) {
     if (!interaction.guildId) return;
     const focusedValue = interaction.options.getFocused();
-    const keywords = await getKeywords(ticketPool, interaction.guildId);
+    const keywords = await getKeywordsByGuild(ticketPool, interaction.guildId);
     const choices = keywords
       .filter((kw) => kw.keyword.startsWith(focusedValue))
       .map((kw) => ({ name: kw.keyword, value: kw.keyword }));
@@ -196,7 +196,7 @@ export default {
         );
 
         await addKeyword(ticketPool, interaction.guildId, keyword, reply, type);
-        await loadCaches();
+        flushKeywordsCache();
         await interaction.editReply(
           t.subcommands.add.responses.success.replace("{{keyword}}", keyword)
         );
@@ -206,12 +206,15 @@ export default {
           true
         );
         await removeKeyword(ticketPool, interaction.guildId, keyword);
-        await loadCaches();
+        flushKeywordsCache();
         await interaction.editReply(
           t.subcommands.remove.responses.success.replace("{{keyword}}", keyword)
         );
       } else if (subcommand === "list") {
-        const keywords = await getKeywords(ticketPool, interaction.guildId);
+        const keywords = await getKeywordsByGuild(
+          ticketPool,
+          interaction.guildId
+        );
         if (keywords.length === 0) {
           await interaction.editReply(t.subcommands.list.responses.no_keywords);
           return;

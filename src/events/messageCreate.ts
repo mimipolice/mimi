@@ -5,8 +5,10 @@ import {
   NewsChannel,
   ThreadChannel,
 } from "discord.js";
-import { getKeywordsCache } from "../shared/cache";
+import { getKeywordsCache, Keyword } from "../shared/cache";
 import { handleAntiSpam } from "../features/anti-spam/handler";
+import { getKeywordsByGuild } from "../shared/database/queries";
+import { ticketPool } from "../shared/database";
 
 module.exports = {
   name: Events.MessageCreate,
@@ -19,10 +21,13 @@ module.exports = {
     // Anti-spam check
     await handleAntiSpam(message);
 
-    const keywords = getKeywordsCache();
-    const guildKeywords = keywords.filter(
+    let guildKeywords: Keyword[] | undefined = getKeywordsCache()?.filter(
       (kw) => kw.guild_id === message.guild!.id
     );
+
+    if (!guildKeywords) {
+      guildKeywords = await getKeywordsByGuild(ticketPool, message.guild!.id);
+    }
 
     if (guildKeywords.length === 0) {
       return;

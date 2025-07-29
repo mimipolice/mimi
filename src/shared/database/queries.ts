@@ -425,12 +425,12 @@ export async function removeKeyword(
   await pool.query(query, [guildId, keyword]);
 }
 
-export async function getKeywords(
+export async function getKeywordsByGuild(
   pool: Pool,
   guildId: string
 ): Promise<Keyword[]> {
   const query = `
-    SELECT id, keyword, reply, match_type
+    SELECT id, guild_id, keyword, reply, match_type
     FROM keywords
     WHERE guild_id = $1;
   `;
@@ -488,12 +488,6 @@ export async function clearTodos(pool: Pool, userId: string): Promise<void> {
     WHERE user_id = $1;
   `;
   await pool.query(query, [userId]);
-}
-
-export async function getAllKeywords(pool: Pool): Promise<Keyword[]> {
-  const query = `SELECT id, guild_id, keyword, reply, match_type FROM keywords;`;
-  const result = await pool.query(query);
-  return result.rows;
 }
 
 export async function getAllAutoreacts(pool: Pool): Promise<AutoReact[]> {
