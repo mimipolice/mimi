@@ -17,7 +17,7 @@ import { SettingsManager } from "../../../services/SettingsManager";
 import { TicketManager } from "../../../services/TicketManager";
 import logger from "../../../utils/logger";
 import { MessageFlags } from "discord-api-types/v10";
-import { ticketDB } from "../../../shared/database";
+import { mimiDLCDb } from "../../../shared/database";
 import { getLocalizations } from "../../../utils/localization";
 
 const translations = getLocalizations("panel");
@@ -376,7 +376,7 @@ export const command: Command = {
           return;
         }
 
-        const ticketTypes = await ticketDB
+        const ticketTypes = await mimiDLCDb
           .selectFrom("ticket_types")
           .selectAll()
           .where("guild_id", "=", interaction.guildId)
@@ -465,7 +465,7 @@ export const command: Command = {
           t.subcommands.add.options.emoji.name
         );
 
-        await ticketDB
+        await mimiDLCDb
           .insertInto("ticket_types")
           .values({
             guild_id: interaction.guildId,
@@ -484,7 +484,7 @@ export const command: Command = {
           t.subcommands.remove.options.type_id.name,
           true
         );
-        const result = await ticketDB
+        const result = await mimiDLCDb
           .deleteFrom("ticket_types")
           .where("guild_id", "=", interaction.guildId)
           .where("type_id", "=", typeId)
@@ -504,7 +504,7 @@ export const command: Command = {
         }
       } else if (subcommand === "list") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        const ticketTypes = await ticketDB
+        const ticketTypes = await mimiDLCDb
           .selectFrom("ticket_types")
           .selectAll()
           .where("guild_id", "=", interaction.guildId)
@@ -619,7 +619,7 @@ export const command: Command = {
       focused.name === t.subcommands.remove.options.type_id.name ||
       focused.name === "type_id"
     ) {
-      const ticketTypes = await ticketDB
+      const ticketTypes = await mimiDLCDb
         .selectFrom("ticket_types")
         .selectAll()
         .where("guild_id", "=", interaction.guildId)

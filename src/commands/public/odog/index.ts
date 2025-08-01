@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { getOdogRankings } from "../../../shared/database/queries";
-import { odogPool } from "../../../shared/database";
+import { gachaPool } from "../../../shared/database";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
 import { getLocalizations } from "../../../utils/localization";
@@ -91,7 +91,7 @@ export default {
       }
 
       const rankings = await getOdogRankings(
-        odogPool,
+        gachaPool,
         gachaId,
         days as number | "all"
       );

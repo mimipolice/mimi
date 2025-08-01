@@ -13,7 +13,7 @@ import { errorHandler } from "./utils/errorHandler";
 import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
-import { gachaDB, ticketDB } from "./shared/database/index";
+import { gachaDB, mimiDLCDb } from "./shared/database/index";
 import { loadCaches } from "./shared/cache";
 import appealButton from "./features/anti-spam/appealButton";
 
@@ -63,7 +63,7 @@ async function main() {
     //   path.join(__dirname, "shared/database/migrations/gacha")
     // );
     // await migrateToLatest(
-    //   ticketDB,
+    //   mimiDLCDb,
     //   "ticket",
     //   path.join(__dirname, "shared/database/migrations/ticket")
     // );
@@ -85,8 +85,8 @@ async function main() {
     ],
   });
 
-  const settingsManager = new SettingsManager(ticketDB);
-  const ticketManager = new TicketManager(ticketDB, settingsManager, client);
+  const settingsManager = new SettingsManager(mimiDLCDb);
+  const ticketManager = new TicketManager(mimiDLCDb, settingsManager, client);
   const priceAlerter = new PriceAlerter(client);
 
   client.commands = new Collection();
@@ -200,7 +200,7 @@ async function main() {
           settingsManager,
           ticketManager,
           gachaDB,
-          ticketDB
+          mimiDLCDb
         )
       );
     } else {
@@ -211,7 +211,7 @@ async function main() {
           settingsManager,
           ticketManager,
           gachaDB,
-          ticketDB
+          mimiDLCDb
         )
       );
     }

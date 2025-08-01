@@ -1,17 +1,20 @@
 import { Pool, types } from "pg";
+import path from "path";
+import { Kysely, PostgresDialect } from "kysely";
+import { promises as fs } from "fs";
+
+import logger from "../../utils/logger";
+import config from "../../config";
+import { GachaDB, MimiDLCDB } from "./types";
 
 // Force int8 to be parsed as string
 types.setTypeParser(20, (val) => {
   return val;
 });
-import path from "path";
-import logger from "../../utils/logger";
-import { Kysely, PostgresDialect } from "kysely";
-import { DB, MimiDLCDB } from "./types";
-import { promises as fs } from "fs";
-import config from "../../config";
 
-// Gacha Database Pool
+// ===== Main Database Pools =====
+
+// gacha Database Pool (also used for odog)
 export const gachaPool = new Pool({
   host: config.gachaDatabase.host,
   database: config.gachaDatabase.name,
@@ -20,26 +23,8 @@ export const gachaPool = new Pool({
   port: config.gachaDatabase.port,
 });
 
-// Ticket Database Pool
-export const ticketPool = new Pool({
-  host: config.ticketDatabase.host,
-  database: config.ticketDatabase.name,
-  user: config.ticketDatabase.user,
-  password: config.ticketDatabase.password,
-  port: config.ticketDatabase.port,
-});
-
-// Odog Database Pool
-export const odogPool = new Pool({
-  host: config.odogDatabase.host,
-  user: config.odogDatabase.user,
-  password: config.odogDatabase.password,
-  database: config.odogDatabase.name,
-  port: config.odogDatabase.port,
-});
-
-// mimiDLC Database Pool
-export const mimiDLCPool = new Pool({
+// mimiDLC Database Pool (also used for tickets)
+const mimiDLCPool = new Pool({
   host: config.mimiDLCDatabase.host,
   database: config.mimiDLCDatabase.name,
   user: config.mimiDLCDatabase.user,
@@ -47,15 +32,14 @@ export const mimiDLCPool = new Pool({
   port: config.mimiDLCDatabase.port,
 });
 
-// Kysely instances for query building
-export const gachaDB = new Kysely<DB>({
+// ===== Kysely Instances =====
+
+// Main instance for gacha-related operations
+export const gachaDB = new Kysely<GachaDB>({
   dialect: new PostgresDialect({ pool: gachaPool }),
 });
 
-export const ticketDB = new Kysely<DB>({
-  dialect: new PostgresDialect({ pool: ticketPool }),
-});
-
+// Main instance for mimiDLC-related operations
 export const mimiDLCDb = new Kysely<MimiDLCDB>({
   dialect: new PostgresDialect({ pool: mimiDLCPool }),
 });

@@ -1,6 +1,25 @@
 import { ColumnType } from "kysely";
 
-export interface DB {
+export interface GachaDB {
+  ai_prompts: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    name: string;
+    prompt: string;
+    created_at: ColumnType<Date, string, string>;
+  };
+  ai_conversations: {
+    id: ColumnType<number, never, never>;
+    guild_id: string;
+    user_id: string;
+    created_at: ColumnType<Date, string, string>;
+    updated_at: ColumnType<Date, string, string>;
+    channel_id: string | null;
+    message_id: string | null;
+  };
+}
+
+export interface MimiDLCDB {
   guild_settings: {
     guildId: string;
     panelChannelId: string | null;
@@ -52,27 +71,6 @@ export interface DB {
     button_color: string;
     category_id: string;
   };
-  ai_prompts: {
-    id: ColumnType<number, never, never>;
-    user_id: string;
-    name: string;
-    prompt: string;
-    created_at: ColumnType<Date, string, string>;
-  };
-  ai_conversations: {
-    id: ColumnType<number, never, never>;
-    guild_id: string;
-    user_id: string;
-    created_at: ColumnType<Date, string, string>;
-    updated_at: ColumnType<Date, string, string>;
-    channel_id: string | null;
-    message_id: string | null;
-  };
-}
-
-export type Ticket = DB["tickets"];
-
-export interface MimiDLCDB {
   price_alerts: {
     id: number;
     user_id: string;
