@@ -29,6 +29,10 @@ export interface DB {
     transcriptUrl: string | null;
     logMessageId: string | null;
   };
+  guild_ticket_counters: {
+    guildId: string;
+    lastTicketId: number;
+  };
   ticket_types: {
     id: ColumnType<number, never, never>;
     guild_id: string;

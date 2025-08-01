@@ -59,8 +59,9 @@ export class TicketManager {
       const settings = await this._validateAndGetSettings(guild.id);
       await this._checkForExistingTicket(guild.id, user.id);
 
-      const maxId = await this.ticketRepository.findMaxGuildTicketId(guild.id);
-      const newGuildTicketId = (maxId || 0) + 1;
+      const newGuildTicketId = await this.ticketRepository.getNextGuildTicketId(
+        guild.id
+      );
 
       const channel = await this._createTicketChannel(
         guild,
@@ -71,9 +72,9 @@ export class TicketManager {
 
       await this.ticketRepository.createTicket({
         guildId: guild.id,
-        guildTicketId: newGuildTicketId,
         channelId: channel.id,
         ownerId: user.id,
+        guildTicketId: newGuildTicketId,
       });
 
       await this._sendInitialMessages(
@@ -192,7 +193,7 @@ export class TicketManager {
     guild: Guild,
     user: User,
     settings: GuildSettings,
-    newGuildTicketId: number
+    ticketId: number
   ): Promise<TextChannel> {
     const permissionOverwrites: OverwriteResolvable[] = [
       {
@@ -214,7 +215,7 @@ export class TicketManager {
 
     try {
       const channel = await guild.channels.create({
-        name: `ticket-${newGuildTicketId}`,
+        name: `ticket-${user.username}`,
         type: ChannelType.GuildText,
         parent: settings.ticketCategoryId,
         permissionOverwrites,

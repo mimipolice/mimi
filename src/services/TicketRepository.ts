@@ -49,13 +49,29 @@ export class TicketRepository {
       .execute();
   }
 
-  async findMaxGuildTicketId(guildId: string): Promise<number> {
+  async getNextGuildTicketId(guildId: string): Promise<number> {
+    // This is an atomic operation that inserts a new counter if it doesn't exist,
+    // increments the counter, and returns the new value.
     const result = await this.db
-      .selectFrom("tickets")
-      .select(sql<number>`max("guildTicketId")`.as("maxId"))
+      .insertInto("guild_ticket_counters")
+      .values({ guildId: guildId, lastTicketId: 1 })
+      .onConflict((oc) =>
+        oc.column("guildId").doUpdateSet({
+          lastTicketId: sql`guild_ticket_counters."lastTicketId" + 1`,
+        })
+      )
+      .returning("lastTicketId")
+      .executeTakeFirstOrThrow();
+
+    return result.lastTicketId;
+  }
+
+  async resetCounter(guildId: string): Promise<void> {
+    await this.db
+      .updateTable("guild_ticket_counters")
+      .set({ lastTicketId: 0 })
       .where("guildId", "=", guildId)
-      .executeTakeFirst();
-    return result?.maxId || 0;
+      .execute();
   }
 
   async closeTicket(

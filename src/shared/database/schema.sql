@@ -52,21 +52,20 @@ CREATE TABLE IF NOT EXISTS guild_settings (
 
 -- 資料表 2: tickets (儲存每一張客服單的詳細資訊)
 CREATE TABLE IF NOT EXISTS tickets (
-    id SERIAL PRIMARY KEY,                        -- Global unique ID (internal use)
-    "guildTicketId" INTEGER NOT NULL,             -- User-facing ID, unique per guild
-    "guildId" VARCHAR(255) NOT NULL,              -- 所屬伺服器的 ID
-    "channelId" VARCHAR(255) NOT NULL UNIQUE,     -- 對應頻道的 ID，應為唯一
-    "ownerId" VARCHAR(255) NOT NULL,              -- 創建者的使用者 ID
-    "claimedById" VARCHAR(255) NULL,              -- 接手客服的使用者 ID
-    status VARCHAR(20) NOT NULL DEFAULT 'OPEN', -- 客服單狀態 ('OPEN', 'CLOSED')
-    "closeReason" TEXT NULL,                      -- 關閉原因
-    "closedById" VARCHAR(255) NULL,               -- 關閉者的使用者 ID
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- 創建時間
-    "closedAt" TIMESTAMP WITH TIME ZONE NULL,     -- 關閉時間
-    "feedbackRating" SMALLINT NULL CHECK ("feedbackRating" >= 1 AND "feedbackRating" <= 5), -- 1-5 星評價
-    "feedbackComment" TEXT NULL,                  -- 使用者文字反饋
+    id SERIAL PRIMARY KEY,
+    "guildTicketId" INTEGER NOT NULL,
+    "guildId" VARCHAR(255) NOT NULL,
+    "channelId" VARCHAR(255) NOT NULL UNIQUE,
+    "ownerId" VARCHAR(255) NOT NULL,
+    "claimedById" VARCHAR(255) NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    "closeReason" TEXT NULL,
+    "closedById" VARCHAR(255) NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "closedAt" TIMESTAMP WITH TIME ZONE NULL,
+    "transcriptUrl" TEXT NULL,
+    "logMessageId" VARCHAR(255) NULL,
 
-    -- Ensures guildTicketId is unique for each guild
     UNIQUE ("guildId", "guildTicketId"),
 
     CONSTRAINT fk_guild
@@ -91,4 +90,15 @@ CREATE TABLE IF NOT EXISTS price_alerts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     last_notified_at TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (user_id, id)
+);
+
+
+-- Table for guild-specific ticket counters
+CREATE TABLE IF NOT EXISTS guild_ticket_counters (
+  "guildId" VARCHAR(255) PRIMARY KEY,
+  "lastTicketId" INTEGER NOT NULL DEFAULT 0,
+  CONSTRAINT fk_guild_counter
+    FOREIGN KEY("guildId")
+    REFERENCES guild_settings("guildId")
+    ON DELETE CASCADE
 );

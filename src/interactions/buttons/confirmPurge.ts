@@ -34,7 +34,24 @@ export default {
     }
 
     try {
-      await ticketPool.query("TRUNCATE TABLE tickets RESTART IDENTITY;");
+      // Use a transaction to ensure both operations succeed or fail together.
+      const client = await ticketPool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(`DELETE FROM tickets WHERE "guildId" = $1;`, [
+          interaction.guildId,
+        ]);
+        await client.query(
+          `UPDATE guild_ticket_counters SET "lastTicketId" = 0 WHERE "guildId" = $1;`,
+          [interaction.guildId]
+        );
+        await client.query("COMMIT");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e; // Re-throw the error to be caught by the outer catch block
+      } finally {
+        client.release();
+      }
 
       const disabledButton = ButtonBuilder.from(
         interaction.component
