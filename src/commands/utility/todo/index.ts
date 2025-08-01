@@ -4,7 +4,7 @@ import {
   AutocompleteInteraction,
   Locale,
 } from "discord.js";
-import { ticketPool } from "../../../shared/database";
+import { mimiDLCDb } from "../../../shared/database";
 import {
   addTodo,
   removeTodo,
@@ -111,7 +111,7 @@ export default {
   async autocomplete(interaction: AutocompleteInteraction) {
     const t = translations[interaction.locale] || translations["en-US"];
     const focusedValue = interaction.options.getFocused();
-    const todos = await getTodos(ticketPool, interaction.user.id);
+    const todos = await getTodos(mimiDLCDb, interaction.user.id);
     const choices = todos
       .filter((todo) =>
         todo.item.toLowerCase().includes(focusedValue.toLowerCase())
@@ -140,7 +140,7 @@ export default {
           t.subcommands.add.options.item.name,
           true
         );
-        await addTodo(ticketPool, userId, item);
+        await addTodo(mimiDLCDb, userId, item);
         await interaction.editReply(
           t.subcommands.add.responses.success.replace("{{item}}", item)
         );
@@ -149,7 +149,7 @@ export default {
           t.subcommands.remove.options.id.name,
           true
         );
-        const removedCount = await removeTodo(ticketPool, id, userId);
+        const removedCount = await removeTodo(mimiDLCDb, id, userId);
         if (removedCount > 0) {
           await interaction.editReply(
             t.subcommands.remove.responses.success.replace(
@@ -166,7 +166,7 @@ export default {
           );
         }
       } else if (subcommand === "list") {
-        const todos = await getTodos(ticketPool, userId);
+        const todos = await getTodos(mimiDLCDb, userId);
         if (todos.length === 0) {
           await interaction.editReply(t.subcommands.list.responses.empty);
           return;
@@ -178,7 +178,7 @@ export default {
           `${t.subcommands.list.responses.title}\n${list}`
         );
       } else if (subcommand === "clear") {
-        await clearTodos(ticketPool, userId);
+        await clearTodos(mimiDLCDb, userId);
         await interaction.editReply(t.subcommands.clear.responses.success);
       }
     } catch (error) {

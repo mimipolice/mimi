@@ -1,13 +1,13 @@
 import { Kysely, Selectable, sql } from "kysely";
-import { DB, Ticket as TicketTable } from "../shared/database/types";
+import { MimiDLCDB } from "../shared/database/types";
 import { TicketStatus } from "../types/ticket";
 
-export type Ticket = Selectable<TicketTable>;
+export type Ticket = Selectable<MimiDLCDB["tickets"]>;
 
 export class TicketRepository {
-  private db: Kysely<DB>;
+  private db: Kysely<MimiDLCDB>;
 
-  constructor(db: Kysely<DB>) {
+  constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
   }
 

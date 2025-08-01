@@ -10,7 +10,7 @@ import {
   removeAutoreact,
   getAutoreacts,
 } from "../../../shared/database/queries";
-import { ticketPool } from "../../../shared/database";
+import { mimiDLCDb } from "../../../shared/database";
 import { loadCaches } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
@@ -138,7 +138,7 @@ export default {
           t.subcommands.set.options.channel.name,
           true
         );
-        await setAutoreact(ticketPool, interaction.guildId, channel.id, emoji);
+        await setAutoreact(mimiDLCDb, interaction.guildId, channel.id, emoji);
         await loadCaches();
         await interaction.editReply(
           t.subcommands.set.responses.success
@@ -150,7 +150,7 @@ export default {
           t.subcommands.remove.options.channel.name,
           true
         );
-        await removeAutoreact(ticketPool, interaction.guildId, channel.id);
+        await removeAutoreact(mimiDLCDb, interaction.guildId, channel.id);
         await loadCaches();
         await interaction.editReply(
           t.subcommands.remove.responses.success.replace(
@@ -159,7 +159,7 @@ export default {
           )
         );
       } else if (subcommand === "list") {
-        const autoreacts = await getAutoreacts(ticketPool, interaction.guildId);
+        const autoreacts = await getAutoreacts(mimiDLCDb, interaction.guildId);
         if (autoreacts.length === 0) {
           await interaction.editReply(t.subcommands.list.responses.no_configs);
           return;

@@ -1,6 +1,7 @@
 import { Pool } from "pg";
-import { sql } from "kysely";
+import { Kysely, sql } from "kysely";
 import { mimiDLCDb } from ".";
+import { MimiDLCDB } from "./types";
 interface PriceHistory {
   price: number;
   timestamp: Date;
@@ -349,43 +350,46 @@ export interface AutoReact {
 }
 
 export async function setAutoreact(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string,
   channelId: string,
   emoji: string
 ): Promise<void> {
-  const query = `
-    INSERT INTO auto_reacts (guild_id, channel_id, emoji)
-    VALUES ($1, $2, $3)
-    ON CONFLICT (guild_id, channel_id)
-    DO UPDATE SET emoji = $3;
-  `;
-  await pool.query(query, [guildId, channelId, emoji]);
+  await db
+    .insertInto("auto_reacts")
+    .values({ guild_id: guildId, channel_id: channelId, emoji: emoji })
+    .onConflict((oc) =>
+      oc.columns(["guild_id", "channel_id"]).doUpdateSet({ emoji: emoji })
+    )
+    .execute();
 }
 
 export async function removeAutoreact(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string,
   channelId: string
 ): Promise<void> {
-  const query = `
-    DELETE FROM auto_reacts
-    WHERE guild_id = $1 AND channel_id = $2;
-  `;
-  await pool.query(query, [guildId, channelId]);
+  await db
+    .deleteFrom("auto_reacts")
+    .where("guild_id", "=", guildId)
+    .where("channel_id", "=", channelId)
+    .execute();
 }
 
 export async function getAutoreacts(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string
-): Promise<AutoReact[]> {
-  const query = `
-    SELECT channel_id, emoji
-    FROM auto_reacts
-    WHERE guild_id = $1;
-  `;
-  const result = await pool.query(query, [guildId]);
-  return result.rows;
+): Promise<
+  {
+    channel_id: string;
+    emoji: string;
+  }[]
+> {
+  return await db
+    .selectFrom("auto_reacts")
+    .select(["channel_id", "emoji"])
+    .where("guild_id", "=", guildId)
+    .execute();
 }
 
 // Keyword Queries
@@ -398,44 +402,52 @@ export interface Keyword {
 }
 
 export async function addKeyword(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string,
   keyword: string,
   reply: string,
   matchType: "exact" | "contains"
 ): Promise<void> {
-  const query = `
-    INSERT INTO keywords (guild_id, keyword, reply, match_type)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (guild_id, keyword)
-    DO UPDATE SET reply = $3, match_type = $4;
-  `;
-  await pool.query(query, [guildId, keyword, reply, matchType]);
+  await db
+    .insertInto("keywords")
+    .values({
+      guild_id: guildId,
+      keyword: keyword,
+      reply: reply,
+      match_type: matchType,
+    })
+    .onConflict((oc) =>
+      oc
+        .columns(["guild_id", "keyword"])
+        .doUpdateSet({ reply: reply, match_type: matchType })
+    )
+    .execute();
 }
 
 export async function removeKeyword(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string,
   keyword: string
 ): Promise<void> {
-  const query = `
-    DELETE FROM keywords
-    WHERE guild_id = $1 AND keyword = $2;
-  `;
-  await pool.query(query, [guildId, keyword]);
+  await db
+    .deleteFrom("keywords")
+    .where("guild_id", "=", guildId)
+    .where("keyword", "=", keyword)
+    .execute();
 }
 
 export async function getKeywordsByGuild(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   guildId: string
 ): Promise<Keyword[]> {
-  const query = `
-    SELECT id, guild_id, keyword, reply, match_type
-    FROM keywords
-    WHERE guild_id = $1;
-  `;
-  const result = await pool.query(query, [guildId]);
-  return result.rows;
+  if (guildId === "*") {
+    return await db.selectFrom("keywords").selectAll().execute();
+  }
+  return await db
+    .selectFrom("keywords")
+    .selectAll()
+    .where("guild_id", "=", guildId)
+    .execute();
 }
 
 // To-Do List Queries
@@ -447,47 +459,52 @@ export interface Todo {
 }
 
 export async function addTodo(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   userId: string,
   item: string
 ): Promise<void> {
-  const query = `
-    INSERT INTO todos (user_id, item)
-    VALUES ($1, $2);
-  `;
-  await pool.query(query, [userId, item]);
+  await db
+    .insertInto("todos")
+    .values({ user_id: userId, item: item })
+    .execute();
 }
 
 export async function removeTodo(
-  pool: Pool,
+  db: Kysely<MimiDLCDB>,
   id: number,
   userId: string
-): Promise<number> {
-  const query = `
-    DELETE FROM todos
-    WHERE id = $1 AND user_id = $2;
-  `;
-  const result = await pool.query(query, [id, userId]);
-  return result.rowCount ?? 0;
+): Promise<bigint> {
+  const result = await db
+    .deleteFrom("todos")
+    .where("id", "=", id)
+    .where("user_id", "=", userId)
+    .executeTakeFirst();
+  return result.numDeletedRows;
 }
 
-export async function getTodos(pool: Pool, userId: string): Promise<Todo[]> {
-  const query = `
-    SELECT id, item, created_at
-    FROM todos
-    WHERE user_id = $1
-    ORDER BY created_at ASC;
-  `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
+export async function getTodos(
+  db: Kysely<MimiDLCDB>,
+  userId: string
+): Promise<
+  {
+    id: number;
+    item: string;
+    created_at: Date;
+  }[]
+> {
+  return await db
+    .selectFrom("todos")
+    .select(["id", "item", "created_at"])
+    .where("user_id", "=", userId)
+    .orderBy("created_at", "asc")
+    .execute();
 }
 
-export async function clearTodos(pool: Pool, userId: string): Promise<void> {
-  const query = `
-    DELETE FROM todos
-    WHERE user_id = $1;
-  `;
-  await pool.query(query, [userId]);
+export async function clearTodos(
+  db: Kysely<MimiDLCDB>,
+  userId: string
+): Promise<void> {
+  await db.deleteFrom("todos").where("user_id", "=", userId).execute();
 }
 
 export async function getAllAutoreacts(pool: Pool): Promise<AutoReact[]> {

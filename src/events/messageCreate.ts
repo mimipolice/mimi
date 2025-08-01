@@ -8,7 +8,7 @@ import {
 import { getKeywordsCache, Keyword } from "../shared/cache";
 import { handleAntiSpam } from "../features/anti-spam/handler";
 import { getKeywordsByGuild } from "../shared/database/queries";
-import { ticketPool } from "../shared/database";
+import { mimiDLCDb } from "../shared/database";
 
 module.exports = {
   name: Events.MessageCreate,
@@ -26,7 +26,7 @@ module.exports = {
     );
 
     if (!guildKeywords) {
-      guildKeywords = await getKeywordsByGuild(ticketPool, message.guild!.id);
+      guildKeywords = await getKeywordsByGuild(mimiDLCDb, message.guild!.id);
     }
 
     if (guildKeywords.length === 0) {

@@ -18,19 +18,19 @@ import { SettingsManager } from "./SettingsManager";
 import logger from "../utils/logger";
 import { generateTranscript } from "../utils/transcript";
 import { sanitize } from "../utils/sanitize";
-import { DB } from "../shared/database/types";
+import { MimiDLCDB } from "../shared/database/types";
 import { TicketRepository, Ticket } from "./TicketRepository";
 import { TicketStatus, TicketAction } from "../types/ticket";
 import { GuildSettings } from "./SettingsManager";
 
 export class TicketManager {
-  private db: Kysely<DB>;
+  private db: Kysely<MimiDLCDB>;
   private settingsManager: SettingsManager;
   private client: Client;
   private ticketRepository: TicketRepository;
 
   constructor(
-    db: Kysely<DB>,
+    db: Kysely<MimiDLCDB>,
     settingsManager: SettingsManager,
     client: Client
   ) {

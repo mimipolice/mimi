@@ -88,4 +88,22 @@ export interface MimiDLCDB {
     created_at: ColumnType<Date, string, string>;
     updated_at: ColumnType<Date, string, string>;
   };
+  auto_reacts: {
+    guild_id: string;
+    channel_id: string;
+    emoji: string;
+  };
+  keywords: {
+    id: ColumnType<number, never, never>;
+    guild_id: string;
+    keyword: string;
+    reply: string;
+    match_type: "exact" | "contains";
+  };
+  todos: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    item: string;
+    created_at: ColumnType<Date, string | undefined, string>;
+  };
 }

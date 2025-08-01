@@ -5,7 +5,7 @@ import {
   PermissionFlagsBits,
   Locale,
 } from "discord.js";
-import { ticketPool } from "../../../shared/database";
+import { mimiDLCDb } from "../../../shared/database";
 import {
   addKeyword,
   removeKeyword,
@@ -161,7 +161,7 @@ export default {
   async autocomplete(interaction: AutocompleteInteraction) {
     if (!interaction.guildId) return;
     const focusedValue = interaction.options.getFocused();
-    const keywords = await getKeywordsByGuild(ticketPool, interaction.guildId);
+    const keywords = await getKeywordsByGuild(mimiDLCDb, interaction.guildId);
     const choices = keywords
       .filter((kw) => kw.keyword.startsWith(focusedValue))
       .map((kw) => ({ name: kw.keyword, value: kw.keyword }));
@@ -195,7 +195,7 @@ export default {
           true
         );
 
-        await addKeyword(ticketPool, interaction.guildId, keyword, reply, type);
+        await addKeyword(mimiDLCDb, interaction.guildId, keyword, reply, type);
         flushKeywordsCache();
         await interaction.editReply(
           t.subcommands.add.responses.success.replace("{{keyword}}", keyword)
@@ -205,14 +205,14 @@ export default {
           t.subcommands.remove.options.keyword.name,
           true
         );
-        await removeKeyword(ticketPool, interaction.guildId, keyword);
+        await removeKeyword(mimiDLCDb, interaction.guildId, keyword);
         flushKeywordsCache();
         await interaction.editReply(
           t.subcommands.remove.responses.success.replace("{{keyword}}", keyword)
         );
       } else if (subcommand === "list") {
         const keywords = await getKeywordsByGuild(
-          ticketPool,
+          mimiDLCDb,
           interaction.guildId
         );
         if (keywords.length === 0) {

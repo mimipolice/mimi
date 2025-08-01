@@ -3,7 +3,7 @@ import {
   PermissionFlagsBits,
   ButtonBuilder,
 } from "discord.js";
-import { ticketPool } from "../../shared/database";
+import { mimiDLCDb } from "../../shared/database";
 import { MessageFlags } from "discord-api-types/v10";
 import logger from "../../utils/logger";
 
@@ -34,24 +34,17 @@ export default {
     }
 
     try {
-      // Use a transaction to ensure both operations succeed or fail together.
-      const client = await ticketPool.connect();
-      try {
-        await client.query("BEGIN");
-        await client.query(`DELETE FROM tickets WHERE "guildId" = $1;`, [
-          interaction.guildId,
-        ]);
-        await client.query(
-          `UPDATE guild_ticket_counters SET "lastTicketId" = 0 WHERE "guildId" = $1;`,
-          [interaction.guildId]
-        );
-        await client.query("COMMIT");
-      } catch (e) {
-        await client.query("ROLLBACK");
-        throw e; // Re-throw the error to be caught by the outer catch block
-      } finally {
-        client.release();
-      }
+      await mimiDLCDb.transaction().execute(async (trx) => {
+        await trx
+          .deleteFrom("tickets")
+          .where("guildId", "=", interaction.guildId!)
+          .execute();
+        await trx
+          .updateTable("guild_ticket_counters")
+          .set({ lastTicketId: 0 })
+          .where("guildId", "=", interaction.guildId!)
+          .execute();
+      });
 
       const disabledButton = ButtonBuilder.from(
         interaction.component

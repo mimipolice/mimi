@@ -1,6 +1,6 @@
 import logger from "../utils/logger";
 import { poolTypeNames } from "../config/gacha";
-import { ticketPool } from "./database/index";
+import { mimiDLCDb } from "./database/index";
 import { getKeywordsByGuild } from "./database/queries";
 import NodeCache from "node-cache";
 
@@ -44,7 +44,7 @@ async function loadKeywords() {
   try {
     // This is not ideal, but we'll fetch for all guilds for now.
     // This should be refactored to cache per guild.
-    const allKeywords = await getKeywordsByGuild(ticketPool, "*");
+    const allKeywords = await getKeywordsByGuild(mimiDLCDb, "*");
     keywordsCache.set("keywords", allKeywords);
     logger.debug(`Successfully cached ${allKeywords.length} keywords.`);
   } catch (error) {

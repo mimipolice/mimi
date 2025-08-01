@@ -1,27 +1,15 @@
-import { Kysely } from "kysely";
+import { Kysely, Selectable } from "kysely";
 import NodeCache from "node-cache";
 import logger from "../utils/logger";
-import { DB } from "../shared/database/types";
+import { MimiDLCDB } from "../shared/database/types";
 
-export interface GuildSettings {
-  guildId: string;
-  panelChannelId: string | null;
-  ticketCategoryId: string | null;
-  logChannelId: string | null;
-  staffRoleId: string | null;
-  archiveCategoryId: string | null;
-  panelTitle: string | null;
-  panelDescription: string | null;
-  panelAuthorIconUrl: string | null;
-  panelThumbnailUrl: string | null;
-  panelFooterIconUrl: string | null;
-}
+export type GuildSettings = Selectable<MimiDLCDB["guild_settings"]>;
 
 export class SettingsManager {
-  private db: Kysely<DB>;
+  private db: Kysely<MimiDLCDB>;
   private cache: NodeCache;
 
-  constructor(db: Kysely<DB>) {
+  constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
     this.cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
   }
