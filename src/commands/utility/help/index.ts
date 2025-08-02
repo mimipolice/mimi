@@ -16,7 +16,7 @@ import {
   MessageActionRowComponentBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
-import { capitalize } from "lodash";
+import { capitalize } from "es-toolkit";
 import { readFile } from "fs/promises";
 import { readFileSync } from "fs";
 import { join } from "path";
