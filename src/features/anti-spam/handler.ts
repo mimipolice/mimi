@@ -100,8 +100,6 @@ async function handleSpamAction(
       `User ${member.toString()} has been timed out for ${timeoutDurationString} due to suspected spamming (${reason}).`
     );
 
-    // [優化] 在成功懲罰後，設置懲罰到期時間
-    userData.punishedUntil = Date.now() + timeoutDuration;
     // [優化] 懲罰後清空其訊息記錄，使其從「乾淨」的狀態重新開始
     userData.timestamps = [];
   } catch (err) {
@@ -194,8 +192,7 @@ export async function handleAntiSpam(message: Message) {
       guildSettings?.messagethreshold ?? config.antiSpam.spamThreshold,
     timeWindow: guildSettings?.time_window ?? config.antiSpam.timeWindow,
     timeoutDuration:
-      (guildSettings?.timeoutduration ?? config.antiSpam.timeoutDuration) *
-      1000, // Convert to ms
+      guildSettings?.timeoutduration ?? config.antiSpam.timeoutDuration,
     multiChannelSpamThreshold: config.antiSpam.multiChannelSpamThreshold, // Not configurable for now
     multiChannelTimeWindow: config.antiSpam.multiChannelTimeWindow, // Not configurable for now
     ignoredUsers: config.antiSpam.ignoredUsers,
@@ -221,9 +218,26 @@ export async function handleAntiSpam(message: Message) {
     userData = { timestamps: [], punishedUntil: null };
   }
 
+  // Synchronize state: If cache says punished but Discord says not, trust Discord.
+  const isTimedOutInDiscord =
+    message.member.communicationDisabledUntilTimestamp &&
+    message.member.communicationDisabledUntilTimestamp > now;
+  const isPunishedInCache =
+    userData.punishedUntil && userData.punishedUntil > now;
+
+  if (isPunishedInCache && !isTimedOutInDiscord) {
+    logger.info(
+      `[Anti-Spam] User ${message.member.id} timeout was manually removed. Resetting cache state.`
+    );
+    userData.punishedUntil = null;
+    userData.timestamps = []; // Reset timestamps for a fresh start
+  }
+
+  // If user is still considered punished after sync, skip further processing.
   if (userData.punishedUntil && now < userData.punishedUntil) {
     return;
   }
+  // If punishment has naturally expired, reset it.
   if (userData.punishedUntil && now >= userData.punishedUntil) {
     userData.punishedUntil = null;
   }
@@ -243,6 +257,10 @@ export async function handleAntiSpam(message: Message) {
   });
 
   if (reason) {
+    // Immediately mark as punished and update cache to prevent race conditions
+    userData.punishedUntil = Date.now() + settings.timeoutDuration;
+    antiSpamCache.set(cacheKey, userData);
+
     await handleSpamAction(
       message,
       message.member,
@@ -250,7 +268,8 @@ export async function handleAntiSpam(message: Message) {
       userData,
       settings.timeoutDuration
     );
+  } else {
+    // If no punishment, just update the timestamps
+    antiSpamCache.set(cacheKey, userData);
   }
-
-  antiSpamCache.set(cacheKey, userData);
 }
