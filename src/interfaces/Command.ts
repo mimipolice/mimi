@@ -11,7 +11,19 @@ import {
 } from "discord.js";
 import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
+import { LocalizationManager } from "../services/LocalizationManager";
 import { Kysely } from "kysely";
+
+export interface Services {
+  settingsManager: SettingsManager;
+  ticketManager: TicketManager;
+  localizationManager: LocalizationManager;
+}
+
+export interface Databases {
+  gachaDb: Kysely<any>;
+  ticketDb: Kysely<any>;
+}
 
 export interface Command {
   data:
@@ -29,10 +41,8 @@ export interface Command {
       | UserContextMenuCommandInteraction
       | MessageContextMenuCommandInteraction,
     client: Client,
-    settingsManager: SettingsManager,
-    ticketManager: TicketManager,
-    gachaDb: Kysely<any>,
-    ticketDb: Kysely<any>
+    services: Services,
+    databases: Databases
   ): Promise<void>;
   autocomplete?(
     interaction: AutocompleteInteraction,

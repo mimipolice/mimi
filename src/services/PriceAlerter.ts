@@ -1,5 +1,4 @@
-import { Client, Locale } from "discord.js";
-import { gachaPool } from "../shared/database";
+import { Client } from "discord.js";
 import {
   getAllPriceAlerts,
   removePriceAlert,
@@ -10,16 +9,18 @@ import {
 import logger from "../utils/logger";
 import { getLocalizations } from "../utils/localization";
 import NodeCache from "node-cache";
+import { LocalizationManager } from "./LocalizationManager";
 
-const translations = getLocalizations("pricealert");
 const priceCache = new NodeCache({ stdTTL: 60 });
 
 export class PriceAlerter {
   private client: Client;
   private interval: NodeJS.Timeout | null = null;
+  private localizationManager: LocalizationManager;
 
-  constructor(client: Client) {
+  constructor(client: Client, localizationManager: LocalizationManager) {
     this.client = client;
+    this.localizationManager = localizationManager;
   }
 
   public start(checkIntervalMs: number = 120000) {
@@ -42,7 +43,7 @@ export class PriceAlerter {
       let priceMap = priceCache.get<Map<string, number>>("assetPrices");
 
       if (!priceMap) {
-        const assets = await getAllAssetsWithLatestPrice(gachaPool);
+        const assets = await getAllAssetsWithLatestPrice();
         priceMap = new Map(
           assets.map((asset) => [asset.asset_symbol, asset.price])
         );
@@ -86,6 +87,10 @@ export class PriceAlerter {
         return;
       }
 
+      const translations = getLocalizations(
+        this.localizationManager,
+        "pricealert"
+      );
       const t = translations[alert.locale] || translations["en-US"];
 
       const conditionText =

@@ -1,7 +1,6 @@
 import {
   EmbedBuilder,
   PermissionsBitField,
-  Collection,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -9,56 +8,35 @@ import {
   GuildMember,
   TextChannel,
 } from "discord.js";
+import NodeCache from "node-cache";
 import config from "../../config";
 import logger from "../../utils/logger";
 import { getAntiSpamLogChannel } from "../../shared/database/queries";
-import { formatDistanceStrict } from "date-fns"; // 推薦使用 date-fns 或類似庫來處理時間格式化
+import { getAntiSpamSettingsForGuild } from "../../shared/cache";
+import { formatDistanceStrict } from "date-fns";
 
-// --- 1. Types and Data Structures ---
-// [優化] 使用 punishedUntil 取代 isNotified，記錄懲罰到期時間
+const antiSpamCache = new NodeCache({
+  stdTTL: config.antiSpam.inactiveUserThreshold / 1000,
+  checkperiod: 600,
+});
+
 interface UserMessageData {
   timestamps: { ts: number; channelId: string }[];
   punishedUntil: number | null;
 }
-
-const userMessageHistory = new Collection<string, UserMessageData>();
-const { antiSpam } = config;
-const TIMEOUT_DURATION_STRING = formatDistanceStrict(
-  0,
-  antiSpam.timeoutDuration
-);
-
-// --- 2. Memory Management ---
-// 這部分邏輯依然穩健，無需大改
-setInterval(() => {
-  const now = Date.now();
-  let clearedCount = 0;
-  userMessageHistory.forEach((data, userId) => {
-    // 如果使用者仍在懲罰期，不清除
-    if (data.punishedUntil && now < data.punishedUntil) {
-      return;
-    }
-    const lastMessageTime = Math.max(
-      ...(data.timestamps.map((t) => t.ts) || [0])
-    );
-    if (now - lastMessageTime > antiSpam.inactiveUserThreshold) {
-      userMessageHistory.delete(userId);
-      clearedCount++;
-    }
-  });
-  if (clearedCount > 0) {
-    logger.info(
-      `[Anti-Spam Memory] Cleared ${clearedCount} inactive user(s) from cache.`
-    );
-  }
-}, antiSpam.memoryCleanupInterval);
 
 // --- 3. Spam Detection & Action Handler ---
 
 // [優化] 將偵測邏輯抽離成獨立函式，提高可讀性和擴展性
 function checkSpam(
   userData: UserMessageData,
-  message: Message<true>
+  message: Message<true>,
+  settings: {
+    spamThreshold: number;
+    timeWindow: number;
+    multiChannelSpamThreshold: number;
+    multiChannelTimeWindow: number;
+  }
 ): string | null {
   const now = Date.now();
   const { timestamps } = userData;
@@ -66,22 +44,22 @@ function checkSpam(
   // 1. Single-channel spam check
   const singleChannelMessages = timestamps.filter(
     (ts) =>
-      ts.channelId === message.channel.id && now - ts.ts < antiSpam.timeWindow
+      ts.channelId === message.channel.id && now - ts.ts < settings.timeWindow
   );
-  if (singleChannelMessages.length >= antiSpam.spamThreshold) {
+  if (singleChannelMessages.length >= settings.spamThreshold) {
     return "Fast single-channel spam";
   }
 
   // 2. Multi-channel spam check
   const multiChannelMessages = timestamps.filter(
-    (ts) => now - ts.ts < antiSpam.multiChannelTimeWindow
+    (ts) => now - ts.ts < settings.multiChannelTimeWindow
   );
   const uniqueChannels = new Set(
     multiChannelMessages.map((ts) => ts.channelId)
   );
   if (
-    uniqueChannels.size >= antiSpam.multiChannelSpamThreshold &&
-    multiChannelMessages.length >= antiSpam.multiChannelSpamThreshold
+    uniqueChannels.size >= settings.multiChannelSpamThreshold &&
+    multiChannelMessages.length >= settings.multiChannelSpamThreshold
   ) {
     return `Multi-channel spam (${uniqueChannels.size} channels)`;
   }
@@ -95,7 +73,8 @@ async function handleSpamAction(
   message: Message<true>,
   member: GuildMember,
   reason: string,
-  userData: UserMessageData
+  userData: UserMessageData,
+  timeoutDuration: number
 ) {
   const botMember = message.guild.members.me;
   if (
@@ -106,21 +85,23 @@ async function handleSpamAction(
       `[Anti-Spam] Insufficient permissions or cannot moderate user ${member.id}.`
     );
     // 即使無法操作，也標記為已懲罰，避免在權限修復前反覆觸發
-    userData.punishedUntil = Date.now() + antiSpam.timeoutDuration;
+    userData.punishedUntil = Date.now() + timeoutDuration;
     return;
   }
 
+  const timeoutDurationString = formatDistanceStrict(0, timeoutDuration);
+
   try {
-    await member.timeout(antiSpam.timeoutDuration, reason);
+    await member.timeout(timeoutDuration, reason);
     logger.info(
       `[Anti-Spam] Timed out user ${member.user.tag} (${member.id}). Reason: ${reason}`
     );
     await message.channel.send(
-      `User ${member.toString()} has been timed out for ${TIMEOUT_DURATION_STRING} due to suspected spamming (${reason}).`
+      `User ${member.toString()} has been timed out for ${timeoutDurationString} due to suspected spamming (${reason}).`
     );
 
     // [優化] 在成功懲罰後，設置懲罰到期時間
-    userData.punishedUntil = Date.now() + antiSpam.timeoutDuration;
+    userData.punishedUntil = Date.now() + timeoutDuration;
     // [優化] 懲罰後清空其訊息記錄，使其從「乾淨」的狀態重新開始
     userData.timestamps = [];
   } catch (err) {
@@ -139,7 +120,7 @@ async function handleSpamAction(
   try {
     await member.send({
       content:
-        `You have been timed out for **${TIMEOUT_DURATION_STRING}** in **${message.guild.name}** for suspected spamming.\n` + // [優化] 使用動態時間字串
+        `You have been timed out for **${timeoutDurationString}** in **${message.guild.name}** for suspected spamming.\n` + // [優化] 使用動態時間字串
         `**Reason**: ${reason}\n\n` +
         `If you believe this was a mistake, please click the button below to appeal to the administrators.`,
       components: [row],
@@ -186,7 +167,7 @@ async function handleSpamAction(
             value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
             inline: false,
           },
-          { name: "⏳ Duration", value: TIMEOUT_DURATION_STRING, inline: true } // [優化] 使用動態時間字串
+          { name: "⏳ Duration", value: timeoutDurationString, inline: true } // [優化] 使用動態時間字串
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setFooter({ text: `Anti-Spam System | ${message.guild.name}` });
@@ -206,10 +187,25 @@ async function handleSpamAction(
 export async function handleAntiSpam(message: Message) {
   if (message.author.bot || !message.inGuild() || !message.member) return;
 
+  const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
+
+  const settings = {
+    spamThreshold:
+      guildSettings?.messagethreshold ?? config.antiSpam.spamThreshold,
+    timeWindow: guildSettings?.time_window ?? config.antiSpam.timeWindow,
+    timeoutDuration:
+      (guildSettings?.timeoutduration ?? config.antiSpam.timeoutDuration) *
+      1000, // Convert to ms
+    multiChannelSpamThreshold: config.antiSpam.multiChannelSpamThreshold, // Not configurable for now
+    multiChannelTimeWindow: config.antiSpam.multiChannelTimeWindow, // Not configurable for now
+    ignoredUsers: config.antiSpam.ignoredUsers,
+    ignoredRoles: config.antiSpam.ignoredRoles,
+  };
+
   if (
-    antiSpam.ignoredUsers.includes(message.author.id) ||
+    settings.ignoredUsers.includes(message.author.id) ||
     message.member.roles.cache.some((role) =>
-      antiSpam.ignoredRoles.includes(role.id)
+      settings.ignoredRoles.includes(role.id)
     )
   ) {
     return;
@@ -217,36 +213,44 @@ export async function handleAntiSpam(message: Message) {
 
   const now = Date.now();
   const userId = message.author.id;
+  const cacheKey = `antispam:${userId}`;
 
-  if (!userMessageHistory.has(userId)) {
-    userMessageHistory.set(userId, { timestamps: [], punishedUntil: null });
+  let userData = antiSpamCache.get<UserMessageData>(cacheKey);
+
+  if (!userData) {
+    userData = { timestamps: [], punishedUntil: null };
   }
-  const userData = userMessageHistory.get(userId)!;
 
-  // [優化] 檢查使用者是否在懲罰期間
   if (userData.punishedUntil && now < userData.punishedUntil) {
     return;
   }
-  // 如果懲罰已過期，重置狀態，讓他們可以被重新偵測
   if (userData.punishedUntil && now >= userData.punishedUntil) {
     userData.punishedUntil = null;
   }
 
-  // --- Update Data ---
   const maxTimeWindow = Math.max(
-    antiSpam.timeWindow,
-    antiSpam.multiChannelTimeWindow
+    settings.timeWindow * 1000, // convert to ms
+    settings.multiChannelTimeWindow
   );
   userData.timestamps = userData.timestamps.filter(
     (ts) => now - ts.ts < maxTimeWindow
   );
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
-  // --- Detection Logic ---
-  const reason = checkSpam(userData, message);
+  const reason = checkSpam(userData, message, {
+    ...settings,
+    timeWindow: settings.timeWindow * 1000,
+  });
 
   if (reason) {
-    // 傳入 userData，以便在 handleSpamAction 中更新 punishedUntil
-    await handleSpamAction(message, message.member, reason, userData);
+    await handleSpamAction(
+      message,
+      message.member,
+      reason,
+      userData,
+      settings.timeoutDuration
+    );
   }
+
+  antiSpamCache.set(cacheKey, userData);
 }

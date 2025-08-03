@@ -1,5 +1,4 @@
 import { StringSelectMenuInteraction } from "discord.js";
-import { gachaPool } from "../../shared/database";
 import {
   createPriceAlert,
   getAllAssetsWithLatestPrice,
@@ -49,7 +48,7 @@ export default {
       }
 
       // --- 取得目前價格 ---
-      const allAssets = await getAllAssetsWithLatestPrice(gachaPool);
+      const allAssets = await getAllAssetsWithLatestPrice();
       const currentAsset = allAssets.find(
         (a) => a.asset_symbol === asset.asset_symbol
       );

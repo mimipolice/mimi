@@ -11,26 +11,29 @@ import {
   Locale,
   ComponentType,
 } from "discord.js";
-import { Command } from "../../../interfaces/Command";
+import { Command, Services } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
 import { MessageFlags } from "discord-api-types/v10";
 
-const translations = getLocalizations("ping");
-
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("ping")
+    .setDescription("Replies with Pong!")
     .setNameLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].name,
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.EnglishUS]: "ping",
+      [Locale.ChineseTW]: "延遲",
     })
     .setDescriptionLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].description,
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.EnglishUS]: "Replies with Pong!",
+      [Locale.ChineseTW]: "回應「Pong!」。",
     }),
   detailedHelpPath: "src/commands/help_docs/public/ping.md",
-  async execute(interaction: ChatInputCommandInteraction, client: Client) {
+  async execute(
+    interaction: ChatInputCommandInteraction,
+    client: Client,
+    { localizationManager }: Services
+  ) {
+    const translations = getLocalizations(localizationManager, "ping");
     const t = translations[interaction.locale] ?? translations["en-US"];
     let count = 0;
 
@@ -65,11 +68,11 @@ export const command: Command = {
       );
     };
 
-    const reply = await interaction.reply({
+    await interaction.reply({
       components: [buildContainer(client.ws.ping, count), buildRow()],
       flags: MessageFlags.IsComponentsV2,
-      fetchReply: true,
     });
+    const reply = await interaction.fetchReply();
 
     const collector = reply.createMessageComponentCollector({
       componentType: ComponentType.Button,

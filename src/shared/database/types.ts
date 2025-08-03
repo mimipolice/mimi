@@ -17,6 +17,84 @@ export interface GachaDB {
     channel_id: string | null;
     message_id: string | null;
   };
+  ai_conversation_messages: {
+    id: ColumnType<number, never, never>;
+    conversation_id: number;
+    role: "user" | "assistant" | "system";
+    content: string;
+    created_at: ColumnType<Date, string, string>;
+  };
+  asset_price_history: {
+    id: ColumnType<number, never, never>;
+    asset_id: number;
+    price: number;
+    timestamp: ColumnType<Date, string, string>;
+  };
+  virtual_assets: {
+    asset_id: ColumnType<number, never, never>;
+    asset_symbol: string;
+    asset_name: string;
+    current_price: number;
+  };
+  market_transactions: {
+    transaction_id: ColumnType<number, never, never>;
+    asset_id: number;
+    quantity: number;
+    timestamp: ColumnType<Date, string, string>;
+  };
+  gacha_pools: {
+    gacha_id: string;
+    gacha_name: string;
+    gacha_name_alias: string;
+  };
+  gacha_master_cards: {
+    card_id: number;
+    pool_type: string;
+    rarity: number;
+  };
+  gacha_draw_history: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    card_id: number;
+    created_at: ColumnType<Date, string, string>;
+  };
+  gacha_users: {
+    user_id: string;
+    nickname: string;
+    oil_balance: number;
+    oil_ticket_balance: number;
+  };
+  user_transaction_history: {
+    id: ColumnType<number, never, never>;
+    sender_id: string;
+    receiver_id: string;
+    net_amount: number;
+    gross_amount: number;
+    created_at: ColumnType<Date, string, string>;
+  };
+  balance_history: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    change_amount: number;
+    transaction_type: string;
+  };
+  player_portfolios: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    asset_id: number;
+    quantity: number;
+  };
+  command_usage_stats: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    guild_id: string;
+    command_name: string;
+  };
+  gacha_user_collections: {
+    id: ColumnType<number, never, never>;
+    user_id: string;
+    quantity: number;
+  };
 }
 
 export interface MimiDLCDB {
@@ -81,6 +159,12 @@ export interface MimiDLCDB {
     last_notified_at: ColumnType<Date, string, string> | null;
     repeatable: ColumnType<boolean, boolean, boolean>;
     locale: string;
+  };
+  anti_spam_settings: {
+    guildid: string;
+    messagethreshold: number;
+    timeoutduration: number;
+    time_window: number;
   };
   anti_spam_logs: {
     guild_id: string;

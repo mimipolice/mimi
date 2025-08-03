@@ -5,43 +5,41 @@ import {
   TextDisplayBuilder,
   SeparatorBuilder,
   Locale,
+  Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { getOdogRankings } from "../../../shared/database/queries";
-import { gachaPool } from "../../../shared/database";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
 
-const translations = getLocalizations("odog");
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("odog")
+    .setDescription("Show the Odog rankings.")
     .setNameLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].name,
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.EnglishUS]: "odog",
+      [Locale.ChineseTW]: "歐皇榜",
     })
     .setDescriptionLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].description,
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.EnglishUS]: "Show the Odog rankings.",
+      [Locale.ChineseTW]: "顯示歐皇榜。",
     })
     .setDefaultMemberPermissions(0)
     .addStringOption((option) =>
       option
-        .setName(translations["en-US"].options.gacha_id.name)
-        .setDescription(translations["en-US"].options.gacha_id.description)
+        .setName("gacha_id")
+        .setDescription("The gacha pool to check.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].options.gacha_id.name,
-          [Locale.ChineseTW]: translations["zh-TW"].options.gacha_id.name,
+          [Locale.EnglishUS]: "gacha_id",
+          [Locale.ChineseTW]: "卡池id",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]:
-            translations["en-US"].options.gacha_id.description,
-          [Locale.ChineseTW]:
-            translations["zh-TW"].options.gacha_id.description,
+          [Locale.EnglishUS]: "The gacha pool to check.",
+          [Locale.ChineseTW]: "要查詢的卡池。",
         })
         .setRequired(false)
         .setChoices(
@@ -53,22 +51,28 @@ export default {
     )
     .addStringOption((option) =>
       option
-        .setName(translations["en-US"].options.period.name)
-        .setDescription(translations["en-US"].options.period.description)
+        .setName("period")
+        .setDescription("The period to check.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].options.period.name,
-          [Locale.ChineseTW]: translations["zh-TW"].options.period.name,
+          [Locale.EnglishUS]: "period",
+          [Locale.ChineseTW]: "期間",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].options.period.description,
-          [Locale.ChineseTW]: translations["zh-TW"].options.period.description,
+          [Locale.EnglishUS]: "The period to check.",
+          [Locale.ChineseTW]: "要查詢的期間。",
         })
         .setRequired(false)
     ),
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    { localizationManager }: Services,
+    _databases: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
+    const translations = getLocalizations(localizationManager, "odog");
     const t = translations[interaction.locale] || translations["en-US"];
 
     await interaction.deferReply();
@@ -90,11 +94,7 @@ export default {
         return;
       }
 
-      const rankings = await getOdogRankings(
-        gachaPool,
-        gachaId,
-        days as number | "all"
-      );
+      const rankings = await getOdogRankings(gachaId, days as number | "all");
 
       if (rankings.length === 0) {
         await interaction.editReply(t.responses.no_ranking_data);

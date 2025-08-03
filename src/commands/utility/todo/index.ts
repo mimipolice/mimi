@@ -3,6 +3,7 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
   Locale,
+  Client,
 } from "discord.js";
 import { mimiDLCDb } from "../../../shared/database";
 import {
@@ -15,69 +16,60 @@ import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
 
-const translations = getLocalizations("todo");
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("todo")
+    .setDescription("Manage your todo list.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "待辦事項",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "管理您的待辦事項清單。",
     })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.add.name)
-        .setDescription(translations["en-US"].subcommands.add.description)
+        .setName("add")
+        .setDescription("Add an item to your todo list.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+          [Locale.ChineseTW]: "新增",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+          [Locale.ChineseTW]: "將項目新增至您的待辦事項清單。",
         })
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.item.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.item.description
-            )
+            .setName("item")
+            .setDescription("The item to add.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.item.name,
+              [Locale.ChineseTW]: "項目",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.item.description,
+              [Locale.ChineseTW]: "要新增的項目。",
             })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove an item from your todo list.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.ChineseTW]: "移除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.ChineseTW]: "從您的待辦事項清單中移除項目。",
         })
         .addIntegerOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.remove.options.id.name)
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.id.description
-            )
+            .setName("id")
+            .setDescription("The ID of the item to remove.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.id.name,
+              [Locale.ChineseTW]: "id",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.id.description,
+              [Locale.ChineseTW]: "要移除的項目id。",
             })
             .setRequired(true)
             .setAutocomplete(true)
@@ -85,31 +77,28 @@ export default {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List all items in your todo list.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.ChineseTW]: "列出您待辦事項清單中的所有項目。",
         })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.clear.name)
-        .setDescription(translations["en-US"].subcommands.clear.description)
+        .setName("clear")
+        .setDescription("Clear your todo list.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.clear.name,
+          [Locale.ChineseTW]: "清除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.clear.description,
+          [Locale.ChineseTW]: "清除您的待辦事項清單。",
         })
     ),
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const t = translations[interaction.locale] || translations["en-US"];
     const focusedValue = interaction.options.getFocused();
     const todos = await getTodos(mimiDLCDb, interaction.user.id);
     const choices = todos
@@ -117,17 +106,21 @@ export default {
         todo.item.toLowerCase().includes(focusedValue.toLowerCase())
       )
       .map((todo) => ({
-        name: t.autocomplete.id_choice
-          .replace("{{id}}", todo.id.toString())
-          .replace("{{item}}", todo.item),
+        name: `#${todo.id}: ${todo.item}`,
         value: todo.id,
       }));
     await interaction.respond(choices.slice(0, 25));
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    { localizationManager }: Services,
+    { ticketDb: mimiDLCDb }: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
+    const translations = getLocalizations(localizationManager, "todo");
     const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
     const userId = interaction.user.id;

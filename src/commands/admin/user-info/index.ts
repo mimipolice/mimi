@@ -26,21 +26,19 @@ import {
   TopSender,
   TopReceiver,
 } from "../../../shared/database/queries";
-import { gachaPool } from "../../../shared/database";
-
-const translations = getLocalizations("userinfo");
+import { Services } from "../../../interfaces/Command";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("user-info")
-    .setDescription(translations["en-US"].description)
+    .setDescription("Get information about a user.")
     .setNameLocalizations({
       [Locale.EnglishUS]: "user-info",
       [Locale.ChineseTW]: "使用者資訊",
     })
     .setDescriptionLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].description,
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.EnglishUS]: "Get information about a user.",
+      [Locale.ChineseTW]: "取得使用者資訊。",
     })
     .addUserOption((option) =>
       option
@@ -50,7 +48,12 @@ export const command: Command = {
     )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
   guildOnly: true,
-  async execute(interaction: ChatInputCommandInteraction) {
+  async execute(
+    interaction: ChatInputCommandInteraction,
+    client,
+    { localizationManager }: Services
+  ) {
+    const translations = getLocalizations(localizationManager, "userinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
 
@@ -68,14 +71,9 @@ export const command: Command = {
       top_receivers,
       oil_balance,
       oil_ticket_balance,
-    } = await getUserInfoData(gachaPool, targetUser.id);
+    } = await getUserInfoData(targetUser.id);
 
-    let recent_transactions = await getRecentTransactions(
-      gachaPool,
-      targetUser.id,
-      0,
-      15
-    );
+    let recent_transactions = await getRecentTransactions(targetUser.id, 0, 15);
 
     const topGuildsContent =
       top_guilds.length > 0
@@ -324,7 +322,6 @@ export const command: Command = {
         if (action === "details" && category === "more") {
           const offset = parseInt(value, 10);
           const newTransactions = await getRecentTransactions(
-            gachaPool,
             targetUser.id,
             offset,
             15

@@ -8,9 +8,9 @@ import {
   SeparatorBuilder,
   ContainerBuilder,
   Locale,
+  Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { gachaPool } from "../../../shared/database";
 import {
   getAllAssetsWithLatestPrice,
   searchAssets,
@@ -22,106 +22,79 @@ import path from "path";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
 
-const translations = getLocalizations("report");
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("report")
+    .setDescription("Generate a price report for an asset.")
     .setNameLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].name,
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.EnglishUS]: "report",
+      [Locale.ChineseTW]: "報告",
     })
     .setDescriptionLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].description,
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.EnglishUS]: "Generate a price report for an asset.",
+      [Locale.ChineseTW]: "產生資產的價格報告。",
     })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.symbol.name)
-        .setDescription(translations["en-US"].subcommands.symbol.description)
+        .setName("symbol")
+        .setDescription("Generate a report for a specific symbol.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.symbol.name,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.symbol.name,
+          [Locale.EnglishUS]: "symbol",
+          [Locale.ChineseTW]: "代號",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]:
-            translations["en-US"].subcommands.symbol.description,
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.symbol.description,
+          [Locale.EnglishUS]: "Generate a report for a specific symbol.",
+          [Locale.ChineseTW]: "產生特定代號的報告。",
         })
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.symbol.options.symbol.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.symbol.options.symbol
-                .description
-            )
+            .setName("symbol")
+            .setDescription("The asset symbol.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.symbol.options.symbol.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.symbol.options.symbol.name,
+              [Locale.EnglishUS]: "symbol",
+              [Locale.ChineseTW]: "代號",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.symbol.options.symbol
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.symbol.options.symbol
-                  .description,
+              [Locale.EnglishUS]: "The asset symbol.",
+              [Locale.ChineseTW]: "資產代號。",
             })
             .setRequired(true)
             .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.symbol.options.range.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.symbol.options.range.description
-            )
+            .setName("range")
+            .setDescription("The time range for the report.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.symbol.options.range.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.symbol.options.range.name,
+              [Locale.EnglishUS]: "range",
+              [Locale.ChineseTW]: "範圍",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.symbol.options.range
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.symbol.options.range
-                  .description,
+              [Locale.EnglishUS]: "The time range for the report.",
+              [Locale.ChineseTW]: "報告的時間範圍。",
             })
             .setRequired(false)
-            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List all available assets.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.list.name,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.EnglishUS]: "list",
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]:
-            translations["en-US"].subcommands.list.description,
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.EnglishUS]: "List all available assets.",
+          [Locale.ChineseTW]: "列出所有股票。",
         })
     ),
 
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
       const focusedOption = interaction.options.getFocused(true);
-      const t = translations[interaction.locale] || translations["en-US"];
 
       if (focusedOption.name === "symbol") {
         const assetListPath = path.join(
@@ -154,23 +127,21 @@ export default {
             value: choice.asset_symbol,
           }))
         );
-      } else if (focusedOption.name === "range") {
-        const choices = [
-          { name: t.autocomplete.range_1d, value: "1d" },
-          { name: t.autocomplete.range_7d, value: "7d" },
-          { name: t.autocomplete.range_1m, value: "1m" },
-          { name: t.autocomplete.range_all, value: "all" },
-        ];
-        await interaction.respond(choices);
       }
     } catch (error) {
       logger.error("Autocomplete error:", error);
     }
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    { localizationManager }: Services,
+    _databases: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
+    const translations = getLocalizations(localizationManager, "report");
     const t = translations[interaction.locale] || translations["en-US"];
 
     try {
@@ -179,7 +150,7 @@ export default {
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {
-        const assets = await getAllAssetsWithLatestPrice(gachaPool);
+        const assets = await getAllAssetsWithLatestPrice();
         if (assets.length === 0) {
           await interaction.editReply(
             t.responses.no_data.replace("{{symbol}}", "any")
@@ -217,12 +188,8 @@ export default {
           return;
         }
 
-        const history = await getPriceHistoryWithVolume(
-          gachaPool,
-          symbol,
-          range
-        );
-        const assets = await searchAssets(gachaPool, symbol);
+        const history = await getPriceHistoryWithVolume(symbol, range);
+        const assets = await searchAssets(symbol);
         const assetName =
           assets.find((a) => a.symbol === symbol)?.name || symbol;
 
