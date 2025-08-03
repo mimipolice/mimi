@@ -12,7 +12,6 @@ import {
   TextChannel,
   User,
   OverwriteResolvable,
-  Embed,
 } from "discord.js";
 import { SettingsManager } from "./SettingsManager";
 import logger from "../utils/logger";
