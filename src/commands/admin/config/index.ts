@@ -57,10 +57,10 @@ export const command: Command = {
             .setName("ticket_category")
             .setDescription("The category for new tickets.")
             .setNameLocalizations({
-              [Locale.ChineseTW]: "服務單類別",
+              [Locale.ChineseTW]: "客服單類別",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]: "新服務單的類別。",
+              [Locale.ChineseTW]: "新客服單的類別。",
             })
             .setRequired(true)
         )
@@ -81,10 +81,10 @@ export const command: Command = {
             .setName("panel_channel")
             .setDescription("The channel for the ticket panel.")
             .setNameLocalizations({
-              [Locale.ChineseTW]: "服務單面板頻道",
+              [Locale.ChineseTW]: "客服單面板頻道",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]: "服務單面板的頻道。",
+              [Locale.ChineseTW]: "客服單面板的頻道。",
             })
             .setRequired(true)
         )
@@ -93,10 +93,10 @@ export const command: Command = {
             .setName("archive_category")
             .setDescription("The category for archived tickets.")
             .setNameLocalizations({
-              [Locale.ChineseTW]: "封存服務單類別",
+              [Locale.ChineseTW]: "封存客服單類別",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]: "已封存服務單的類別。",
+              [Locale.ChineseTW]: "已封存客服單的類別。",
             })
             .setRequired(true)
         )
@@ -164,6 +164,18 @@ export const command: Command = {
                 })
                 .setRequired(true)
             )
+            .addIntegerOption((option) =>
+              option
+                .setName("time_window")
+                .setDescription("Time window in seconds for spam detection.")
+                .setNameLocalizations({
+                  [Locale.ChineseTW]: "時間範圍",
+                })
+                .setDescriptionLocalizations({
+                  [Locale.ChineseTW]: "偵測洗版的秒數範圍。",
+                })
+                .setRequired(true)
+            )
         )
         .addSubcommand((subcommand) =>
           subcommand
@@ -207,24 +219,29 @@ export const command: Command = {
       if (subcommand === "set") {
         const threshold = interaction.options.getInteger("threshold", true);
         const timeout = interaction.options.getInteger("timeout", true);
+        const timeWindow = interaction.options.getInteger("time_window", true);
 
         await upsertAntiSpamSettings({
           guildid: interaction.guildId,
           messagethreshold: threshold,
-          time_window: 10, // Default time window for now
-          timeoutduration: timeout,
+          time_window: timeWindow * 1000, // Convert to ms
+          timeoutduration: timeout * 1000, // Convert to ms
         });
 
         flushAntiSpamSettingsForGuild(interaction.guildId);
 
         await interaction.editReply({
-          content: `Anti-spam settings updated: Threshold=${threshold}, Timeout=${timeout}s.`,
+          content: `Anti-spam settings updated: Threshold=${threshold}, Time Window=${timeWindow}s, Timeout=${timeout}s.`,
         });
       } else if (subcommand === "show") {
         const settings = await getAntiSpamSettingsForGuild(interaction.guildId);
         if (settings) {
           await interaction.editReply({
-            content: `Current anti-spam settings:\n- Threshold: ${settings.messagethreshold} messages\n- Time Window: ${settings.time_window} seconds\n- Timeout: ${settings.timeoutduration} seconds`,
+            content: `Current anti-spam settings:\n- Threshold: ${
+              settings.messagethreshold
+            } messages\n- Time Window: ${
+              settings.time_window / 1000
+            } seconds\n- Timeout: ${settings.timeoutduration / 1000} seconds`,
           });
         } else {
           await interaction.editReply({

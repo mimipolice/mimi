@@ -165,6 +165,8 @@ export interface MimiDLCDB {
     messagethreshold: number;
     timeoutduration: number;
     time_window: number;
+    multichannelthreshold: number | null;
+    multichanneltimewindow: number | null;
   };
   anti_spam_logs: {
     guild_id: string;

@@ -30,11 +30,11 @@ const config = {
   odogDatabase: gachaDatabaseConfig,
   antiSpam: {
     // Single-channel spam settings
-    spamThreshold: 5,
-    timeWindow: 5 * 1000, // 5 seconds
+    spamThreshold: 7,
+    timeWindow: 8 * 1000, // 8 seconds
     // Multi-channel spam settings
-    multiChannelSpamThreshold: 4, // 4 messages in 4 different channels within 10 seconds
-    multiChannelTimeWindow: 10 * 1000, // 10 seconds
+    multiChannelSpamThreshold: 6, // 6 messages in different channels within 12 seconds
+    multiChannelTimeWindow: 12 * 1000, // 12 seconds
     // General settings
     timeoutDuration: 24 * 60 * 60 * 1000, // 24 hours
     adminChannelId: process.env.ANTISPAM_ADMIN_CHANNEL_ID || "",

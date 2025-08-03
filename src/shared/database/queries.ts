@@ -805,12 +805,7 @@ export async function setAntiSpamLogChannel(
 }
 
 // Anti-Spam Settings Queries
-export interface AntiSpamSettings {
-  guildid: string;
-  messagethreshold: number;
-  time_window: number;
-  timeoutduration: number;
-}
+export type AntiSpamSettings = MimiDLCDB["anti_spam_settings"];
 
 export async function getAntiSpamSettings(
   guildId: string
@@ -824,18 +819,20 @@ export async function getAntiSpamSettings(
 }
 
 export async function upsertAntiSpamSettings(
-  settings: AntiSpamSettings
+  settings: Partial<AntiSpamSettings> & { guildid: string }
 ): Promise<void> {
+  const { guildid, ...updateData } = settings;
   await mimiDLCDb
     .insertInto("anti_spam_settings")
-    .values(settings)
-    .onConflict((oc) =>
-      oc.column("guildid").doUpdateSet({
-        messagethreshold: settings.messagethreshold,
-        time_window: settings.time_window,
-        timeoutduration: settings.timeoutduration,
-      })
-    )
+    .values({
+      guildid: guildid,
+      messagethreshold: updateData.messagethreshold ?? 5,
+      time_window: updateData.time_window ?? 5000,
+      timeoutduration: updateData.timeoutduration ?? 86400000,
+      multichannelthreshold: updateData.multichannelthreshold,
+      multichanneltimewindow: updateData.multichanneltimewindow,
+    })
+    .onConflict((oc) => oc.column("guildid").doUpdateSet(updateData))
     .execute();
 }
 

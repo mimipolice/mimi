@@ -193,8 +193,12 @@ export async function handleAntiSpam(message: Message) {
     timeWindow: guildSettings?.time_window ?? config.antiSpam.timeWindow,
     timeoutDuration:
       guildSettings?.timeoutduration ?? config.antiSpam.timeoutDuration,
-    multiChannelSpamThreshold: config.antiSpam.multiChannelSpamThreshold, // Not configurable for now
-    multiChannelTimeWindow: config.antiSpam.multiChannelTimeWindow, // Not configurable for now
+    multiChannelSpamThreshold:
+      guildSettings?.multichannelthreshold ??
+      config.antiSpam.multiChannelSpamThreshold,
+    multiChannelTimeWindow:
+      guildSettings?.multichanneltimewindow ??
+      config.antiSpam.multiChannelTimeWindow,
     ignoredUsers: config.antiSpam.ignoredUsers,
     ignoredRoles: config.antiSpam.ignoredRoles,
   };
@@ -237,13 +241,14 @@ export async function handleAntiSpam(message: Message) {
   if (userData.punishedUntil && now < userData.punishedUntil) {
     return;
   }
-  // If punishment has naturally expired, reset it.
+  // If punishment has naturally expired, reset it for a clean slate.
   if (userData.punishedUntil && now >= userData.punishedUntil) {
     userData.punishedUntil = null;
+    userData.timestamps = [];
   }
 
   const maxTimeWindow = Math.max(
-    settings.timeWindow * 1000, // convert to ms
+    settings.timeWindow,
     settings.multiChannelTimeWindow
   );
   userData.timestamps = userData.timestamps.filter(
@@ -251,10 +256,7 @@ export async function handleAntiSpam(message: Message) {
   );
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
-  const reason = checkSpam(userData, message, {
-    ...settings,
-    timeWindow: settings.timeWindow * 1000,
-  });
+  const reason = checkSpam(userData, message, settings);
 
   if (reason) {
     // Immediately mark as punished and update cache to prevent race conditions
