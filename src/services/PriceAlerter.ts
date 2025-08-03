@@ -1,5 +1,4 @@
-import { Client, Locale } from "discord.js";
-import { gachaPool } from "../shared/database";
+import { Client } from "discord.js";
 import {
   getAllPriceAlerts,
   removePriceAlert,
@@ -42,7 +41,7 @@ export class PriceAlerter {
       let priceMap = priceCache.get<Map<string, number>>("assetPrices");
 
       if (!priceMap) {
-        const assets = await getAllAssetsWithLatestPrice(gachaPool);
+        const assets = await getAllAssetsWithLatestPrice();
         priceMap = new Map(
           assets.map((asset) => [asset.asset_symbol, asset.price])
         );

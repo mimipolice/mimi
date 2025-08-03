@@ -3,6 +3,7 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
   Locale,
+  Client,
 } from "discord.js";
 import { mimiDLCDb } from "../../../shared/database";
 import {
@@ -14,6 +15,8 @@ import {
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+
+import { Databases, Services } from "../../../interfaces/Command";
 
 const translations = getLocalizations("todo");
 
@@ -125,7 +128,12 @@ export default {
     await interaction.respond(choices.slice(0, 25));
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    { ticketDb: mimiDLCDb }: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
     const t = translations[interaction.locale] || translations["en-US"];

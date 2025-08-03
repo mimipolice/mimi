@@ -1,21 +1,17 @@
 import { Interaction, Client } from "discord.js";
-import { Command } from "../interfaces/Command";
-import { SettingsManager } from "../services/SettingsManager";
-import { TicketManager } from "../services/TicketManager";
+import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
-import { Kysely } from "kysely";
 
 export const name = "interactionCreate";
 
 export async function execute(
   interaction: Interaction,
   client: Client,
-  settingsManager: SettingsManager,
-  ticketManager: TicketManager,
-  gachaDb: Kysely<any>,
-  ticketDb: Kysely<any>
+  services: Services,
+  databases: Databases
 ) {
+  const { gachaDb, ticketDb } = databases;
   logger.debug(
     `Received interaction: ${interaction.type} | Custom ID: ${
       "customId" in interaction ? interaction.customId : "N/A"
@@ -25,14 +21,7 @@ export async function execute(
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
-      await command.execute(
-        interaction,
-        client,
-        settingsManager,
-        ticketManager,
-        gachaDb,
-        ticketDb
-      );
+      await command.execute(interaction, client, services, databases);
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
@@ -41,14 +30,7 @@ export async function execute(
     } else if (interaction.isContextMenuCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
-      await command.execute(
-        interaction,
-        client,
-        settingsManager,
-        ticketManager,
-        gachaDb,
-        ticketDb
-      );
+      await command.execute(interaction, client, services, databases);
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
@@ -64,7 +46,7 @@ export async function execute(
         return false;
       });
       if (!button) return;
-      await button.execute(interaction, client, settingsManager, ticketManager);
+      await button.execute(interaction, client, services, databases);
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
@@ -78,7 +60,7 @@ export async function execute(
         return false;
       });
       if (!modal) return;
-      await modal.execute(interaction, ticketManager);
+      await modal.execute(interaction, services, databases);
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
@@ -92,7 +74,7 @@ export async function execute(
         return false;
       });
       if (!menu) return;
-      await menu.execute(interaction);
+      await menu.execute(interaction, services, databases);
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,

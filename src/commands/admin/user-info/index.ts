@@ -26,7 +26,6 @@ import {
   TopSender,
   TopReceiver,
 } from "../../../shared/database/queries";
-import { gachaPool } from "../../../shared/database";
 
 const translations = getLocalizations("userinfo");
 
@@ -68,14 +67,9 @@ export const command: Command = {
       top_receivers,
       oil_balance,
       oil_ticket_balance,
-    } = await getUserInfoData(gachaPool, targetUser.id);
+    } = await getUserInfoData(targetUser.id);
 
-    let recent_transactions = await getRecentTransactions(
-      gachaPool,
-      targetUser.id,
-      0,
-      15
-    );
+    let recent_transactions = await getRecentTransactions(targetUser.id, 0, 15);
 
     const topGuildsContent =
       top_guilds.length > 0
@@ -324,7 +318,6 @@ export const command: Command = {
         if (action === "details" && category === "more") {
           const offset = parseInt(value, 10);
           const newTransactions = await getRecentTransactions(
-            gachaPool,
             targetUser.id,
             offset,
             15

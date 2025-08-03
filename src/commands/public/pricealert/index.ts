@@ -3,9 +3,9 @@ import {
   CommandInteraction,
   AutocompleteInteraction,
   Locale,
+  Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { gachaPool } from "../../../shared/database";
 import {
   createPriceAlert,
   getUserPriceAlerts,
@@ -18,6 +18,8 @@ import path from "path";
 import yaml from "js-yaml";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 // ---
 // Load configs
@@ -274,7 +276,12 @@ export default {
     }
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    _databases: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
     const t = translations[interaction.locale] || translations["en-US"];
@@ -316,7 +323,7 @@ export default {
         }
 
         // --- Get current price ---
-        const allAssets = await getAllAssetsWithLatestPrice(gachaPool);
+        const allAssets = await getAllAssetsWithLatestPrice();
         const currentAsset = allAssets.find(
           (a) => a.asset_symbol === asset.symbol
         );

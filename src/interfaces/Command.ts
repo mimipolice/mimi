@@ -13,6 +13,16 @@ import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
 import { Kysely } from "kysely";
 
+export interface Services {
+  settingsManager: SettingsManager;
+  ticketManager: TicketManager;
+}
+
+export interface Databases {
+  gachaDb: Kysely<any>;
+  ticketDb: Kysely<any>;
+}
+
 export interface Command {
   data:
     | SlashCommandBuilder
@@ -29,10 +39,8 @@ export interface Command {
       | UserContextMenuCommandInteraction
       | MessageContextMenuCommandInteraction,
     client: Client,
-    settingsManager: SettingsManager,
-    ticketManager: TicketManager,
-    gachaDb: Kysely<any>,
-    ticketDb: Kysely<any>
+    services: Services,
+    databases: Databases
   ): Promise<void>;
   autocomplete?(
     interaction: AutocompleteInteraction,

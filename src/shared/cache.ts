@@ -1,7 +1,10 @@
 import logger from "../utils/logger";
 import { poolTypeNames } from "../config/gacha";
 import { mimiDLCDb } from "./database/index";
-import { getKeywordsByGuild } from "./database/queries";
+import {
+  getKeywordsByGuild as dbGetKeywordsByGuild,
+  getAutoreacts as dbGetAutoreactsByGuild,
+} from "./database/queries";
 import NodeCache from "node-cache";
 
 // Define the type based on the expected structure
@@ -19,12 +22,17 @@ export interface Keyword {
   match_type: "exact" | "contains";
 }
 
+export interface Autoreact {
+  channel_id: string;
+  emoji: string;
+}
+
 let gachaPoolsCache: GachaPool[] = [];
 const keywordsCache = new NodeCache({ stdTTL: 3600 });
+const autoreactsCache = new NodeCache({ stdTTL: 3600 });
 
 export async function loadCaches() {
   await loadGachaPools();
-  await loadKeywords();
 }
 
 async function loadGachaPools() {
@@ -40,28 +48,63 @@ async function loadGachaPools() {
   }
 }
 
-async function loadKeywords() {
-  try {
-    // This is not ideal, but we'll fetch for all guilds for now.
-    // This should be refactored to cache per guild.
-    const allKeywords = await getKeywordsByGuild(mimiDLCDb, "*");
-    keywordsCache.set("keywords", allKeywords);
-    logger.debug(`Successfully cached ${allKeywords.length} keywords.`);
-  } catch (error) {
-    logger.error("Failed to load and cache keywords:", error);
-  }
-}
-
 export function getGachaPoolsCache(): GachaPool[] {
   return gachaPoolsCache;
 }
 
-export function getKeywordsCache(): Keyword[] | undefined {
-  return keywordsCache.get<Keyword[]>("keywords");
+export async function getKeywordsForGuild(guildId: string): Promise<Keyword[]> {
+  const cacheKey = `keywords:${guildId}`;
+  const cachedKeywords = keywordsCache.get<Keyword[]>(cacheKey);
+  if (cachedKeywords) {
+    logger.debug(`Cache hit for keywords in guild ${guildId}.`);
+    return cachedKeywords;
+  }
+
+  logger.debug(
+    `Cache miss for keywords in guild ${guildId}. Fetching from DB.`
+  );
+  const keywords = await dbGetKeywordsByGuild(mimiDLCDb, guildId);
+  keywordsCache.set(cacheKey, keywords);
+  return keywords;
+}
+
+export function flushKeywordsCacheForGuild(guildId: string) {
+  const cacheKey = `keywords:${guildId}`;
+  keywordsCache.del(cacheKey);
+  logger.debug(`Keywords cache flushed for guild ${guildId}.`);
+}
+
+export async function getAutoreactsForGuild(
+  guildId: string
+): Promise<Autoreact[]> {
+  const cacheKey = `autoreacts:${guildId}`;
+  const cachedAutoreacts = autoreactsCache.get<Autoreact[]>(cacheKey);
+  if (cachedAutoreacts) {
+    logger.debug(`Cache hit for autoreacts in guild ${guildId}.`);
+    return cachedAutoreacts;
+  }
+
+  logger.debug(
+    `Cache miss for autoreacts in guild ${guildId}. Fetching from DB.`
+  );
+  const autoreacts = await dbGetAutoreactsByGuild(mimiDLCDb, guildId);
+  autoreactsCache.set(cacheKey, autoreacts);
+  return autoreacts;
+}
+
+export function flushAutoreactsForGuild(guildId: string) {
+  const cacheKey = `autoreacts:${guildId}`;
+  autoreactsCache.del(cacheKey);
+  logger.debug(`Autoreacts cache flushed for guild ${guildId}.`);
+}
+
+export function flushCaches() {
+  keywordsCache.flushAll();
+  autoreactsCache.flushAll();
+  logger.debug("All caches flushed.");
 }
 
 export function flushKeywordsCache() {
   keywordsCache.flushAll();
   logger.debug("Keywords cache flushed.");
-  loadKeywords();
 }

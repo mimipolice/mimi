@@ -8,9 +8,9 @@ import {
   SeparatorBuilder,
   ContainerBuilder,
   Locale,
+  Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { gachaPool } from "../../../shared/database";
 import {
   getAllAssetsWithLatestPrice,
   searchAssets,
@@ -21,6 +21,8 @@ import fs from "fs";
 import path from "path";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 const translations = getLocalizations("report");
 
@@ -168,7 +170,12 @@ export default {
     }
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    _databases: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
     const t = translations[interaction.locale] || translations["en-US"];
@@ -179,7 +186,7 @@ export default {
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {
-        const assets = await getAllAssetsWithLatestPrice(gachaPool);
+        const assets = await getAllAssetsWithLatestPrice();
         if (assets.length === 0) {
           await interaction.editReply(
             t.responses.no_data.replace("{{symbol}}", "any")
@@ -217,12 +224,8 @@ export default {
           return;
         }
 
-        const history = await getPriceHistoryWithVolume(
-          gachaPool,
-          symbol,
-          range
-        );
-        const assets = await searchAssets(gachaPool, symbol);
+        const history = await getPriceHistoryWithVolume(symbol, range);
+        const assets = await searchAssets(symbol);
         const assetName =
           assets.find((a) => a.symbol === symbol)?.name || symbol;
 

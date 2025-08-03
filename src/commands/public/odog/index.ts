@@ -5,14 +5,16 @@ import {
   TextDisplayBuilder,
   SeparatorBuilder,
   Locale,
+  Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { getOdogRankings } from "../../../shared/database/queries";
-import { gachaPool } from "../../../shared/database";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+
+import { Databases, Services } from "../../../interfaces/Command";
 
 const translations = getLocalizations("odog");
 
@@ -66,7 +68,12 @@ export default {
         .setRequired(false)
     ),
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    _databases: Databases
+  ) {
     if (!interaction.isChatInputCommand()) return;
 
     const t = translations[interaction.locale] || translations["en-US"];
@@ -90,11 +97,7 @@ export default {
         return;
       }
 
-      const rankings = await getOdogRankings(
-        gachaPool,
-        gachaId,
-        days as number | "all"
-      );
+      const rankings = await getOdogRankings(gachaId, days as number | "all");
 
       if (rankings.length === 0) {
         await interaction.editReply(t.responses.no_ranking_data);

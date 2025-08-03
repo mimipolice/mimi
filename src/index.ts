@@ -14,8 +14,10 @@ import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
 import { gachaDB, mimiDLCDb } from "./shared/database/index";
+import { Databases, Services } from "./interfaces/Command";
 import { loadCaches } from "./shared/cache";
 import appealButton from "./features/anti-spam/appealButton";
+import { DiscordService } from "./services/DiscordService";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -86,8 +88,22 @@ async function main() {
   });
 
   const settingsManager = new SettingsManager(mimiDLCDb);
-  const ticketManager = new TicketManager(mimiDLCDb, settingsManager, client);
+  const discordService = new DiscordService(client);
+  const ticketManager = new TicketManager(
+    mimiDLCDb,
+    settingsManager,
+    discordService
+  );
   const priceAlerter = new PriceAlerter(client);
+
+  const services: Services = {
+    settingsManager,
+    ticketManager,
+  };
+  const databases: Databases = {
+    gachaDb: gachaDB,
+    ticketDb: mimiDLCDb,
+  };
 
   client.commands = new Collection();
   client.commandCategories = new Collection();
@@ -194,25 +210,11 @@ async function main() {
     const event = require(filePath);
     if (event.once) {
       client.once(event.name, (...args) =>
-        event.execute(
-          ...args,
-          client,
-          settingsManager,
-          ticketManager,
-          gachaDB,
-          mimiDLCDb
-        )
+        event.execute(...args, client, services, databases)
       );
     } else {
       client.on(event.name, (...args) =>
-        event.execute(
-          ...args,
-          client,
-          settingsManager,
-          ticketManager,
-          gachaDB,
-          mimiDLCDb
-        )
+        event.execute(...args, client, services, databases)
       );
     }
   }

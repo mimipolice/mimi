@@ -4,17 +4,18 @@ import {
   ChannelType,
   PermissionFlagsBits,
   Locale,
+  Client,
 } from "discord.js";
 import {
   setAutoreact,
   removeAutoreact,
   getAutoreacts,
 } from "../../../shared/database/queries";
-import { mimiDLCDb } from "../../../shared/database";
-import { loadCaches } from "../../../shared/cache";
+import { flushAutoreactsForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+import { Databases, Services } from "../../../interfaces/Command";
 
 const translations = getLocalizations("autoreact");
 
@@ -120,7 +121,12 @@ export default {
         })
     ),
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    { ticketDb: mimiDLCDb }: Databases
+  ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
     const t = translations[interaction.locale] || translations["en-US"];
@@ -139,7 +145,7 @@ export default {
           true
         );
         await setAutoreact(mimiDLCDb, interaction.guildId, channel.id, emoji);
-        await loadCaches();
+        flushAutoreactsForGuild(interaction.guildId);
         await interaction.editReply(
           t.subcommands.set.responses.success
             .replace("{{emoji}}", emoji)
@@ -151,7 +157,7 @@ export default {
           true
         );
         await removeAutoreact(mimiDLCDb, interaction.guildId, channel.id);
-        await loadCaches();
+        flushAutoreactsForGuild(interaction.guildId);
         await interaction.editReply(
           t.subcommands.remove.responses.success.replace(
             "{{channelId}}",

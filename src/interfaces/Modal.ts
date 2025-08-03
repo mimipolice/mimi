@@ -1,10 +1,11 @@
-import { ModalSubmitInteraction } from 'discord.js';
-import { TicketManager } from '../services/TicketManager';
+import { ModalSubmitInteraction } from "discord.js";
+import { Databases, Services } from "./Command";
 
 export interface Modal {
   name: string | RegExp;
   execute: (
     interaction: ModalSubmitInteraction,
-    ticketManager?: TicketManager,
+    services: Services,
+    databases: Databases
   ) => Promise<void>;
 }

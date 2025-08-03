@@ -4,6 +4,7 @@ import {
   AutocompleteInteraction,
   PermissionFlagsBits,
   Locale,
+  Client,
 } from "discord.js";
 import { mimiDLCDb } from "../../../shared/database";
 import {
@@ -11,10 +12,11 @@ import {
   removeKeyword,
   getKeywordsByGuild,
 } from "../../../shared/database/queries";
-import { flushKeywordsCache } from "../../../shared/cache";
+import { flushKeywordsCacheForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
+import { Databases, Services } from "../../../interfaces/Command";
 
 const translations = getLocalizations("keyword");
 
@@ -168,7 +170,12 @@ export default {
     await interaction.respond(choices.slice(0, 25));
   },
 
-  async execute(interaction: CommandInteraction) {
+  async execute(
+    interaction: CommandInteraction,
+    _client: Client,
+    _services: Services,
+    { ticketDb: mimiDLCDb }: Databases
+  ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
     const t = translations[interaction.locale] || translations["en-US"];
@@ -196,7 +203,7 @@ export default {
         );
 
         await addKeyword(mimiDLCDb, interaction.guildId, keyword, reply, type);
-        flushKeywordsCache();
+        flushKeywordsCacheForGuild(interaction.guildId);
         await interaction.editReply(
           t.subcommands.add.responses.success.replace("{{keyword}}", keyword)
         );
@@ -206,7 +213,7 @@ export default {
           true
         );
         await removeKeyword(mimiDLCDb, interaction.guildId, keyword);
-        flushKeywordsCache();
+        flushKeywordsCacheForGuild(interaction.guildId);
         await interaction.editReply(
           t.subcommands.remove.responses.success.replace("{{keyword}}", keyword)
         );

@@ -1,7 +1,6 @@
 import {
   EmbedBuilder,
   PermissionsBitField,
-  Collection,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -9,49 +8,27 @@ import {
   GuildMember,
   TextChannel,
 } from "discord.js";
+import NodeCache from "node-cache";
 import config from "../../config";
 import logger from "../../utils/logger";
 import { getAntiSpamLogChannel } from "../../shared/database/queries";
-import { formatDistanceStrict } from "date-fns"; // 推薦使用 date-fns 或類似庫來處理時間格式化
+import { formatDistanceStrict } from "date-fns";
 
-// --- 1. Types and Data Structures ---
-// [優化] 使用 punishedUntil 取代 isNotified，記錄懲罰到期時間
+const antiSpamCache = new NodeCache({
+  stdTTL: config.antiSpam.inactiveUserThreshold / 1000,
+  checkperiod: 600,
+});
+
 interface UserMessageData {
   timestamps: { ts: number; channelId: string }[];
   punishedUntil: number | null;
 }
 
-const userMessageHistory = new Collection<string, UserMessageData>();
 const { antiSpam } = config;
 const TIMEOUT_DURATION_STRING = formatDistanceStrict(
   0,
   antiSpam.timeoutDuration
 );
-
-// --- 2. Memory Management ---
-// 這部分邏輯依然穩健，無需大改
-setInterval(() => {
-  const now = Date.now();
-  let clearedCount = 0;
-  userMessageHistory.forEach((data, userId) => {
-    // 如果使用者仍在懲罰期，不清除
-    if (data.punishedUntil && now < data.punishedUntil) {
-      return;
-    }
-    const lastMessageTime = Math.max(
-      ...(data.timestamps.map((t) => t.ts) || [0])
-    );
-    if (now - lastMessageTime > antiSpam.inactiveUserThreshold) {
-      userMessageHistory.delete(userId);
-      clearedCount++;
-    }
-  });
-  if (clearedCount > 0) {
-    logger.info(
-      `[Anti-Spam Memory] Cleared ${clearedCount} inactive user(s) from cache.`
-    );
-  }
-}, antiSpam.memoryCleanupInterval);
 
 // --- 3. Spam Detection & Action Handler ---
 
@@ -217,11 +194,13 @@ export async function handleAntiSpam(message: Message) {
 
   const now = Date.now();
   const userId = message.author.id;
+  const cacheKey = `antispam:${userId}`;
 
-  if (!userMessageHistory.has(userId)) {
-    userMessageHistory.set(userId, { timestamps: [], punishedUntil: null });
+  let userData = antiSpamCache.get<UserMessageData>(cacheKey);
+
+  if (!userData) {
+    userData = { timestamps: [], punishedUntil: null };
   }
-  const userData = userMessageHistory.get(userId)!;
 
   // [優化] 檢查使用者是否在懲罰期間
   if (userData.punishedUntil && now < userData.punishedUntil) {
@@ -249,4 +228,7 @@ export async function handleAntiSpam(message: Message) {
     // 傳入 userData，以便在 handleSpamAction 中更新 punishedUntil
     await handleSpamAction(message, message.member, reason, userData);
   }
+
+  // 將更新後的資料存回快取
+  antiSpamCache.set(cacheKey, userData);
 }

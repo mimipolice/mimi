@@ -12,9 +12,7 @@ import {
   AutocompleteInteraction,
   Locale,
 } from "discord.js";
-import { Command } from "../../../interfaces/Command";
-import { SettingsManager } from "../../../services/SettingsManager";
-import { TicketManager } from "../../../services/TicketManager";
+import { Command, Databases, Services } from "../../../interfaces/Command";
 import logger from "../../../utils/logger";
 import { MessageFlags } from "discord-api-types/v10";
 import { mimiDLCDb } from "../../../shared/database";
@@ -345,9 +343,8 @@ export const command: Command = {
   async execute(
     interaction: ChatInputCommandInteraction,
     _client: Client,
-    settingsManager: SettingsManager,
-    _ticketManager: TicketManager,
-    _db: any
+    { settingsManager }: Services,
+    { ticketDb: mimiDLCDb }: Databases
   ) {
     if (!interaction.guildId) {
       // This command is guild-only, but the check is here for type safety.

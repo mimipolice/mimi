@@ -7,8 +7,7 @@ import {
   ButtonStyle,
   Locale,
 } from "discord.js";
-import { Command } from "../../../interfaces/Command";
-import { TicketManager } from "../../../services/TicketManager";
+import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 
@@ -95,8 +94,8 @@ export const command: Command = {
   async execute(
     interaction,
     client,
-    settingsManager,
-    ticketManager: TicketManager
+    { ticketManager }: Services,
+    _databases: Databases
   ) {
     if (!interaction.isChatInputCommand()) return;
 

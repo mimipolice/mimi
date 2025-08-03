@@ -5,9 +5,7 @@ import {
   PermissionFlagsBits,
   Locale,
 } from "discord.js";
-import { Command } from "../../../interfaces/Command";
-import { SettingsManager } from "../../../services/SettingsManager";
-import { TicketManager } from "../../../services/TicketManager";
+import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import {
@@ -166,8 +164,8 @@ export const command: Command = {
   async execute(
     interaction: ChatInputCommandInteraction,
     client: Client,
-    settingsManager: SettingsManager,
-    _ticketManager: TicketManager
+    { settingsManager }: Services,
+    _databases: Databases
   ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
