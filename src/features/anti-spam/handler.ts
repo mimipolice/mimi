@@ -212,6 +212,14 @@ export async function handleAntiSpam(message: Message) {
     return;
   }
 
+  // Ignore messages that are only stickers or attachments
+  if (
+    message.content === "" &&
+    (message.stickers.size > 0 || message.attachments.size > 0)
+  ) {
+    return;
+  }
+
   const now = Date.now();
   const userId = message.author.id;
   const cacheKey = `antispam:${userId}`;
