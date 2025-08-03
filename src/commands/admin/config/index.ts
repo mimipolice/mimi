@@ -11,132 +11,92 @@ import { getLocalizations } from "../../../utils/localization";
 import {
   getAntiSpamLogChannel,
   setAntiSpamLogChannel,
+  upsertAntiSpamSettings,
+  deleteAntiSpamSettings,
 } from "../../../shared/database/queries";
-
-const translations = getLocalizations("config");
+import {
+  flushAntiSpamSettingsForGuild,
+  getAntiSpamSettingsForGuild,
+} from "../../../shared/cache";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("config")
+    .setDescription("Configure server settings.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "設定",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "設定伺服器。",
     })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.set.name)
-        .setDescription(translations["en-US"].subcommands.set.description)
+        .setName("set")
+        .setDescription("Set server settings.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.name,
+          [Locale.ChineseTW]: "設定",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.description,
+          [Locale.ChineseTW]: "設定伺服器。",
         })
         .addRoleOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.staff_role.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.staff_role
-                .description
-            )
+            .setName("staff_role")
+            .setDescription("The role for staff members.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.staff_role.name,
+              [Locale.ChineseTW]: "員工身分組",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.staff_role
-                  .description,
+              [Locale.ChineseTW]: "員工的身分組。",
             })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.ticket_category.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.ticket_category
-                .description
-            )
+            .setName("ticket_category")
+            .setDescription("The category for new tickets.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.ticket_category
-                  .name,
+              [Locale.ChineseTW]: "服務單類別",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.ticket_category
-                  .description,
+              [Locale.ChineseTW]: "新服務單的類別。",
             })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.log_channel.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.log_channel
-                .description
-            )
+            .setName("log_channel")
+            .setDescription("The channel for logs.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.log_channel.name,
+              [Locale.ChineseTW]: "日誌頻道",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.log_channel
-                  .description,
+              [Locale.ChineseTW]: "用於日誌的頻道。",
             })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.panel_channel.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.panel_channel
-                .description
-            )
+            .setName("panel_channel")
+            .setDescription("The channel for the ticket panel.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.panel_channel
-                  .name,
+              [Locale.ChineseTW]: "服務單面板頻道",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.panel_channel
-                  .description,
+              [Locale.ChineseTW]: "服務單面板的頻道。",
             })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.archive_category
-                .name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.archive_category
-                .description
-            )
+            .setName("archive_category")
+            .setDescription("The category for archived tickets.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.archive_category
-                  .name,
+              [Locale.ChineseTW]: "封存服務單類別",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.archive_category
-                  .description,
+              [Locale.ChineseTW]: "已封存服務單的類別。",
             })
             .setRequired(true)
         )
@@ -151,28 +111,135 @@ export const command: Command = {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.view.name)
-        .setDescription(translations["en-US"].subcommands.view.description)
+        .setName("view")
+        .setDescription("View server settings.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.view.name,
+          [Locale.ChineseTW]: "檢視",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.view.description,
+          [Locale.ChineseTW]: "檢視伺服器設定。",
         })
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("anti-spam")
+        .setDescription("Configure anti-spam settings.")
+        .setNameLocalizations({
+          [Locale.ChineseTW]: "防洗版",
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: "設定防洗版功能。",
+        })
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("set")
+            .setDescription("Set anti-spam parameters.")
+            .setNameLocalizations({
+              [Locale.ChineseTW]: "設定",
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]: "設定防洗版參數。",
+            })
+            .addIntegerOption((option) =>
+              option
+                .setName("threshold")
+                .setDescription("Number of messages to trigger spam detection.")
+                .setNameLocalizations({
+                  [Locale.ChineseTW]: "閾值",
+                })
+                .setDescriptionLocalizations({
+                  [Locale.ChineseTW]: "觸發偵測的訊息數量。",
+                })
+                .setRequired(true)
+            )
+            .addIntegerOption((option) =>
+              option
+                .setName("timeout")
+                .setDescription("Duration of timeout in seconds.")
+                .setNameLocalizations({
+                  [Locale.ChineseTW]: "禁言時長",
+                })
+                .setDescriptionLocalizations({
+                  [Locale.ChineseTW]: "禁言的持續時間（秒）。",
+                })
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("show")
+            .setDescription("Show current anti-spam settings.")
+            .setNameLocalizations({
+              [Locale.ChineseTW]: "顯示",
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]: "顯示目前的防洗版設定。",
+            })
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("reset")
+            .setDescription("Reset anti-spam settings to default.")
+            .setNameLocalizations({
+              [Locale.ChineseTW]: "重設",
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]: "將防洗版設定重設為預設值。",
+            })
+        )
     ),
   async execute(
     interaction: ChatInputCommandInteraction,
     client: Client,
-    { settingsManager }: Services,
+    { settingsManager, localizationManager }: Services,
     _databases: Databases
   ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
+    const translations = getLocalizations(localizationManager, "config");
     const t = translations[interaction.locale] || translations["en-US"];
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const subcommand = interaction.options.getSubcommand();
+    const subcommandGroup = interaction.options.getSubcommandGroup();
+
+    if (subcommandGroup === "anti-spam") {
+      if (subcommand === "set") {
+        const threshold = interaction.options.getInteger("threshold", true);
+        const timeout = interaction.options.getInteger("timeout", true);
+
+        await upsertAntiSpamSettings({
+          guildid: interaction.guildId,
+          messagethreshold: threshold,
+          time_window: 10, // Default time window for now
+          timeoutduration: timeout,
+        });
+
+        flushAntiSpamSettingsForGuild(interaction.guildId);
+
+        await interaction.editReply({
+          content: `Anti-spam settings updated: Threshold=${threshold}, Timeout=${timeout}s.`,
+        });
+      } else if (subcommand === "show") {
+        const settings = await getAntiSpamSettingsForGuild(interaction.guildId);
+        if (settings) {
+          await interaction.editReply({
+            content: `Current anti-spam settings:\n- Threshold: ${settings.messagethreshold} messages\n- Time Window: ${settings.time_window} seconds\n- Timeout: ${settings.timeoutduration} seconds`,
+          });
+        } else {
+          await interaction.editReply({
+            content: "No custom anti-spam settings found for this server.",
+          });
+        }
+      } else if (subcommand === "reset") {
+        await deleteAntiSpamSettings(interaction.guildId);
+        flushAntiSpamSettingsForGuild(interaction.guildId);
+        await interaction.editReply({
+          content: "Anti-spam settings have been reset to default.",
+        });
+      }
+      return;
+    }
 
     if (subcommand === "set") {
       const staffRoleId = interaction.options.getRole(

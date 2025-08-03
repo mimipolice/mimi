@@ -4,21 +4,24 @@ import {
   MessageContextMenuCommandInteraction,
   Locale,
 } from "discord.js";
-import { Command } from "../../../interfaces/Command";
+import { Command, Services } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
 import { MessageFlags } from "discord-api-types/v10";
 
-const translations = getLocalizations("messageinfo");
-
 export const command: Command = {
   data: new ContextMenuCommandBuilder()
-    .setName(translations["en-US"].name)
+    .setName("messageinfo")
     .setNameLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].name,
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.EnglishUS]: "messageinfo",
+      [Locale.ChineseTW]: "訊息資訊",
     })
     .setType(ApplicationCommandType.Message),
-  async execute(interaction: MessageContextMenuCommandInteraction) {
+  async execute(
+    interaction: MessageContextMenuCommandInteraction,
+    client,
+    { localizationManager }: Services
+  ) {
+    const translations = getLocalizations(localizationManager, "messageinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetMessage = interaction.targetMessage;
 

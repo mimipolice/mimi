@@ -11,94 +11,82 @@ import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 
-const translations = getLocalizations("ticket");
-
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("ticket")
+    .setDescription("Manage tickets.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "服務單",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "管理服務單。",
     })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.add.name)
-        .setDescription(translations["en-US"].subcommands.add.description)
+        .setName("add")
+        .setDescription("Add a user to the ticket.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+          [Locale.ChineseTW]: "新增成員",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+          [Locale.ChineseTW]: "將使用者新增至此服務單。",
         })
         .addUserOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.user.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.user.description
-            )
+            .setName("user")
+            .setDescription("The user to add.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.user.name,
+              [Locale.ChineseTW]: "使用者",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.user.description,
+              [Locale.ChineseTW]: "要新增的使用者。",
             })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove a user from the ticket.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.ChineseTW]: "移除成員",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.ChineseTW]: "將使用者從此服務單移除。",
         })
         .addUserOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.remove.options.user.name)
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.user.description
-            )
+            .setName("user")
+            .setDescription("The user to remove.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.user.name,
+              [Locale.ChineseTW]: "使用者",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.user
-                  .description,
+              [Locale.ChineseTW]: "要移除的使用者。",
             })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.purge.name)
-        .setDescription(translations["en-US"].subcommands.purge.description)
+        .setName("purge")
+        .setDescription("Purge all tickets.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.purge.name,
+          [Locale.ChineseTW]: "清除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.purge.description,
+          [Locale.ChineseTW]: "清除所有服務單。",
         })
     ),
   async execute(
     interaction,
     client,
-    { ticketManager }: Services,
+    { ticketManager, localizationManager }: Services,
     _databases: Databases
   ) {
     if (!interaction.isChatInputCommand()) return;
 
+    const translations = getLocalizations(localizationManager, "ticket");
     const t = translations[interaction.locale] || translations["en-US"];
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 

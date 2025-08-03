@@ -13,6 +13,7 @@ import { errorHandler } from "./utils/errorHandler";
 import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
+import { LocalizationManager } from "./services/LocalizationManager";
 import { gachaDB, mimiDLCDb } from "./shared/database/index";
 import { Databases, Services } from "./interfaces/Command";
 import { loadCaches } from "./shared/cache";
@@ -94,11 +95,13 @@ async function main() {
     settingsManager,
     discordService
   );
-  const priceAlerter = new PriceAlerter(client);
+  const localizationManager = new LocalizationManager();
+  const priceAlerter = new PriceAlerter(client, localizationManager);
 
   const services: Services = {
     settingsManager,
     ticketManager,
+    localizationManager,
   };
   const databases: Databases = {
     gachaDb: gachaDB,

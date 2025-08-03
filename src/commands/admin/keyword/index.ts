@@ -16,132 +16,102 @@ import { flushKeywordsCacheForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
-import { Databases, Services } from "../../../interfaces/Command";
-
-const translations = getLocalizations("keyword");
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("keyword")
+    .setDescription("Manage keyword replies.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "關鍵字",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "管理關鍵字回覆。",
     })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.add.name)
-        .setDescription(translations["en-US"].subcommands.add.description)
+        .setName("add")
+        .setDescription("Add a keyword reply.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+          [Locale.ChineseTW]: "新增",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+          [Locale.ChineseTW]: "新增關鍵字回覆。",
         })
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.type.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.type.description
-            )
+            .setName("type")
+            .setDescription("The type of match.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.type.name,
+              [Locale.ChineseTW]: "類型",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.type.description,
+              [Locale.ChineseTW]: "比對類型。",
             })
             .setRequired(true)
             .addChoices(
               {
-                name: translations["en-US"].subcommands.add.options.type.choices
-                  .exact,
+                name: "Exact",
                 value: "exact",
                 name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.type.choices
-                      .exact,
+                  [Locale.ChineseTW]: "完全符合",
                 },
               },
               {
-                name: translations["en-US"].subcommands.add.options.type.choices
-                  .contains,
+                name: "Contains",
                 value: "contains",
                 name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.type.choices
-                      .contains,
+                  [Locale.ChineseTW]: "包含",
                 },
               }
             )
         )
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.keyword.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.keyword.description
-            )
+            .setName("keyword")
+            .setDescription("The keyword to match.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.keyword.name,
+              [Locale.ChineseTW]: "關鍵字",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.keyword
-                  .description,
+              [Locale.ChineseTW]: "要比對的關鍵字。",
             })
             .setRequired(true)
             .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.reply.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.reply.description
-            )
+            .setName("reply")
+            .setDescription("The reply message.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.reply.name,
+              [Locale.ChineseTW]: "回覆",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.reply.description,
+              [Locale.ChineseTW]: "回覆的訊息。",
             })
             .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove a keyword reply.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.ChineseTW]: "移除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.ChineseTW]: "移除關鍵字回覆。",
         })
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.remove.options.keyword.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.keyword
-                .description
-            )
+            .setName("keyword")
+            .setDescription("The keyword to remove.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.keyword.name,
+              [Locale.ChineseTW]: "關鍵字",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.keyword
-                  .description,
+              [Locale.ChineseTW]: "要移除的關鍵字。",
             })
             .setRequired(true)
             .setAutocomplete(true)
@@ -149,14 +119,13 @@ export default {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List all keyword replies.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.ChineseTW]: "列出所有關鍵字回覆。",
         })
     ),
 
@@ -173,11 +142,12 @@ export default {
   async execute(
     interaction: CommandInteraction,
     _client: Client,
-    _services: Services,
+    { localizationManager }: Services,
     { ticketDb: mimiDLCDb }: Databases
   ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
+    const translations = getLocalizations(localizationManager, "keyword");
     const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
 

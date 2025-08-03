@@ -15,61 +15,50 @@ import { flushAutoreactsForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
-import { Databases, Services } from "../../../interfaces/Command";
-
-const translations = getLocalizations("autoreact");
+import { Command, Databases, Services } from "../../../interfaces/Command";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("autoreact")
+    .setDescription("Manage autoreactions.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "自動反應",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "管理自動反應。",
     })
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.set.name)
-        .setDescription(translations["en-US"].subcommands.set.description)
+        .setName("set")
+        .setDescription("Set an autoreaction.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.name,
+          [Locale.ChineseTW]: "設定",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.description,
+          [Locale.ChineseTW]: "設定自動反應。",
         })
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.set.options.emoji.name)
-            .setDescription(
-              translations["en-US"].subcommands.set.options.emoji.description
-            )
+            .setName("emoji")
+            .setDescription("The emoji to react with.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.emoji.name,
+              [Locale.ChineseTW]: "表情符號",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.emoji.description,
+              [Locale.ChineseTW]: "要用來反應的表情符號。",
             })
             .setRequired(true)
         )
         .addChannelOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.set.options.channel.name)
-            .setDescription(
-              translations["en-US"].subcommands.set.options.channel.description
-            )
+            .setName("channel")
+            .setDescription("The channel to react in.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.channel.name,
+              [Locale.ChineseTW]: "頻道",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.channel
-                  .description,
+              [Locale.ChineseTW]: "要在其中反應的頻道。",
             })
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(true)
@@ -77,32 +66,23 @@ export default {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove an autoreaction.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.ChineseTW]: "移除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.ChineseTW]: "移除自動反應。",
         })
         .addChannelOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.remove.options.channel.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.channel
-                .description
-            )
+            .setName("channel")
+            .setDescription("The channel to remove the autoreaction from.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.channel.name,
+              [Locale.ChineseTW]: "頻道",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.channel
-                  .description,
+              [Locale.ChineseTW]: "要從中移除自動反應的頻道。",
             })
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(true)
@@ -110,25 +90,25 @@ export default {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List all autoreactions.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.ChineseTW]: "列出所有自動反應。",
         })
     ),
 
   async execute(
     interaction: CommandInteraction,
     _client: Client,
-    _services: Services,
+    { localizationManager }: Services,
     { ticketDb: mimiDLCDb }: Databases
   ) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) return;
 
+    const translations = getLocalizations(localizationManager, "autoreact");
     const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
 

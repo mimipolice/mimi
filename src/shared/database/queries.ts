@@ -804,6 +804,48 @@ export async function setAntiSpamLogChannel(
     .execute();
 }
 
+// Anti-Spam Settings Queries
+export interface AntiSpamSettings {
+  guildid: string;
+  messagethreshold: number;
+  time_window: number;
+  timeoutduration: number;
+}
+
+export async function getAntiSpamSettings(
+  guildId: string
+): Promise<AntiSpamSettings | null> {
+  const result = await mimiDLCDb
+    .selectFrom("anti_spam_settings")
+    .selectAll()
+    .where("guildid", "=", guildId)
+    .executeTakeFirst();
+  return result ?? null;
+}
+
+export async function upsertAntiSpamSettings(
+  settings: AntiSpamSettings
+): Promise<void> {
+  await mimiDLCDb
+    .insertInto("anti_spam_settings")
+    .values(settings)
+    .onConflict((oc) =>
+      oc.column("guildid").doUpdateSet({
+        messagethreshold: settings.messagethreshold,
+        time_window: settings.time_window,
+        timeoutduration: settings.timeoutduration,
+      })
+    )
+    .execute();
+}
+
+export async function deleteAntiSpamSettings(guildId: string): Promise<void> {
+  await mimiDLCDb
+    .deleteFrom("anti_spam_settings")
+    .where("guildid", "=", guildId)
+    .execute();
+}
+
 // AI Conversation Queries
 export interface ConversationMessage {
   role: "user" | "assistant" | "system";

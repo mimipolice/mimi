@@ -11,11 +11,13 @@ import {
 } from "discord.js";
 import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
+import { LocalizationManager } from "../services/LocalizationManager";
 import { Kysely } from "kysely";
 
 export interface Services {
   settingsManager: SettingsManager;
   ticketManager: TicketManager;
+  localizationManager: LocalizationManager;
 }
 
 export interface Databases {

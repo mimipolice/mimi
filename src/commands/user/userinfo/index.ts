@@ -30,23 +30,22 @@ import {
 
 import { Databases, Services } from "../../../interfaces/Command";
 
-const translations = getLocalizations("userinfo");
-
 export const command: Command = {
   data: new ContextMenuCommandBuilder()
-    .setName(translations["en-US"].name)
+    .setName("userinfo")
     .setNameLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].name,
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.EnglishUS]: "userinfo",
+      [Locale.ChineseTW]: "使用者資訊",
     })
     .setType(ApplicationCommandType.User)
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
   async execute(
     interaction: UserContextMenuCommandInteraction,
     _client,
-    _services: Services,
+    { localizationManager }: Services,
     _databases: Databases
   ) {
+    const translations = getLocalizations(localizationManager, "userinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.targetUser;
 

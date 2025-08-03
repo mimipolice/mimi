@@ -26,20 +26,19 @@ import {
   TopSender,
   TopReceiver,
 } from "../../../shared/database/queries";
-
-const translations = getLocalizations("userinfo");
+import { Services } from "../../../interfaces/Command";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("user-info")
-    .setDescription(translations["en-US"].description)
+    .setDescription("Get information about a user.")
     .setNameLocalizations({
       [Locale.EnglishUS]: "user-info",
       [Locale.ChineseTW]: "使用者資訊",
     })
     .setDescriptionLocalizations({
-      [Locale.EnglishUS]: translations["en-US"].description,
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.EnglishUS]: "Get information about a user.",
+      [Locale.ChineseTW]: "取得使用者資訊。",
     })
     .addUserOption((option) =>
       option
@@ -49,7 +48,12 @@ export const command: Command = {
     )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
   guildOnly: true,
-  async execute(interaction: ChatInputCommandInteraction) {
+  async execute(
+    interaction: ChatInputCommandInteraction,
+    client,
+    { localizationManager }: Services
+  ) {
+    const translations = getLocalizations(localizationManager, "userinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
 

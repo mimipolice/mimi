@@ -4,6 +4,8 @@ import { mimiDLCDb } from "./database/index";
 import {
   getKeywordsByGuild as dbGetKeywordsByGuild,
   getAutoreacts as dbGetAutoreactsByGuild,
+  getAntiSpamSettings as dbGetAntiSpamSettings,
+  AntiSpamSettings,
 } from "./database/queries";
 import NodeCache from "node-cache";
 
@@ -30,6 +32,7 @@ export interface Autoreact {
 let gachaPoolsCache: GachaPool[] = [];
 const keywordsCache = new NodeCache({ stdTTL: 3600 });
 const autoreactsCache = new NodeCache({ stdTTL: 3600 });
+const antiSpamSettingsCache = new NodeCache({ stdTTL: 3600 });
 
 export async function loadCaches() {
   await loadGachaPools();
@@ -98,9 +101,36 @@ export function flushAutoreactsForGuild(guildId: string) {
   logger.debug(`Autoreacts cache flushed for guild ${guildId}.`);
 }
 
+export async function getAntiSpamSettingsForGuild(
+  guildId: string
+): Promise<AntiSpamSettings | null> {
+  const cacheKey = `antiSpamSettings:${guildId}`;
+  const cachedSettings = antiSpamSettingsCache.get<AntiSpamSettings>(cacheKey);
+  if (cachedSettings) {
+    logger.debug(`Cache hit for anti-spam settings in guild ${guildId}.`);
+    return cachedSettings;
+  }
+
+  logger.debug(
+    `Cache miss for anti-spam settings in guild ${guildId}. Fetching from DB.`
+  );
+  const settings = await dbGetAntiSpamSettings(guildId);
+  if (settings) {
+    antiSpamSettingsCache.set(cacheKey, settings);
+  }
+  return settings;
+}
+
+export function flushAntiSpamSettingsForGuild(guildId: string) {
+  const cacheKey = `antiSpamSettings:${guildId}`;
+  antiSpamSettingsCache.del(cacheKey);
+  logger.debug(`Anti-spam settings cache flushed for guild ${guildId}.`);
+}
+
 export function flushCaches() {
   keywordsCache.flushAll();
   autoreactsCache.flushAll();
+  antiSpamSettingsCache.flushAll();
   logger.debug("All caches flushed.");
 }
 

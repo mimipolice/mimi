@@ -18,8 +18,6 @@ import { MessageFlags } from "discord-api-types/v10";
 import { mimiDLCDb } from "../../../shared/database";
 import { getLocalizations } from "../../../utils/localization";
 
-const translations = getLocalizations("panel");
-
 function mapStyleToButtonStyle(style: string): ButtonStyle {
   switch (style.toLowerCase()) {
     case "primary":
@@ -36,173 +34,110 @@ function mapStyleToButtonStyle(style: string): ButtonStyle {
 
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
+    .setName("panel")
+    .setDescription("Manage the ticket panel.")
     .setNameLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].name,
+      [Locale.ChineseTW]: "面板",
     })
     .setDescriptionLocalizations({
-      [Locale.ChineseTW]: translations["zh-TW"].description,
+      [Locale.ChineseTW]: "管理服務單面板。",
     })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.setup.name)
-        .setDescription(translations["en-US"].subcommands.setup.description)
+        .setName("setup")
+        .setDescription("Setup the ticket panel.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.setup.name,
+          [Locale.ChineseTW]: "設定",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.setup.description,
+          [Locale.ChineseTW]: "設定服務單面板。",
         })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.add.name)
-        .setDescription(translations["en-US"].subcommands.add.description)
+        .setName("add")
+        .setDescription("Add a ticket type to the panel.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.name,
+          [Locale.ChineseTW]: "新增",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.add.description,
+          [Locale.ChineseTW]: "將服務單類型新增至面板。",
         })
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.type_id.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.type_id.description
-            )
+            .setName("type_id")
+            .setDescription("The ID of the ticket type.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.type_id.name,
+              [Locale.ChineseTW]: "type_id",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.type_id
-                  .description,
+              [Locale.ChineseTW]: "服務單類型的id。",
             })
             .setRequired(true)
         )
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.label.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.label.description
-            )
+            .setName("label")
+            .setDescription("The label for the button/option.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.label.name,
+              [Locale.ChineseTW]: "標籤",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.label.description,
+              [Locale.ChineseTW]: "按鈕/選項的標籤。",
             })
             .setRequired(true)
         )
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.style.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.style.description
-            )
+            .setName("style")
+            .setDescription("The style of the button.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.style.name,
+              [Locale.ChineseTW]: "樣式",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.style.description,
+              [Locale.ChineseTW]: "按鈕的樣式。",
             })
             .setRequired(false)
             .addChoices(
-              {
-                name: translations["en-US"].subcommands.add.options.style
-                  .choices.Primary,
-                value: "Primary",
-                name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.style.choices
-                      .Primary,
-                },
-              },
-              {
-                name: translations["en-US"].subcommands.add.options.style
-                  .choices.Secondary,
-                value: "Secondary",
-                name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.style.choices
-                      .Secondary,
-                },
-              },
-              {
-                name: translations["en-US"].subcommands.add.options.style
-                  .choices.Success,
-                value: "Success",
-                name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.style.choices
-                      .Success,
-                },
-              },
-              {
-                name: translations["en-US"].subcommands.add.options.style
-                  .choices.Danger,
-                value: "Danger",
-                name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.add.options.style.choices
-                      .Danger,
-                },
-              }
+              { name: "Primary", value: "Primary" },
+              { name: "Secondary", value: "Secondary" },
+              { name: "Success", value: "Success" },
+              { name: "Danger", value: "Danger" }
             )
         )
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.add.options.emoji.name)
-            .setDescription(
-              translations["en-US"].subcommands.add.options.emoji.description
-            )
+            .setName("emoji")
+            .setDescription("The emoji for the button/option.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.emoji.name,
+              [Locale.ChineseTW]: "表情符號",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.add.options.emoji.description,
+              [Locale.ChineseTW]: "按鈕/選項的表情符號。",
             })
             .setRequired(false)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove a ticket type from the panel.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.ChineseTW]: "移除",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.ChineseTW]: "從面板移除服務單類型。",
         })
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.remove.options.type_id.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.type_id
-                .description
-            )
+            .setName("type_id")
+            .setDescription("The ID of the ticket type to remove.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.type_id.name,
+              [Locale.ChineseTW]: "類型id",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.type_id
-                  .description,
+              [Locale.ChineseTW]: "要移除的服務單類型id。",
             })
             .setRequired(true)
             .setAutocomplete(true)
@@ -210,132 +145,82 @@ export const command: Command = {
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List all ticket types.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.ChineseTW]: "列出所有服務單類型。",
         })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.customize.name)
-        .setDescription(translations["en-US"].subcommands.customize.description)
+        .setName("customize")
+        .setDescription("Customize the ticket panel embed.")
         .setNameLocalizations({
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.customize.name,
+          [Locale.ChineseTW]: "自訂",
         })
         .setDescriptionLocalizations({
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.customize.description,
+          [Locale.ChineseTW]: "自訂服務單面板嵌入。",
         })
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.customize.options.title.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.customize.options.title
-                .description
-            )
+            .setName("title")
+            .setDescription("The title of the embed.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options.title.name,
+              [Locale.ChineseTW]: "標題",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options.title
-                  .description,
+              [Locale.ChineseTW]: "嵌入的標題。",
             })
             .setRequired(false)
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.customize.options
-                .author_icon_url.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.customize.options
-                .author_icon_url.description
-            )
+            .setName("author_icon_url")
+            .setDescription("The URL of the author icon.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .author_icon_url.name,
+              [Locale.ChineseTW]: "author_icon_url",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .author_icon_url.description,
+              [Locale.ChineseTW]: "作者圖示的URL。",
             })
             .setRequired(false)
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.customize.options.thumbnail_url
-                .name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.customize.options.thumbnail_url
-                .description
-            )
+            .setName("thumbnail_url")
+            .setDescription("The URL of the thumbnail.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .thumbnail_url.name,
+              [Locale.ChineseTW]: "thumbnail_url",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .thumbnail_url.description,
+              [Locale.ChineseTW]: "縮圖的URL。",
             })
             .setRequired(false)
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.customize.options
-                .footer_icon_url.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.customize.options
-                .footer_icon_url.description
-            )
+            .setName("footer_icon_url")
+            .setDescription("The URL of the footer icon.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .footer_icon_url.name,
+              [Locale.ChineseTW]: "footer_icon_url",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options
-                  .footer_icon_url.description,
+              [Locale.ChineseTW]: "頁腳圖示的URL。",
             })
             .setRequired(false)
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.customize.options.message_id
-                .name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.customize.options.message_id
-                .description
-            )
+            .setName("message_id")
+            .setDescription("The ID of a message to use as the description.")
             .setNameLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options.message_id
-                  .name,
+              [Locale.ChineseTW]: "message_id",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.customize.options.message_id
-                  .description,
+              [Locale.ChineseTW]: "用作說明的訊息id。",
             })
             .setRequired(false)
         )
@@ -343,7 +228,7 @@ export const command: Command = {
   async execute(
     interaction: ChatInputCommandInteraction,
     _client: Client,
-    { settingsManager }: Services,
+    { settingsManager, localizationManager }: Services,
     { ticketDb: mimiDLCDb }: Databases
   ) {
     if (!interaction.guildId) {
@@ -351,6 +236,7 @@ export const command: Command = {
       return;
     }
 
+    const translations = getLocalizations(localizationManager, "panel");
     const t = translations[interaction.locale] || translations["en-US"];
     const subcommand = interaction.options.getSubcommand();
 
@@ -609,13 +495,9 @@ export const command: Command = {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     if (!interaction.guildId) return;
-    const t = translations[interaction.locale] || translations["en-US"];
     const focused = interaction.options.getFocused(true);
 
-    if (
-      focused.name === t.subcommands.remove.options.type_id.name ||
-      focused.name === "type_id"
-    ) {
+    if (focused.name === "type_id") {
       const ticketTypes = await mimiDLCDb
         .selectFrom("ticket_types")
         .selectAll()
@@ -627,9 +509,7 @@ export const command: Command = {
 
       await interaction.respond(
         filtered.map((choice) => ({
-          name: t.autocomplete.type_id_choice
-            .replace("{{label}}", choice.label)
-            .replace("{{type_id}}", choice.type_id),
+          name: `${choice.label} (${choice.type_id})`,
           value: choice.type_id,
         }))
       );

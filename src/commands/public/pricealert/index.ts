@@ -37,8 +37,6 @@ const assetList = yaml.load(fs.readFileSync(assetListPath, "utf8")) as {
   name: string;
 }[];
 
-const translations = getLocalizations("pricealert");
-
 // ---
 // Transform data for command
 // ---
@@ -47,203 +45,143 @@ const assetChoices = assetList.map((asset) => ({
   value: asset.symbol.toLowerCase(),
 }));
 
-const nameLocalizations = {
-  [Locale.EnglishUS]: translations["en-US"].name,
-  [Locale.ChineseTW]: translations["zh-TW"].name,
-};
-const descriptionLocalizations = {
-  [Locale.EnglishUS]: translations["en-US"].description,
-  [Locale.ChineseTW]: translations["zh-TW"].description,
-};
-
 // ---
 // Command
 // ---
 export default {
   data: new SlashCommandBuilder()
-    .setName(translations["en-US"].name)
-    .setDescription(translations["en-US"].description)
-    .setNameLocalizations(nameLocalizations)
-    .setDescriptionLocalizations(descriptionLocalizations)
+    .setName("pricealert")
+    .setDescription("Set a price alert for an asset.")
+    .setNameLocalizations({
+      [Locale.EnglishUS]: "pricealert",
+      [Locale.ChineseTW]: "價格提醒",
+    })
+    .setDescriptionLocalizations({
+      [Locale.EnglishUS]: "Set a price alert for an asset.",
+      [Locale.ChineseTW]: "設定資產的價格提醒。",
+    })
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.set.name)
-        .setDescription(translations["en-US"].subcommands.set.description)
+        .setName("set")
+        .setDescription("Set a new price alert.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.set.name,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.name,
+          [Locale.EnglishUS]: "set",
+          [Locale.ChineseTW]: "設定",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.set.description,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.set.description,
+          [Locale.EnglishUS]: "Set a new price alert.",
+          [Locale.ChineseTW]: "設定新的價格提醒。",
         })
         .addStringOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.set.options.symbol.name)
-            .setDescription(
-              translations["en-US"].subcommands.set.options.symbol.description
-            )
+            .setName("symbol")
+            .setDescription("The asset symbol.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.symbol.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.symbol.name,
+              [Locale.EnglishUS]: "symbol",
+              [Locale.ChineseTW]: "代號",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.symbol
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.symbol
-                  .description,
+              [Locale.EnglishUS]: "The asset symbol.",
+              [Locale.ChineseTW]: "資產代號。",
             })
             .setRequired(true)
             .addChoices(...assetChoices.slice(0, 25))
         )
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.condition.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.condition
-                .description
-            )
+            .setName("condition")
+            .setDescription("The condition for the alert.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.condition.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.condition.name,
+              [Locale.EnglishUS]: "condition",
+              [Locale.ChineseTW]: "條件",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.condition
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.condition
-                  .description,
+              [Locale.EnglishUS]: "The condition for the alert.",
+              [Locale.ChineseTW]: "提醒的條件。",
             })
             .setRequired(true)
             .addChoices(
               {
-                name: translations["en-US"].subcommands.set.options.condition
-                  .choices.above,
+                name: "Above",
                 value: "above",
                 name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.set.options.condition
-                      .choices.above,
+                  [Locale.ChineseTW]: "高於",
                 },
               },
               {
-                name: translations["en-US"].subcommands.set.options.condition
-                  .choices.below,
+                name: "Below",
                 value: "below",
                 name_localizations: {
-                  [Locale.ChineseTW]:
-                    translations["zh-TW"].subcommands.set.options.condition
-                      .choices.below,
+                  [Locale.ChineseTW]: "低於",
                 },
               }
             )
         )
         .addNumberOption((option) =>
           option
-            .setName(translations["en-US"].subcommands.set.options.price.name)
-            .setDescription(
-              translations["en-US"].subcommands.set.options.price.description
-            )
+            .setName("price")
+            .setDescription("The target price.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.price.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.price.name,
+              [Locale.EnglishUS]: "price",
+              [Locale.ChineseTW]: "價格",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.price.description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.price.description,
+              [Locale.EnglishUS]: "The target price.",
+              [Locale.ChineseTW]: "目標價格。",
             })
             .setRequired(true)
         )
         .addBooleanOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.set.options.repeatable.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.set.options.repeatable
-                .description
-            )
+            .setName("repeatable")
+            .setDescription("Whether the alert should be repeatable.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.repeatable.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.repeatable.name,
+              [Locale.EnglishUS]: "repeatable",
+              [Locale.ChineseTW]: "重複",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.set.options.repeatable
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.set.options.repeatable
-                  .description,
+              [Locale.EnglishUS]: "Whether the alert should be repeatable.",
+              [Locale.ChineseTW]: "提醒是否應重複。",
             })
             .setRequired(false)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.list.name)
-        .setDescription(translations["en-US"].subcommands.list.description)
+        .setName("list")
+        .setDescription("List your price alerts.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.list.name,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.list.name,
+          [Locale.EnglishUS]: "list",
+          [Locale.ChineseTW]: "列表",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]:
-            translations["en-US"].subcommands.list.description,
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.list.description,
+          [Locale.EnglishUS]: "List your price alerts.",
+          [Locale.ChineseTW]: "列出您的價格提醒。",
         })
     )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName(translations["en-US"].subcommands.remove.name)
-        .setDescription(translations["en-US"].subcommands.remove.description)
+        .setName("remove")
+        .setDescription("Remove a price alert.")
         .setNameLocalizations({
-          [Locale.EnglishUS]: translations["en-US"].subcommands.remove.name,
-          [Locale.ChineseTW]: translations["zh-TW"].subcommands.remove.name,
+          [Locale.EnglishUS]: "remove",
+          [Locale.ChineseTW]: "移除",
         })
         .setDescriptionLocalizations({
-          [Locale.EnglishUS]:
-            translations["en-US"].subcommands.remove.description,
-          [Locale.ChineseTW]:
-            translations["zh-TW"].subcommands.remove.description,
+          [Locale.EnglishUS]: "Remove a price alert.",
+          [Locale.ChineseTW]: "移除價格提醒。",
         })
         .addStringOption((option) =>
           option
-            .setName(
-              translations["en-US"].subcommands.remove.options.alert_id.name
-            )
-            .setDescription(
-              translations["en-US"].subcommands.remove.options.alert_id
-                .description
-            )
+            .setName("alert_id")
+            .setDescription("The ID of the alert to remove.")
             .setNameLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.remove.options.alert_id.name,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.alert_id.name,
+              [Locale.EnglishUS]: "alert_id",
+              [Locale.ChineseTW]: "提醒id",
             })
             .setDescriptionLocalizations({
-              [Locale.EnglishUS]:
-                translations["en-US"].subcommands.remove.options.alert_id
-                  .description,
-              [Locale.ChineseTW]:
-                translations["zh-TW"].subcommands.remove.options.alert_id
-                  .description,
+              [Locale.EnglishUS]: "The ID of the alert to remove.",
+              [Locale.ChineseTW]: "要移除的提醒id。",
             })
             .setRequired(true)
             .setAutocomplete(true)
@@ -253,20 +191,12 @@ export default {
   async autocomplete(interaction: AutocompleteInteraction) {
     try {
       const focusedOption = interaction.options.getFocused(true);
-      const t = translations[interaction.locale] || translations["en-US"];
 
       if (focusedOption.name === "alert_id") {
         const userAlerts = await getUserPriceAlerts(interaction.user.id);
         const choices = userAlerts.map((alert) => {
-          const condition =
-            alert.condition === "above"
-              ? t.subcommands.set.options.condition.choices.above
-              : t.subcommands.set.options.condition.choices.below;
-          const name = t.autocomplete.alert_id_choice
-            .replace("{{id}}", alert.id.toString())
-            .replace("{{assetSymbol}}", alert.asset_symbol)
-            .replace("{{condition}}", condition)
-            .replace("{{targetPrice}}", alert.target_price.toString());
+          const condition = alert.condition === "above" ? "Above" : "Below";
+          const name = `#${alert.id}: ${alert.asset_symbol} ${condition} ${alert.target_price}`;
           return { name, value: alert.id.toString() };
         });
         await interaction.respond(choices.slice(0, 25));
@@ -279,11 +209,12 @@ export default {
   async execute(
     interaction: CommandInteraction,
     _client: Client,
-    _services: Services,
+    { localizationManager }: Services,
     _databases: Databases
   ) {
     if (!interaction.isChatInputCommand()) return;
 
+    const translations = getLocalizations(localizationManager, "pricealert");
     const t = translations[interaction.locale] || translations["en-US"];
 
     try {
