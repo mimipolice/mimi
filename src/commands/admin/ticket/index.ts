@@ -146,9 +146,7 @@ export const command: Command = {
     }
 
     if (subcommand === "add") {
-      await channel.permissionOverwrites.edit(user.id, {
-        ViewChannel: true,
-      });
+      await ticketManager.addUser(channel, user);
       await interaction.editReply({
         content: t.subcommands.add.responses.success.replace(
           "{{userTag}}",
@@ -156,9 +154,7 @@ export const command: Command = {
         ),
       });
     } else if (subcommand === "remove") {
-      await channel.permissionOverwrites.edit(user.id, {
-        ViewChannel: false,
-      });
+      await ticketManager.removeUser(channel, user);
       await interaction.editReply({
         content: t.subcommands.remove.responses.success.replace(
           "{{userTag}}",

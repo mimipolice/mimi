@@ -3,6 +3,7 @@ import {
   ButtonInteraction,
   ModalSubmitInteraction,
   TextChannel,
+  User,
 } from "discord.js";
 import { SettingsManager, GuildSettings } from "./SettingsManager";
 import logger from "../utils/logger";
@@ -12,6 +13,8 @@ import { MimiDLCDB } from "../shared/database/types";
 import { TicketRepository, Ticket } from "./TicketRepository";
 import { TicketStatus } from "../types/ticket";
 import { DiscordService } from "./DiscordService";
+import { BusinessError, CustomCheckError } from "../errors";
+import { GuildMember } from "discord.js";
 
 export class TicketManager {
   private db: Kysely<MimiDLCDB>;
@@ -159,6 +162,43 @@ export class TicketManager {
     return this.ticketRepository.findTicketByChannel(channelId);
   }
 
+  async claim(interaction: ButtonInteraction): Promise<any> {
+    if (!interaction.inGuild() || !interaction.guild) {
+      throw new CustomCheckError("This command can only be used in a server.");
+    }
+
+    const member = interaction.member as GuildMember;
+    const settings = await this._validateAndGetSettings(interaction.guildId);
+
+    if (
+      !settings.staffRoleId ||
+      !member.roles.cache.has(settings.staffRoleId)
+    ) {
+      throw new CustomCheckError(
+        "You do not have permission to claim this ticket."
+      );
+    }
+
+    const ticket = await this.ticketRepository.findTicketByChannel(
+      interaction.channelId
+    );
+
+    if (!ticket) {
+      throw new BusinessError("This is not a valid ticket channel.");
+    }
+
+    if (ticket.claimedById) {
+      throw new BusinessError("This ticket has already been claimed.");
+    }
+
+    await this.ticketRepository.claimTicket(
+      interaction.channelId,
+      interaction.user.id
+    );
+
+    return ticket;
+  }
+
   private async _validateAndGetSettings(
     guildId: string
   ): Promise<GuildSettings> {
@@ -193,5 +233,25 @@ export class TicketManager {
       throw new Error("This ticket is already closed.");
     }
     return ticket;
+  }
+
+  async purge(guildId: string): Promise<void> {
+    await this.ticketRepository.purgeTickets(guildId);
+  }
+
+  async addUser(channel: TextChannel, user: User): Promise<void> {
+    const ticket = await this.ticketRepository.findTicketByChannel(channel.id);
+    if (!ticket) {
+      throw new BusinessError("This is not a valid ticket channel.");
+    }
+    await this.discordService.addUserToChannel(channel, user);
+  }
+
+  async removeUser(channel: TextChannel, user: User): Promise<void> {
+    const ticket = await this.ticketRepository.findTicketByChannel(channel.id);
+    if (!ticket) {
+      throw new BusinessError("This is not a valid ticket channel.");
+    }
+    await this.discordService.removeUserFromChannel(channel, user);
   }
 }

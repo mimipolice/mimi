@@ -182,6 +182,16 @@ export class DiscordService {
     }
   }
 
+  async addUserToChannel(channel: TextChannel, user: User): Promise<void> {
+    await channel.permissionOverwrites.edit(user.id, {
+      ViewChannel: true,
+    });
+  }
+
+  async removeUserFromChannel(channel: TextChannel, user: User): Promise<void> {
+    await channel.permissionOverwrites.delete(user.id);
+  }
+
   async sendDMOnClose(
     guild: Guild,
     ticket: Ticket,

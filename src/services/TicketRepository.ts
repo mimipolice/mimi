@@ -93,4 +93,22 @@ export class TicketRepository {
       .where("channelId", "=", channelId)
       .execute();
   }
+  async claimTicket(channelId: string, userId: string): Promise<void> {
+    await this.db
+      .updateTable("tickets")
+      .set({ claimedById: userId })
+      .where("channelId", "=", channelId)
+      .execute();
+  }
+
+  async purgeTickets(guildId: string): Promise<void> {
+    await this.db.transaction().execute(async (trx) => {
+      await trx.deleteFrom("tickets").where("guildId", "=", guildId).execute();
+      await trx
+        .updateTable("guild_ticket_counters")
+        .set({ lastTicketId: 0 })
+        .where("guildId", "=", guildId)
+        .execute();
+    });
+  }
 }
