@@ -8,17 +8,15 @@ import {
   GuildMember,
   TextChannel,
 } from "discord.js";
-import NodeCache from "node-cache";
 import config from "../../config";
 import logger from "../../utils/logger";
 import { getAntiSpamLogChannel } from "../../shared/database/queries";
 import { getAntiSpamSettingsForGuild } from "../../shared/cache";
 import { formatDistanceStrict } from "date-fns";
 
-const antiSpamCache = new NodeCache({
-  stdTTL: config.antiSpam.inactiveUserThreshold / 1000,
-  checkperiod: 600,
-});
+import redisClient from "../../shared/redis";
+
+const antiSpamCache = redisClient;
 
 interface UserMessageData {
   timestamps: { ts: number; channelId: string }[];
@@ -183,7 +181,13 @@ async function handleSpamAction(
 
 // --- 4. Main Exported Function ---
 export async function handleAntiSpam(message: Message) {
-  if (message.author.bot || !message.inGuild() || !message.member) return;
+  if (
+    !antiSpamCache ||
+    message.author.bot ||
+    !message.inGuild() ||
+    !message.member
+  )
+    return;
 
   const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
 
@@ -216,7 +220,19 @@ export async function handleAntiSpam(message: Message) {
   const userId = message.author.id;
   const cacheKey = `antispam:${userId}`;
 
-  let userData = antiSpamCache.get<UserMessageData>(cacheKey);
+  let userData: UserMessageData | null = null;
+  const redisData = await antiSpamCache.get(cacheKey);
+  if (redisData) {
+    try {
+      userData = JSON.parse(redisData) as UserMessageData;
+    } catch (e) {
+      logger.error(
+        `[Anti-Spam] Error parsing user data from Redis for key ${cacheKey}`,
+        e
+      );
+      userData = null;
+    }
+  }
 
   if (!userData) {
     userData = { timestamps: [], punishedUntil: null };
@@ -261,7 +277,11 @@ export async function handleAntiSpam(message: Message) {
   if (reason) {
     // Immediately mark as punished and update cache to prevent race conditions
     userData.punishedUntil = Date.now() + settings.timeoutDuration;
-    antiSpamCache.set(cacheKey, userData);
+    if (antiSpamCache) {
+      antiSpamCache.set(cacheKey, JSON.stringify(userData), {
+        EX: Math.ceil(config.antiSpam.inactiveUserThreshold / 1000),
+      });
+    }
 
     await handleSpamAction(
       message,
@@ -272,6 +292,10 @@ export async function handleAntiSpam(message: Message) {
     );
   } else {
     // If no punishment, just update the timestamps
-    antiSpamCache.set(cacheKey, userData);
+    if (antiSpamCache) {
+      antiSpamCache.set(cacheKey, JSON.stringify(userData), {
+        EX: Math.ceil(config.antiSpam.inactiveUserThreshold / 1000),
+      });
+    }
   }
 }

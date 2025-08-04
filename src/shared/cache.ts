@@ -7,7 +7,9 @@ import {
   getAntiSpamSettings as dbGetAntiSpamSettings,
   AntiSpamSettings,
 } from "./database/queries";
-import NodeCache from "node-cache";
+import { CacheService } from "../services/CacheService";
+
+const cacheService = new CacheService();
 
 // Define the type based on the expected structure
 export interface GachaPool {
@@ -30,9 +32,6 @@ export interface Autoreact {
 }
 
 let gachaPoolsCache: GachaPool[] = [];
-const keywordsCache = new NodeCache({ stdTTL: 3600 });
-const autoreactsCache = new NodeCache({ stdTTL: 3600 });
-const antiSpamSettingsCache = new NodeCache({ stdTTL: 3600 });
 
 export async function loadCaches() {
   await loadGachaPools();
@@ -57,23 +56,23 @@ export function getGachaPoolsCache(): GachaPool[] {
 
 export async function getKeywordsForGuild(guildId: string): Promise<Keyword[]> {
   const cacheKey = `keywords:${guildId}`;
-  const cachedKeywords = keywordsCache.get<Keyword[]>(cacheKey);
-  if (cachedKeywords) {
+  const cached = await cacheService.get<Keyword[]>(cacheKey);
+  if (cached) {
     logger.debug(`Cache hit for keywords in guild ${guildId}.`);
-    return cachedKeywords;
+    return cached;
   }
 
   logger.debug(
     `Cache miss for keywords in guild ${guildId}. Fetching from DB.`
   );
   const keywords = await dbGetKeywordsByGuild(mimiDLCDb, guildId);
-  keywordsCache.set(cacheKey, keywords);
+  await cacheService.set(cacheKey, keywords);
   return keywords;
 }
 
-export function flushKeywordsCacheForGuild(guildId: string) {
+export async function flushKeywordsCacheForGuild(guildId: string) {
   const cacheKey = `keywords:${guildId}`;
-  keywordsCache.del(cacheKey);
+  await cacheService.del(cacheKey);
   logger.debug(`Keywords cache flushed for guild ${guildId}.`);
 }
 
@@ -81,23 +80,23 @@ export async function getAutoreactsForGuild(
   guildId: string
 ): Promise<Autoreact[]> {
   const cacheKey = `autoreacts:${guildId}`;
-  const cachedAutoreacts = autoreactsCache.get<Autoreact[]>(cacheKey);
-  if (cachedAutoreacts) {
+  const cached = await cacheService.get<Autoreact[]>(cacheKey);
+  if (cached) {
     logger.debug(`Cache hit for autoreacts in guild ${guildId}.`);
-    return cachedAutoreacts;
+    return cached;
   }
 
   logger.debug(
     `Cache miss for autoreacts in guild ${guildId}. Fetching from DB.`
   );
   const autoreacts = await dbGetAutoreactsByGuild(mimiDLCDb, guildId);
-  autoreactsCache.set(cacheKey, autoreacts);
+  await cacheService.set(cacheKey, autoreacts);
   return autoreacts;
 }
 
-export function flushAutoreactsForGuild(guildId: string) {
+export async function flushAutoreactsForGuild(guildId: string) {
   const cacheKey = `autoreacts:${guildId}`;
-  autoreactsCache.del(cacheKey);
+  await cacheService.del(cacheKey);
   logger.debug(`Autoreacts cache flushed for guild ${guildId}.`);
 }
 
@@ -105,10 +104,10 @@ export async function getAntiSpamSettingsForGuild(
   guildId: string
 ): Promise<AntiSpamSettings | null> {
   const cacheKey = `antiSpamSettings:${guildId}`;
-  const cachedSettings = antiSpamSettingsCache.get<AntiSpamSettings>(cacheKey);
-  if (cachedSettings) {
+  const cached = await cacheService.get<AntiSpamSettings>(cacheKey);
+  if (cached) {
     logger.debug(`Cache hit for anti-spam settings in guild ${guildId}.`);
-    return cachedSettings;
+    return cached;
   }
 
   logger.debug(
@@ -116,25 +115,26 @@ export async function getAntiSpamSettingsForGuild(
   );
   const settings = await dbGetAntiSpamSettings(guildId);
   if (settings) {
-    antiSpamSettingsCache.set(cacheKey, settings);
+    await cacheService.set(cacheKey, settings);
   }
   return settings;
 }
 
-export function flushAntiSpamSettingsForGuild(guildId: string) {
+export async function flushAntiSpamSettingsForGuild(guildId: string) {
   const cacheKey = `antiSpamSettings:${guildId}`;
-  antiSpamSettingsCache.del(cacheKey);
+  await cacheService.del(cacheKey);
   logger.debug(`Anti-spam settings cache flushed for guild ${guildId}.`);
 }
 
-export function flushCaches() {
-  keywordsCache.flushAll();
-  autoreactsCache.flushAll();
-  antiSpamSettingsCache.flushAll();
+export async function flushCaches() {
+  await cacheService.flushAll();
   logger.debug("All caches flushed.");
 }
 
-export function flushKeywordsCache() {
-  keywordsCache.flushAll();
+export async function flushKeywordsCache() {
+  // This is more complex as we don't have a direct way to flush only keyword caches
+  // without a pattern. For now, we'll leave this as a broader flush.
+  // A better implementation would be to iterate and delete keys with a "keywords:" prefix.
+  await cacheService.flushAll(); // Or implement a pattern-based deletion in CacheService
   logger.debug("Keywords cache flushed.");
 }

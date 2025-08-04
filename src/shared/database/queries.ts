@@ -1172,16 +1172,18 @@ async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
 
 export async function getUserInfoData(userId: string): Promise<UserInfoData> {
   // 1. Try to read from cache
-  const cachedData = await cacheService.getUserInfo(userId);
+  const cachedData = await cacheService.get<UserInfoData>(
+    `user-info:${userId}`
+  );
   if (cachedData) {
-    return cachedData as UserInfoData;
+    return cachedData;
   }
 
   // 2. On cache miss, read from DB
   const dbData = await fetchUserInfoFromDB(userId);
 
   // 3. Write data to cache (fire-and-forget)
-  cacheService.setUserInfo(userId, dbData);
+  cacheService.set(`user-info:${userId}`, dbData);
 
   // 4. Return data from DB
   return dbData;
@@ -1198,7 +1200,7 @@ export async function updateUserBalance(
     .where("user_id", "=", userId)
     .execute();
 
-  await cacheService.invalidateUserInfo(userId);
+  await cacheService.del(`user-info:${userId}`);
 }
 
 export async function updateUserBalancesForTrade(
@@ -1221,7 +1223,7 @@ export async function updateUserBalancesForTrade(
   });
 
   await Promise.all([
-    cacheService.invalidateUserInfo(senderId),
-    cacheService.invalidateUserInfo(receiverId),
+    cacheService.del(`user-info:${senderId}`),
+    cacheService.del(`user-info:${receiverId}`),
   ]);
 }

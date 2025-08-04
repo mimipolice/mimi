@@ -1,5 +1,5 @@
 import { Kysely } from "kysely";
-import NodeCache from "node-cache";
+import { CacheService } from "./CacheService";
 import logger from "../utils/logger";
 import { MimiDLCDB } from "../shared/database/types";
 
@@ -9,15 +9,17 @@ interface AntiSpamSettings {
 
 export class AntiSpamSettingsManager {
   private db: Kysely<MimiDLCDB>;
-  private cache: NodeCache;
+  private cacheService: CacheService;
 
   constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
-    this.cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+    this.cacheService = new CacheService();
   }
 
-  async getSettings(guildId: string): Promise<AntiSpamSettings | null> {
-    const cachedSettings = this.cache.get<AntiSpamSettings>(guildId);
+  async getAntiSpamSettings(guildId: string): Promise<AntiSpamSettings | null> {
+    const cachedSettings = await this.cacheService.get<AntiSpamSettings>(
+      `antispam:settings:${guildId}`
+    );
     if (cachedSettings) {
       return cachedSettings;
     }
@@ -30,7 +32,7 @@ export class AntiSpamSettingsManager {
         .executeTakeFirst();
 
       if (settings) {
-        this.cache.set(guildId, settings);
+        await this.cacheService.set(`antispam:settings:${guildId}`, settings);
         return settings;
       }
       return null;
@@ -41,5 +43,28 @@ export class AntiSpamSettingsManager {
       );
       return null;
     }
+  }
+
+  async updateAntiSpamSettings(
+    guildId: string,
+    newSettings: AntiSpamSettings
+  ): Promise<void> {
+    try {
+      await this.db
+        .updateTable("anti_spam_logs")
+        .set(newSettings)
+        .where("guild_id", "=", guildId)
+        .execute();
+      await this.cacheService.set(`antispam:settings:${guildId}`, newSettings);
+    } catch (error) {
+      logger.error(
+        `Error updating anti-spam settings for guild ${guildId}:`,
+        error
+      );
+    }
+  }
+
+  async clearCache(guildId: string): Promise<void> {
+    await this.cacheService.del(`antispam:settings:${guildId}`);
   }
 }
