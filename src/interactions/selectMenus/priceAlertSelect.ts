@@ -3,7 +3,7 @@ import {
   createPriceAlert,
   getAllAssetsWithLatestPrice,
   findNextAvailablePriceAlertId,
-} from "../../shared/database/queries";
+} from "../../repositories/asset.repository";
 import logger from "../../utils/logger";
 import path from "path";
 import fs from "fs";

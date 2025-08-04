@@ -15,7 +15,7 @@ import {
   getAllAssetsWithLatestPrice,
   searchAssets,
   getPriceHistoryWithVolume,
-} from "../../../shared/database/queries";
+} from "../../../repositories/asset.repository";
 import { generatePriceChart } from "../../../utils/chart-generator";
 import fs from "fs";
 import path from "path";

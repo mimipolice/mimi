@@ -5,7 +5,7 @@ import {
   getAllAssetsWithLatestPrice,
   PriceAlert,
   updatePriceAlertNotified,
-} from "../shared/database/queries";
+} from "../repositories/asset.repository";
 import logger from "../utils/logger";
 import { getLocalizations } from "../utils/localization";
 import { LocalizationManager } from "./LocalizationManager";

@@ -1,4 +1,5 @@
 import { Kysely, Selectable, sql } from "kysely";
+import { mimiDLCDb } from "../shared/database";
 import { MimiDLCDB } from "../shared/database/types";
 import { TicketStatus } from "../types/ticket";
 
@@ -111,4 +112,54 @@ export class TicketRepository {
         .execute();
     });
   }
+}
+
+export interface TicketType {
+  id: number;
+  guild_id: string;
+  type_id: string;
+  label: string;
+  style: string;
+  emoji: string | null;
+}
+
+export async function addTicketType(
+  guildId: string,
+  typeId: string,
+  label: string,
+  style: string,
+  emoji: string | null
+): Promise<void> {
+  await mimiDLCDb
+    .insertInto("ticket_types")
+    .values({
+      guild_id: guildId,
+      type_id: typeId,
+      label: label,
+      style: style,
+      emoji: emoji,
+    })
+    .onConflict((oc) =>
+      oc
+        .columns(["guild_id", "type_id"])
+        .doUpdateSet({ label: label, style: style, emoji: emoji })
+    )
+    .execute();
+}
+
+export async function getTicketTypes(guildId: string): Promise<TicketType[]> {
+  return await mimiDLCDb
+    .selectFrom("ticket_types")
+    .selectAll()
+    .where("guild_id", "=", guildId)
+    .orderBy("id")
+    .execute();
+}
+
+export async function getTicketByChannelId(channelId: string): Promise<any> {
+  return await mimiDLCDb
+    .selectFrom("tickets")
+    .selectAll()
+    .where("channelId", "=", channelId)
+    .executeTakeFirst();
 }

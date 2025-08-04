@@ -10,7 +10,7 @@ import logger from "../utils/logger";
 import { generateTranscript } from "../utils/transcript";
 import { sanitize } from "../utils/sanitize";
 import { MimiDLCDB } from "../shared/database/types";
-import { TicketRepository, Ticket } from "./TicketRepository";
+import { TicketRepository, Ticket } from "../repositories/ticket.repository";
 import { TicketStatus } from "../types/ticket";
 import { DiscordService } from "./DiscordService";
 import { BusinessError, CustomCheckError } from "../errors";

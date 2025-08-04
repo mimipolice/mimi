@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 import config from "../../config";
 import logger from "../../utils/logger";
-import { getAntiSpamLogChannel } from "../../shared/database/queries";
+import { getAntiSpamLogChannel } from "../../repositories/admin.repository";
 import { getAntiSpamSettingsForGuild } from "../../shared/cache";
 import { formatDistanceStrict } from "date-fns";
 

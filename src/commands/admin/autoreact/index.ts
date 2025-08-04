@@ -10,7 +10,7 @@ import {
   setAutoreact,
   removeAutoreact,
   getAutoreacts,
-} from "../../../shared/database/queries";
+} from "../../../repositories/admin.repository";
 import { flushAutoreactsForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";

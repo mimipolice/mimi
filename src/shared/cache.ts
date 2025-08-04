@@ -6,7 +6,7 @@ import {
   getAutoreacts as dbGetAutoreactsByGuild,
   getAntiSpamSettings as dbGetAntiSpamSettings,
   AntiSpamSettings,
-} from "./database/queries";
+} from "../repositories/admin.repository";
 import { CacheService } from "../services/CacheService";
 
 const cacheService = new CacheService();

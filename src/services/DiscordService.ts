@@ -12,7 +12,7 @@ import {
 } from "discord.js";
 import logger from "../utils/logger";
 import { GuildSettings } from "./SettingsManager";
-import { Ticket } from "./TicketRepository";
+import { Ticket } from "../repositories/ticket.repository";
 import { TicketAction } from "../types/ticket";
 
 export class DiscordService {

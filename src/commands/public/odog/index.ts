@@ -8,7 +8,7 @@ import {
   Client,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
-import { getOdogRankings } from "../../../shared/database/queries";
+import { getOdogRankings } from "../../../repositories/gacha.repository";
 import { getGachaPoolsCache } from "../../../shared/cache";
 import { poolTypeNames } from "../../../config/gacha";
 import { getLocalizations } from "../../../utils/localization";
