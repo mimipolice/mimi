@@ -4,6 +4,7 @@ import logger from "../utils/logger";
 
 const redisClient = createClient({
   url: process.env.REDIS_URL, // Your .env file should have REDIS_URL="redis://user:password@host:port"
+  password: process.env.REDIS_PASSWORD,
   database: 1, // Use DB 1 as instructed by your VPS administrator
 });
 
