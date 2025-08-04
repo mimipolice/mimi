@@ -28,7 +28,6 @@ export default {
       [Locale.EnglishUS]: "Show the Odog rankings.",
       [Locale.ChineseTW]: "顯示歐皇榜。",
     })
-    .setDefaultMemberPermissions(0)
     .addStringOption((option) =>
       option
         .setName("gacha_id")

@@ -24,8 +24,6 @@ export class CacheService {
   public async setUserInfo(userId: string, data: any): Promise<void> {
     const key = `userinfo:${userId}`;
     try {
-      // Use RedisJSON's json.set
-      // '$' represents the root path
       await redisClient.json.set(key, "$", data);
       await redisClient.expire(key, DEFAULT_TTL_SECONDS);
       logger.debug(`[Cache] SET for ${key}`);
@@ -37,7 +35,6 @@ export class CacheService {
   public async invalidateUserInfo(userId: string): Promise<void> {
     const key = `userinfo:${userId}`;
     try {
-      // Use json.del to delete the entire JSON object
       await redisClient.json.del(key);
       logger.info(`[Cache] INVALIDATED for ${key}`);
     } catch (error) {

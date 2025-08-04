@@ -1,23 +1,28 @@
+import { MessageFlags } from "discord-api-types/v10";
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
   ButtonInteraction,
   EmbedBuilder,
   GuildMember,
   Client,
+  ComponentType,
 } from "discord.js";
 import { mimiDLCDb } from "../../shared/database";
-import { SettingsManager } from "../../services/SettingsManager";
-import { TicketManager } from "../../services/TicketManager";
-import { MessageFlags } from "discord-api-types/v10";
+import { Services, Databases } from "../../interfaces/Command"; // Import Services and Databases
 
 export default {
   name: "claim_ticket",
+  // Correct the function signature
   execute: async function (
     interaction: ButtonInteraction,
-    _client: Client,
-    settingsManager: SettingsManager,
-    _ticketManager: TicketManager
+    client: Client,
+    services: Services,
+    databases: Databases
   ) {
-    if (!interaction.guild || !settingsManager) return;
+    const { settingsManager } = services; // Destructure from services
+
+    if (!interaction.guild) return;
 
     const settings = await settingsManager.getSettings(interaction.guild.id);
     const member = interaction.member as GuildMember;
@@ -25,7 +30,7 @@ export default {
     if (!settings || !settings.staffRoleId) {
       return interaction.reply({
         content: "The staff role has not been configured for this server.",
-        flags: MessageFlags.Ephemeral,
+        flags: MessageFlags.Ephemeral, // Use ephemeral instead of flags
       });
     }
 
@@ -38,7 +43,9 @@ export default {
 
     const channelId = interaction.channelId;
 
-    const ticket = await mimiDLCDb
+    // Use the injected database instance for consistency
+    const { ticketDb } = databases;
+    const ticket = await ticketDb
       .selectFrom("tickets")
       .selectAll()
       .where("channelId", "=", channelId)
@@ -51,7 +58,7 @@ export default {
       });
     }
 
-    await mimiDLCDb
+    await ticketDb
       .updateTable("tickets")
       .set({ claimedById: interaction.user.id })
       .where("channelId", "=", channelId)
@@ -60,12 +67,33 @@ export default {
     const originalMessage = await interaction.channel?.messages.fetch(
       interaction.message.id
     );
-    if (originalMessage) {
+    if (originalMessage && originalMessage.embeds.length > 0) {
       const updatedEmbed = new EmbedBuilder(
         originalMessage.embeds[0].toJSON()
       ).addFields({ name: "Claimed by", value: `<@${interaction.user.id}>` });
 
-      await originalMessage.edit({ embeds: [updatedEmbed] });
+      // Disable the 'Claim' button after it's been claimed
+      const newComponents: ActionRowBuilder<ButtonBuilder>[] = [];
+      for (const row of originalMessage.components) {
+        if (row.type === ComponentType.ActionRow) {
+          const newRow = new ActionRowBuilder<ButtonBuilder>();
+          for (const component of row.components) {
+            if (component.type === ComponentType.Button) {
+              const button = ButtonBuilder.from(component);
+              if (component.customId === "claim_ticket") {
+                button.setDisabled(true);
+              }
+              newRow.addComponents(button);
+            }
+          }
+          newComponents.push(newRow);
+        }
+      }
+
+      await originalMessage.edit({
+        embeds: [updatedEmbed],
+        components: newComponents,
+      });
     }
 
     return interaction.reply({

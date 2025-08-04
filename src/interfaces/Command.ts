@@ -12,12 +12,14 @@ import {
 import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
 import { LocalizationManager } from "../services/LocalizationManager";
+import { HelpService } from "../services/HelpService";
 import { Kysely } from "kysely";
 
 export interface Services {
   settingsManager: SettingsManager;
   ticketManager: TicketManager;
   localizationManager: LocalizationManager;
+  helpService: HelpService;
 }
 
 export interface Databases {

@@ -2,6 +2,7 @@ import { Interaction, Client } from "discord.js";
 import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
+import { handleHelpInteraction } from "./handlers/helpInteractionHandler";
 
 export const name = "interactionCreate";
 
@@ -18,6 +19,13 @@ export async function execute(
     }`
   );
   try {
+    if (
+      interaction.isMessageComponent() &&
+      interaction.customId.startsWith("help:")
+    ) {
+      return handleHelpInteraction(interaction, services);
+    }
+
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;

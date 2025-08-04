@@ -1,8 +1,0 @@
-{
-  "name": "訊息資訊",
-  "description": "取得一則訊息的資訊。",
-  "messageInfo": {
-    "id": "ID",
-    "content": "內容"
-  }
-}

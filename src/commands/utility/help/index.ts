@@ -1,91 +1,27 @@
-// src/commands/utility/help/index.ts
-import {
-  ChatInputCommandInteraction,
-  Client,
-  Collection,
-  GuildMember,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-} from "discord.js";
-import { Command, Services } from "../../../interfaces/Command";
-import { buildHelpReply } from "./helpRenderer";
-import fs from "fs";
-import path from "path";
+import { MessageFlags } from "discord-api-types/v10";
+import { SlashCommandBuilder, GuildMember } from "discord.js";
+import { Command } from "../../../interfaces/Command";
+import { buildHelpEmbed, HelpState } from "./helpEmbedBuilder";
 
-// Helper function to get all commands grouped by category
-export function getCommandsByCategory(client: Client): Map<string, Command[]> {
-  const commandsByCategory = new Map<string, Command[]>();
-  const commandsPath = path.join(__dirname, "..", "..");
-  const commandFolders = fs
-    .readdirSync(commandsPath)
-    .filter((file) => fs.statSync(path.join(commandsPath, file)).isDirectory());
-
-  for (const category of commandFolders) {
-    const categoryPath = path.join(commandsPath, category);
-    const commandSubFolders = fs
-      .readdirSync(categoryPath)
-      .filter((file) =>
-        fs.statSync(path.join(categoryPath, file)).isDirectory()
-      );
-
-    const categoryCommands: Command[] = [];
-    for (const commandName of commandSubFolders) {
-      const command = client.commands.get(commandName);
-      if (command) {
-        categoryCommands.push(command);
-      }
-    }
-
-    if (categoryCommands.length > 0) {
-      commandsByCategory.set(category, categoryCommands);
-    }
-  }
-  return commandsByCategory;
-}
-
-// Helper function to get categories accessible to a specific member
-export function getAccessibleCategories(
-  client: Client,
-  member: GuildMember
-): string[] {
-  const categories = Array.from(getCommandsByCategory(client).keys());
-  // Example of a simple permission check, you may need to adjust this
-  if (!member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return categories.filter((c) => c !== "admin");
-  }
-  return categories;
-}
-
-export const command: Command = {
+export default {
   data: new SlashCommandBuilder()
     .setName("help")
-    .setDescription("Displays a list of available commands."),
-  async execute(
-    interaction: ChatInputCommandInteraction,
-    client: Client,
-    services: Services
-  ) {
-    await interaction.deferReply({ ephemeral: true }); // **Immediately acknowledge the API**
-
-    const initialState = { lang: "zh-TW" as const };
-
-    // --- Prepare Data ---
-    const commandsByCategory = getCommandsByCategory(client);
-    const accessibleCategories = getAccessibleCategories(
-      client,
-      interaction.member as GuildMember
-    );
-    const appCommands = await client.application!.commands.fetch();
-
-    const replyPayload = await buildHelpReply(
+    .setDescription("Shows a list of available commands."),
+  execute: async (interaction, client, services) => {
+    await interaction.deferReply();
+    const { helpService } = services;
+    const member = interaction.member as GuildMember;
+    // Set initial state for the help menu, detecting user's locale
+    const initialState: HelpState = {
+      lang: interaction.locale.startsWith("zh") ? "zh-TW" : "en-US",
+      view: "home",
+    };
+    const payload = await buildHelpEmbed(
       initialState,
-      accessibleCategories,
-      commandsByCategory,
-      appCommands,
-      services,
-      interaction
+      helpService,
+      member,
+      services
     );
-
-    await interaction.editReply(replyPayload);
+    await interaction.editReply(payload);
   },
-};
+} as Command;

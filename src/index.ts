@@ -14,6 +14,7 @@ import { SettingsManager } from "./services/SettingsManager";
 import { TicketManager } from "./services/TicketManager";
 import { PriceAlerter } from "./services/PriceAlerter";
 import { LocalizationManager } from "./services/LocalizationManager";
+import { HelpService } from "./services/HelpService";
 import { gachaDB, mimiDLCDb } from "./shared/database/index";
 import { Databases, Services } from "./interfaces/Command";
 import { loadCaches } from "./shared/cache";
@@ -97,11 +98,13 @@ async function main() {
   );
   const localizationManager = new LocalizationManager();
   const priceAlerter = new PriceAlerter(client, localizationManager);
+  const helpService = new HelpService(client);
 
   const services: Services = {
     settingsManager,
     ticketManager,
     localizationManager,
+    helpService,
   };
   const databases: Databases = {
     gachaDb: gachaDB,
@@ -128,12 +131,13 @@ async function main() {
         loadCommandsRecursively(fullPath, category);
       } else if (
         item.isFile() &&
-        (item.name.endsWith(".js") || item.name.endsWith(".ts"))
+        (item.name === "index.js" || item.name === "index.ts")
       ) {
         const loadedModule = require(fullPath);
         const command = loadedModule.command || loadedModule.default;
 
         if (command && "data" in command && "execute" in command) {
+          command.filePath = fullPath; // Add this line
           client.commands.set(command.data.name, command);
 
           if (!client.commandCategories.has(category)) {
@@ -164,28 +168,41 @@ async function main() {
 
   // Load Interactions (Buttons, Modals, Select Menus)
   const interactionFoldersPath = path.join(__dirname, "interactions");
-  const interactionFolders = fs.readdirSync(interactionFoldersPath);
-  for (const folder of interactionFolders) {
-    const interactionsPath = path.join(interactionFoldersPath, folder);
-    const interactionFiles = fs
-      .readdirSync(interactionsPath)
-      .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
-    for (const file of interactionFiles) {
-      const filePath = path.join(interactionsPath, file);
-      const interaction = require(filePath).default;
-      if (interaction && interaction.name && interaction.execute) {
-        if (folder === "buttons") {
-          client.buttons.set(interaction.name, interaction);
+  const interactionFolderNames = fs.readdirSync(interactionFoldersPath);
+
+  for (const folderName of interactionFolderNames) {
+    const fullFolderPath = path.join(interactionFoldersPath, folderName);
+    try {
+      // Ensure it's a directory before trying to read it
+      if (fs.statSync(fullFolderPath).isDirectory()) {
+        const interactionFiles = fs
+          .readdirSync(fullFolderPath)
+          .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
+
+        for (const file of interactionFiles) {
+          const filePath = path.join(fullFolderPath, file);
+          const interaction = require(filePath).default;
+
+          if (interaction && interaction.name && interaction.execute) {
+            if (folderName === "buttons") {
+              client.buttons.set(interaction.name, interaction);
+            } else if (folderName === "modals") {
+              client.modals.set(interaction.name, interaction);
+            } else if (folderName === "selectMenus") {
+              client.selectMenus.set(interaction.name, interaction);
+            }
+          } else {
+            logger.warn(
+              `The interaction at ${filePath} is missing a required "name" or "execute" property.`
+            );
+          }
         }
-        if (folder === "modals")
-          client.modals.set(interaction.name, interaction);
-        if (folder === "selectMenus")
-          client.selectMenus.set(interaction.name, interaction);
-      } else {
-        logger.warn(
-          `The interaction at ${filePath} is missing a required "name" or "execute" property.`
-        );
       }
+    } catch (error) {
+      logger.warn(
+        `Could not load interactions from ${fullFolderPath}. It might not be a directory.`,
+        error
+      );
     }
   }
 
@@ -226,13 +243,14 @@ async function main() {
   client.login(process.env.DISCORD_TOKEN);
 
   // 6. Start background services
-  client.once("ready", () => {
+  client.once("ready", async () => {
     if (!client.user) {
       logger.error("Client user is not available.");
       return;
     }
     logger.info(`Logged in as ${client.user.tag}!`);
     client.user.setActivity("米米><", { type: ActivityType.Custom });
+    await services.helpService.initialize();
     priceAlerter.start();
   });
 }
