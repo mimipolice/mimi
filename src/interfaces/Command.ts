@@ -32,6 +32,7 @@ export interface Command {
     | ContextMenuCommandBuilder
     | SlashCommandOptionsOnlyBuilder;
   detailedHelpPath?: string;
+  filePath?: string;
   guildOnly?: boolean;
   restrictedRoles?: string[];
   channelPermissions?: bigint[];

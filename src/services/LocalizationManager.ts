@@ -1,58 +1,63 @@
+// src/services/LocalizationManager.ts
 import fs from "fs";
 import path from "path";
 import logger from "../utils/logger";
 
 export class LocalizationManager {
-  private localizations: Map<string, any> = new Map();
+  private localizations: Map<string, Record<string, any>> = new Map();
 
   constructor() {
-    this.loadLocalizations();
+    this.loadAllLocalizations();
   }
 
-  private loadLocalizations(): void {
-    const commandsPath = path.join(__dirname, "../commands");
-    try {
-      const commandFolders = fs
-        .readdirSync(commandsPath, { withFileTypes: true })
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name);
+  private loadAllLocalizations(): void {
+    const commandsBasePath = path.join(__dirname, "../commands");
+    logger.info("Pre-loading all localizations...");
+    this.findLocaleFiles(commandsBasePath);
+    logger.info(
+      `Successfully pre-loaded localizations for ${this.localizations.size} commands.`
+    );
+  }
 
-      for (const commandFolder of commandFolders) {
-        const commandFolderPath = path.join(commandsPath, commandFolder);
-        const commandSubFolders = fs
-          .readdirSync(commandFolderPath, { withFileTypes: true })
-          .filter((dirent) => dirent.isDirectory())
-          .map((dirent) => dirent.name);
+  private findLocaleFiles(dir: string): void {
+    const items = fs.readdirSync(dir, { withFileTypes: true });
 
-        for (const commandName of commandSubFolders) {
-          const localesPath = path.join(
-            commandFolderPath,
-            commandName,
-            "locales"
-          );
-          if (fs.existsSync(localesPath)) {
-            const localeFiles = fs
-              .readdirSync(localesPath)
-              .filter((file) => file.endsWith(".json"));
-            const commandLocalizations: { [key: string]: any } = {};
+    for (const item of items) {
+      const fullPath = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        // If the directory name is 'locales', process it
+        if (item.name === "locales") {
+          const commandName = path.basename(path.dirname(fullPath));
+          const commandLocalizations: Record<string, any> = {};
 
-            for (const file of localeFiles) {
-              const locale = file.replace(".json", "");
-              const filePath = path.join(localesPath, file);
-              const fileContent = fs.readFileSync(filePath, "utf-8");
-              commandLocalizations[locale] = JSON.parse(fileContent);
+          const localeFiles = fs
+            .readdirSync(fullPath)
+            .filter((f) => f.endsWith(".json"));
+          for (const file of localeFiles) {
+            const locale = file.replace(".json", "");
+            try {
+              const content = fs.readFileSync(
+                path.join(fullPath, file),
+                "utf-8"
+              );
+              commandLocalizations[locale] = JSON.parse(content);
+            } catch (e) {
+              logger.error(
+                `Error parsing ${file} for command ${commandName}`,
+                e
+              );
             }
-            this.localizations.set(commandName, commandLocalizations);
           }
+          this.localizations.set(commandName, commandLocalizations);
+        } else {
+          // Otherwise, continue searching recursively
+          this.findLocaleFiles(fullPath);
         }
       }
-      logger.info("All localizations have been pre-loaded.");
-    } catch (error) {
-      logger.error("Failed to load localizations:", error);
     }
   }
 
-  public get(commandName: string): any {
+  public get(commandName: string): Record<string, any> | undefined {
     return this.localizations.get(commandName);
   }
 }

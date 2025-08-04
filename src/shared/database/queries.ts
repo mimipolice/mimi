@@ -13,6 +13,16 @@ import {
   UserTransaction,
 } from "./types";
 
+export type {
+  PortfolioItem,
+  SpendingBreakdown,
+  TopReceiver,
+  TopSender,
+  UserTopCommand,
+  UserTopGuild,
+  UserTransaction,
+};
+
 const cacheService = new CacheService();
 interface PriceHistory {
   price: number;
