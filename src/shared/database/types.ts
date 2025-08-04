@@ -1,5 +1,62 @@
 import { ColumnType } from "kysely";
 
+export interface UserTopGuild {
+  guild_id: string;
+  usage_count: number;
+}
+
+export interface UserTopCommand {
+  command_name: string;
+  usage_count: number;
+}
+
+export interface UserTransaction {
+  sender_id: string;
+  receiver_id: string;
+  amount: number;
+  created_at: Date;
+}
+
+export interface SpendingBreakdown {
+  transaction_type: string;
+  total_amount: number;
+}
+
+export interface PortfolioItem {
+  asset_name: string;
+  quantity: number;
+  total_value: number;
+}
+
+export interface TopSender {
+  sender_id: string;
+  count: number;
+  total_amount: number;
+}
+
+export interface TopReceiver {
+  receiver_id: string;
+  count: number;
+  total_amount: number;
+}
+
+export interface UserInfoData {
+  top_guilds: UserTopGuild[];
+  top_commands: UserTopCommand[];
+  recent_transactions: UserTransaction[];
+  total_cards: number;
+  total_spent: number;
+  total_received: number;
+  spending_breakdown: SpendingBreakdown[];
+  income_breakdown: SpendingBreakdown[];
+  portfolio: PortfolioItem[];
+  top_senders: TopSender[];
+  top_receivers: TopReceiver[];
+  oil_balance: number;
+  oil_ticket_balance: number;
+  total_transactions_count: number;
+}
+
 export interface GachaDB {
   ai_prompts: {
     id: ColumnType<number, never, never>;

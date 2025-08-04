@@ -1,7 +1,19 @@
 import { Kysely, sql } from "kysely";
+import { CacheService } from "../../services/CacheService";
 import { gachaDB, mimiDLCDb } from ".";
-import { MimiDLCDB } from "./types";
+import {
+  MimiDLCDB,
+  PortfolioItem,
+  SpendingBreakdown,
+  TopReceiver,
+  TopSender,
+  UserInfoData,
+  UserTopCommand,
+  UserTopGuild,
+  UserTransaction,
+} from "./types";
 
+const cacheService = new CacheService();
 interface PriceHistory {
   price: number;
   timestamp: Date;
@@ -898,63 +910,6 @@ export async function addConversationMessage(
 }
 
 // User Info Queries
-export interface UserTopGuild {
-  guild_id: string;
-  usage_count: number;
-}
-
-export interface UserTopCommand {
-  command_name: string;
-  usage_count: number;
-}
-
-export interface UserTransaction {
-  sender_id: string;
-  receiver_id: string;
-  amount: number;
-  created_at: Date;
-}
-
-export interface SpendingBreakdown {
-  transaction_type: string;
-  total_amount: number;
-}
-
-export interface PortfolioItem {
-  asset_name: string;
-  quantity: number;
-  total_value: number;
-}
-
-export interface TopSender {
-  sender_id: string;
-  count: number;
-  total_amount: number;
-}
-
-export interface TopReceiver {
-  receiver_id: string;
-  count: number;
-  total_amount: number;
-}
-
-export interface UserInfoData {
-  top_guilds: UserTopGuild[];
-  top_commands: UserTopCommand[];
-  recent_transactions: UserTransaction[];
-  total_cards: number;
-  total_spent: number;
-  total_received: number;
-  spending_breakdown: SpendingBreakdown[];
-  income_breakdown: SpendingBreakdown[];
-  portfolio: PortfolioItem[];
-  top_senders: TopSender[];
-  top_receivers: TopReceiver[];
-  oil_balance: number;
-  oil_ticket_balance: number;
-  total_transactions_count: number;
-}
-
 export async function getRecentTransactions(
   userId: string,
   offset: number,
@@ -977,7 +932,7 @@ export async function getRecentTransactions(
   }));
 }
 
-export async function getUserInfoData(userId: string): Promise<UserInfoData> {
+async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
   const result = await gachaDB
     .with("TransactionSummary", (db) =>
       db
@@ -1203,4 +1158,60 @@ export async function getUserInfoData(userId: string): Promise<UserInfoData> {
     oil_balance: parseInt(result.oil_balance as any, 10) || 0,
     oil_ticket_balance: parseInt(result.oil_ticket_balance as any, 10) || 0,
   };
+}
+
+export async function getUserInfoData(userId: string): Promise<UserInfoData> {
+  // 1. Try to read from cache
+  const cachedData = await cacheService.getUserInfo(userId);
+  if (cachedData) {
+    return cachedData as UserInfoData;
+  }
+
+  // 2. On cache miss, read from DB
+  const dbData = await fetchUserInfoFromDB(userId);
+
+  // 3. Write data to cache (fire-and-forget)
+  cacheService.setUserInfo(userId, dbData);
+
+  // 4. Return data from DB
+  return dbData;
+}
+
+export async function updateUserBalance(
+  userId: string,
+  amount: number,
+  type: "oil_balance" | "oil_ticket_balance"
+): Promise<void> {
+  await gachaDB
+    .updateTable("gacha_users")
+    .set({ [type]: sql`${sql.ref(type)} + ${amount}` })
+    .where("user_id", "=", userId)
+    .execute();
+
+  await cacheService.invalidateUserInfo(userId);
+}
+
+export async function updateUserBalancesForTrade(
+  senderId: string,
+  receiverId: string,
+  amount: number
+): Promise<void> {
+  await gachaDB.transaction().execute(async (trx) => {
+    await trx
+      .updateTable("gacha_users")
+      .set({ oil_balance: sql`oil_balance - ${amount}` })
+      .where("user_id", "=", senderId)
+      .execute();
+
+    await trx
+      .updateTable("gacha_users")
+      .set({ oil_balance: sql`oil_balance + ${amount}` })
+      .where("user_id", "=", receiverId)
+      .execute();
+  });
+
+  await Promise.all([
+    cacheService.invalidateUserInfo(senderId),
+    cacheService.invalidateUserInfo(receiverId),
+  ]);
 }
