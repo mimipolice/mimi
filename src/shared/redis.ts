@@ -2,21 +2,25 @@
 import { createClient } from "redis";
 import logger from "../utils/logger";
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL, // Your .env file should have REDIS_URL="redis://user:password@host:port"
-  password: process.env.REDIS_PASSWORD,
-  database: 1, // Use DB 1 as instructed by your VPS administrator
-});
+let redisClient: ReturnType<typeof createClient> | null = null;
 
-redisClient.on("error", (err) => logger.error("Redis Client Error", err));
+if (process.env.REDIS_ENABLED === "true") {
+  redisClient = createClient({
+    url: process.env.REDIS_URL, // Your .env file should have REDIS_URL="redis://user:password@host:port"
+    password: process.env.REDIS_PASSWORD,
+    database: 1, // Use DB 1 as instructed by your VPS administrator
+  });
 
-(async () => {
-  try {
-    await redisClient.connect();
-    logger.info("Successfully connected to Redis.");
-  } catch (err) {
-    logger.error("Failed to connect to Redis:", err);
-  }
-})();
+  redisClient.on("error", (err) => logger.error("Redis Client Error", err));
+
+  (async () => {
+    try {
+      await (redisClient as NonNullable<typeof redisClient>).connect();
+      logger.info("Successfully connected to Redis.");
+    } catch (err) {
+      logger.error("Failed to connect to Redis:", err);
+    }
+  })();
+}
 
 export default redisClient;
