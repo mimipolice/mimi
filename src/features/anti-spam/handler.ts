@@ -213,15 +213,14 @@ export async function handleAntiSpam(message: Message) {
   const userId = message.author.id;
   const cacheKey = `antispam:${userId}`;
 
-  let userData: UserMessageData | null = null;
   const userDataFromCache = await cacheService.get<UserMessageData>(cacheKey);
-  if (userDataFromCache) {
-    userData = userDataFromCache;
-  }
 
-  if (!userData) {
-    userData = { timestamps: [], punishedUntil: null };
-  }
+  // Reconstruct the object from cache to ensure data integrity and prevent crashes.
+  // This handles cases where cached data might be corrupted or in an old format.
+  const userData: UserMessageData = {
+    timestamps: userDataFromCache?.timestamps || [],
+    punishedUntil: userDataFromCache?.punishedUntil || null,
+  };
 
   // Synchronize state: If cache says punished but Discord says not, trust Discord.
   const isTimedOutInDiscord =

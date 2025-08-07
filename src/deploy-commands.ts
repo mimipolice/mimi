@@ -129,12 +129,22 @@ for (const file of commandFiles) {
 
   const commandFolder = path.relative(commandsPath, file).split(path.sep)[0];
 
-  if (command.guildOnly || devOnlyFolders.includes(commandFolder)) {
-    guildCommands.push(command.data.toJSON());
-  } else {
-    command.data.setIntegrationTypes([0, 1]); // 0 = Guild Install, 1 = User Install
-    command.data.setContexts([0, 1, 2]); // 0 = Guild, 1 = Bot DM, 2 = Private Channel
-    globalCommands.push(command.data.toJSON());
+  try {
+    if (command.guildOnly || devOnlyFolders.includes(commandFolder)) {
+      guildCommands.push(command.data.toJSON());
+    } else {
+      command.data.setIntegrationTypes([0, 1]); // 0 = Guild Install, 1 = User Install
+      command.data.setContexts([0, 1, 2]); // 0 = Guild, 1 = Bot DM, 2 = Private Channel
+      globalCommands.push(command.data.toJSON());
+    }
+  } catch (error: any) {
+    logger.error(
+      `Error processing command "${command.data.name}" from file: ${file}`
+    );
+    logger.error(
+      `This is likely due to a missing description in the command or one of its options.`
+    );
+    throw error; // Re-throw the error to stop the deployment
   }
 }
 

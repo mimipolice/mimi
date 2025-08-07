@@ -100,7 +100,10 @@ function determineInterval(range: string): { seconds: number; label: string } {
 export default {
   data: new SlashCommandBuilder()
     .setName("report")
-    // ... data 部分不變 (除了移除 interval 選項) ...
+    .setDescription("Generates a report or lists available assets.")
+    .setDescriptionLocalizations({
+      [Locale.ChineseTW]: "產生報告或列出可用的資產。",
+    })
     .addSubcommand((subcommand) =>
       subcommand
         .setName("symbol")
