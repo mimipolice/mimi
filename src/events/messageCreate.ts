@@ -4,12 +4,9 @@ import {
   TextChannel,
   NewsChannel,
   ThreadChannel,
-  ChannelType,
 } from "discord.js";
 import { getKeywordsForGuild, getAutoreactsForGuild } from "../shared/cache";
 import { handleAntiSpam } from "../features/anti-spam/handler";
-import config from "../config";
-import logger from "../utils/logger";
 
 import { Client } from "discord.js";
 import { Services, Databases } from "../interfaces/Command";
@@ -29,6 +26,9 @@ module.exports = {
 
     // ?solve command logic
     await services.forumService.handleSolveCommand(message);
+
+    // Message forwarding logic
+    await services.messageForwardingService.handleMessageForwarding(message);
 
     // Anti-spam check
     await handleAntiSpam(message);

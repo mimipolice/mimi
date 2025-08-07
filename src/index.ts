@@ -21,6 +21,7 @@ import { loadCaches } from "./shared/cache";
 import appealButton from "./features/anti-spam/appealButton";
 import { DiscordService } from "./services/DiscordService";
 import { ForumService } from "./services/ForumService";
+import { MessageForwardingService } from "./services/MessageForwardingService";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -102,6 +103,7 @@ async function main() {
   const priceAlerter = new PriceAlerter(client, localizationManager);
   const helpService = new HelpService(client);
   const forumService = new ForumService();
+  const messageForwardingService = new MessageForwardingService(client);
 
   const services: Services = {
     settingsManager,
@@ -109,6 +111,7 @@ async function main() {
     localizationManager,
     helpService,
     forumService,
+    messageForwardingService,
   };
   const databases: Databases = {
     gachaDb: gachaDB,
