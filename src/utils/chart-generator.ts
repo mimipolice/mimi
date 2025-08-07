@@ -236,7 +236,14 @@ export async function generateCandlestickChart(
               // Hide the first tick (bottom of the price axis)
               if (index === 0) return null;
               if (typeof value === "number") {
-                return value.toFixed(2);
+                const valueStr = String(value);
+                // Only format if there's a decimal part with more than 2 digits
+                if (
+                  valueStr.includes(".") &&
+                  valueStr.split(".")[1].length > 2
+                ) {
+                  return value.toFixed(2);
+                }
               }
               return value;
             },
