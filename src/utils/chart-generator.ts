@@ -127,6 +127,7 @@ export async function generateCandlestickChart(
   const downColor = "#ef4444";
   const textColor = darkMode ? "rgba(255, 255, 255, 0.9)" : "black";
   const mutedTextColor = darkMode ? "rgba(255, 255, 255, 0.6)" : "#555";
+  const ohlcLabelColor = "#facc15"; // Light Yellow
   const gridColor = darkMode
     ? "rgba(255, 255, 255, 0.1)"
     : "rgba(0, 0, 0, 0.1)";
@@ -273,29 +274,50 @@ export async function generateCandlestickChart(
   const { latestOhlc, change, changePercent } = extraInfo;
   const padding = 50;
 
+  // Line 1: Centered Title
   ctx.font = "bold 28px sans-serif";
   ctx.fillStyle = textColor;
-  ctx.textAlign = "left";
-  ctx.fillText(`${assetSymbol.toUpperCase()} • ${intervalLabel}`, padding, 60);
+  ctx.textAlign = "center";
+  ctx.fillText(
+    `${assetSymbol.toUpperCase()} • ${intervalLabel}`,
+    width / 2,
+    40
+  );
 
+  // Line 2: OHLC and Change %
+  const yPosLine2 = 75;
   ctx.font = "22px sans-serif";
+
+  // --- Draw Change % on the right ---
   ctx.textAlign = "right";
-
-  const ohlcText = `O: ${latestOhlc.open.toFixed(
-    2
-  )} H: ${latestOhlc.high.toFixed(2)} L: ${latestOhlc.low.toFixed(
-    2
-  )} C: ${latestOhlc.close.toFixed(2)}`;
-  ctx.fillStyle = mutedTextColor;
-  ctx.fillText(ohlcText, width - padding, 50);
-
   const changeSign = change >= 0 ? "+" : "";
   const changeColor = change >= 0 ? upColor : downColor;
   const changeText = `${changeSign}${change.toFixed(
     2
   )} (${changeSign}${changePercent.toFixed(2)}%)`;
   ctx.fillStyle = changeColor;
-  ctx.fillText(changeText, width - padding, 80);
+  ctx.fillText(changeText, width - padding, yPosLine2);
+
+  // --- Draw OHLC on the left (with mixed colors) ---
+  ctx.textAlign = "left";
+  let currentX = padding;
+
+  const drawOhlcPart = (label: string, value: string) => {
+    // Draw Label
+    ctx.fillStyle = ohlcLabelColor;
+    ctx.fillText(label, currentX, yPosLine2);
+    currentX += ctx.measureText(label).width;
+
+    // Draw Value
+    ctx.fillStyle = mutedTextColor;
+    ctx.fillText(value, currentX, yPosLine2);
+    currentX += ctx.measureText(value).width;
+  };
+
+  drawOhlcPart("O: ", `${latestOhlc.open.toFixed(2)}  `);
+  drawOhlcPart("H: ", `${latestOhlc.high.toFixed(2)}  `);
+  drawOhlcPart("L: ", `${latestOhlc.low.toFixed(2)}  `);
+  drawOhlcPart("C: ", `${latestOhlc.close.toFixed(2)}`);
 
   return canvas.toBuffer("image/png");
 }
