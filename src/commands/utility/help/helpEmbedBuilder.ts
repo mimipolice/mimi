@@ -21,7 +21,7 @@ export interface HelpState {
 export async function buildHelpEmbed(
   state: HelpState,
   helpService: HelpService,
-  member: GuildMember,
+  member: GuildMember | null,
   services: Services
 ) {
   const embed = new EmbedBuilder().setColor("#0099ff");

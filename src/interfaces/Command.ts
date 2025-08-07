@@ -13,6 +13,7 @@ import { SettingsManager } from "../services/SettingsManager";
 import { TicketManager } from "../services/TicketManager";
 import { LocalizationManager } from "../services/LocalizationManager";
 import { HelpService } from "../services/HelpService";
+import { ForumService } from "../services/ForumService";
 import { Kysely } from "kysely";
 
 export interface Services {
@@ -20,6 +21,7 @@ export interface Services {
   ticketManager: TicketManager;
   localizationManager: LocalizationManager;
   helpService: HelpService;
+  forumService: ForumService;
 }
 
 export interface Databases {

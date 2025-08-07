@@ -20,6 +20,7 @@ import { Databases, Services } from "./interfaces/Command";
 import { loadCaches } from "./shared/cache";
 import appealButton from "./features/anti-spam/appealButton";
 import { DiscordService } from "./services/DiscordService";
+import { ForumService } from "./services/ForumService";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -86,6 +87,7 @@ async function main() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.GuildScheduledEvents,
     ],
   });
 
@@ -99,12 +101,14 @@ async function main() {
   const localizationManager = new LocalizationManager();
   const priceAlerter = new PriceAlerter(client, localizationManager);
   const helpService = new HelpService(client);
+  const forumService = new ForumService();
 
   const services: Services = {
     settingsManager,
     ticketManager,
     localizationManager,
     helpService,
+    forumService,
   };
   const databases: Databases = {
     gachaDb: gachaDB,
@@ -224,7 +228,11 @@ async function main() {
   const eventsPath = path.join(__dirname, "events");
   const eventFiles = fs
     .readdirSync(eventsPath)
-    .filter((file) => file.endsWith(".js") || file.endsWith(".ts"));
+    .filter(
+      (file: string) =>
+        (file.endsWith(".js") || file.endsWith(".ts")) &&
+        !fs.statSync(path.join(eventsPath, file)).isDirectory()
+    );
   for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
     const event = require(filePath);

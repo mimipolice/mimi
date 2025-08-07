@@ -10,7 +10,8 @@ export default {
   execute: async (interaction, client, services) => {
     await interaction.deferReply();
     const { helpService } = services;
-    const member = interaction.member as GuildMember;
+    const member =
+      interaction.member instanceof GuildMember ? interaction.member : null;
     // Set initial state for the help menu, detecting user's locale
     const initialState: HelpState = {
       lang: interaction.locale.startsWith("zh") ? "zh-TW" : "en-US",

@@ -19,7 +19,8 @@ export async function handleHelpInteraction(
   await interaction.deferUpdate();
 
   const { helpService } = services;
-  const member = interaction.member as GuildMember;
+  const member =
+    interaction.member instanceof GuildMember ? interaction.member : null;
   const parts = interaction.customId.split(":");
   const [, action] = parts;
 

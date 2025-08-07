@@ -36,7 +36,7 @@ export class HelpService {
     return categories;
   }
 
-  public getAccessibleCategories(member: GuildMember): string[] {
+  public getAccessibleCategories(member: GuildMember | null): string[] {
     const commandsByCategory = this.getCommandsByCategory();
     const accessibleCategories: string[] = [];
     for (const [category, commands] of commandsByCategory.entries()) {
@@ -49,7 +49,7 @@ export class HelpService {
 
   public getAccessibleCommandsInCategory(
     category: string,
-    member: GuildMember
+    member: GuildMember | null
   ): Command[] {
     const commandsByCategory = this.getCommandsByCategory();
     return (commandsByCategory.get(category) || []).filter((cmd) =>
@@ -87,9 +87,10 @@ export class HelpService {
       : `/${commandName}`;
   }
 
-  private hasPermission(member: GuildMember, command: Command): boolean {
+  private hasPermission(member: GuildMember | null, command: Command): boolean {
     const permissions = command.data.default_member_permissions;
     if (!permissions) return true; // If no permissions are specified, command is public
+    if (!member) return false; // If member is null, they can't have permissions
     return member.permissions.has(BigInt(permissions));
   }
 }
