@@ -28,11 +28,12 @@
     "list_footer": "若更新時間大於`5`分鐘可能是米米機器人出現了問題 請隨時關注最新公告",
     "invalid_range": "無效的時間範圍。請使用像 7d, 2w, 1m 這樣的格式，或使用預設值。",
     "no_data": "在所選時間範圍內找不到 `{{symbol}}` 的資料。",
-    "report_range": "> 時間範圍: `{{range}}`",
+    "report_range": "時間範圍: `{{range}}`",
     "summary_high": "• **最高價:** `{{price}}`",
     "summary_low": "• **最低價:** `{{price}}`",
     "summary_avg": "• **平均價:** `{{price}}`",
     "summary_price": "• **價格:** `{{price}}`",
+    "summary_now": "• **現在價格:** `{{price}}`",
     "summary_change": "• **變動:** `{{sign}}{{change}}` ({{sign}}{{percent}}%)",
     "chart_description": "{{assetName}} 的價格圖表",
     "error_fetching": "擷取報告時發生錯誤。"

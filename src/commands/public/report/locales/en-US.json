@@ -28,11 +28,12 @@
     "list_footer": "If the update time is more than `5` minutes ago, there might be an issue with the bot. Please check for announcements.",
     "invalid_range": "Invalid time range. Please use a format like 7d, 2w, 1m, or a preset value.",
     "no_data": "No data found for symbol `{{symbol}}` in the selected time range.",
-    "report_range": "> Time Range: `{{range}}`",
+    "report_range": "Time Range: `{{range}}`",
     "summary_high": "• **High:** `{{price}}`",
     "summary_low": "• **Low:** `{{price}}`",
     "summary_avg": "• **Average:** `{{price}}`",
     "summary_price": "• **Price:** `{{price}}`",
+    "summary_now": "• **Now Price:** `{{price}}`",
     "summary_change": "• **Change:** `{{sign}}{{change}}` ({{sign}}{{percent}}%)",
     "chart_description": "Price chart for {{assetName}}",
     "error_fetching": "An error occurred while fetching the report."

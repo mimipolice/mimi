@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022", "DOM"],
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
     "strict": true,
