@@ -235,6 +235,9 @@ export async function generateCandlestickChart(
             callback: function (value, index, ticks) {
               // Hide the first tick (bottom of the price axis)
               if (index === 0) return null;
+              if (typeof value === "number") {
+                return value.toFixed(2);
+              }
               return value;
             },
           },
