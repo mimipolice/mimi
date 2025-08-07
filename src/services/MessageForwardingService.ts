@@ -46,7 +46,7 @@ export class MessageForwardingService {
               message.channel.type === ChannelType.PrivateThread
             ) {
               await message.reply({
-                content: "為您轉發訊息...",
+                content: "_ _",
                 allowedMentions: { repliedUser: false },
               });
               await targetMessage.forward(message.channel);
