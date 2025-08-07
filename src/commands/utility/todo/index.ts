@@ -11,7 +11,7 @@ import {
   removeTodo,
   getTodos,
   clearTodos,
-} from "../../../shared/database/queries";
+} from "../../../repositories/admin.repository";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";

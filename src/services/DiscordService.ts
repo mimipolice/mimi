@@ -12,7 +12,7 @@ import {
 } from "discord.js";
 import logger from "../utils/logger";
 import { GuildSettings } from "./SettingsManager";
-import { Ticket } from "./TicketRepository";
+import { Ticket } from "../repositories/ticket.repository";
 import { TicketAction } from "../types/ticket";
 
 export class DiscordService {
@@ -180,6 +180,16 @@ export class DiscordService {
     } catch (error) {
       logger.warn(`Failed to archive channel ${channel.id}.`, error);
     }
+  }
+
+  async addUserToChannel(channel: TextChannel, user: User): Promise<void> {
+    await channel.permissionOverwrites.edit(user.id, {
+      ViewChannel: true,
+    });
+  }
+
+  async removeUserFromChannel(channel: TextChannel, user: User): Promise<void> {
+    await channel.permissionOverwrites.delete(user.id);
   }
 
   async sendDMOnClose(

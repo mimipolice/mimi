@@ -18,6 +18,8 @@ import logger from "../../../utils/logger";
 import {
   getUserInfoData,
   getRecentTransactions,
+} from "../../../repositories/user.repository";
+import {
   UserTopGuild,
   UserTopCommand,
   UserTransaction,
@@ -25,7 +27,7 @@ import {
   PortfolioItem,
   TopSender,
   TopReceiver,
-} from "../../../shared/database/queries";
+} from "../../../shared/database/types";
 import { Services } from "../../../interfaces/Command";
 
 export const command: Command = {

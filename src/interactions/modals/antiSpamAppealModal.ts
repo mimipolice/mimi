@@ -44,7 +44,7 @@ const modal: Modal = {
       const guild = await client.guilds.fetch(guildId);
       const member = await guild.members.fetch(userId);
 
-      const settings = await settingsManager.getSettings(guildId);
+      const settings = await settingsManager.getAntiSpamSettings(guildId);
       if (!settings?.log_channel_id) {
         logger.warn(
           `[Anti-Spam Appeal] No log channel configured for guild ${guildId}.`

@@ -1,18 +1,19 @@
 // src/services/CacheService.ts
+
 import redisClient from "../shared/redis";
 import logger from "../utils/logger";
 
-const DEFAULT_TTL_SECONDS = 300; // Default 5 minutes
+const DEFAULT_TTL_SECONDS = 3600; // 1 hour default TTL
 
 export class CacheService {
-  public async getUserInfo(userId: string): Promise<any | null> {
-    const key = `userinfo:${userId}`;
+  // 獲取一個 JSON 物件或任何字串
+  public async get<T>(key: string): Promise<T | null> {
     if (!redisClient) return null;
     try {
-      const data = await redisClient.json.get(key);
+      const data = await redisClient.get(key);
       if (data) {
         logger.debug(`[Cache] HIT for ${key}`);
-        return data;
+        return JSON.parse(data) as T;
       }
       logger.debug(`[Cache] MISS for ${key}`);
       return null;
@@ -22,26 +23,41 @@ export class CacheService {
     }
   }
 
-  public async setUserInfo(userId: string, data: any): Promise<void> {
-    const key = `userinfo:${userId}`;
+  // 設置一個值，可以是物件或字串
+  public async set(
+    key: string,
+    value: any,
+    ttl: number = DEFAULT_TTL_SECONDS
+  ): Promise<void> {
     if (!redisClient) return;
     try {
-      await redisClient.json.set(key, "$", data);
-      await redisClient.expire(key, DEFAULT_TTL_SECONDS);
+      const stringValue = JSON.stringify(value);
+      await redisClient.set(key, stringValue, { EX: ttl });
       logger.debug(`[Cache] SET for ${key}`);
     } catch (error) {
       logger.error(`[Cache] Error SET for ${key}:`, error);
     }
   }
 
-  public async invalidateUserInfo(userId: string): Promise<void> {
-    const key = `userinfo:${userId}`;
+  // 刪除一個 key
+  public async del(key: string): Promise<void> {
     if (!redisClient) return;
     try {
-      await redisClient.json.del(key);
-      logger.info(`[Cache] INVALIDATED for ${key}`);
+      await redisClient.del(key);
+      logger.info(`[Cache] DELETED for ${key}`);
     } catch (error) {
-      logger.error(`[Cache] Error INVALIDATE for ${key}:`, error);
+      logger.error(`[Cache] Error DEL for ${key}:`, error);
+    }
+  }
+
+  // 清除所有快取 (謹慎使用!)
+  public async flushAll(): Promise<void> {
+    if (!redisClient) return;
+    try {
+      await redisClient.flushDb();
+      logger.warn(`[Cache] FLUSHED entire cache database.`);
+    } catch (error) {
+      logger.error(`[Cache] Error FLUSHING cache:`, error);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { Kysely, Selectable } from "kysely";
-import NodeCache from "node-cache";
+import { CacheService } from "./CacheService";
 import logger from "../utils/logger";
 import { MimiDLCDB } from "../shared/database/types";
 
@@ -7,15 +7,17 @@ export type GuildSettings = Selectable<MimiDLCDB["guild_settings"]>;
 
 export class SettingsManager {
   private db: Kysely<MimiDLCDB>;
-  private cache: NodeCache;
+  private cacheService: CacheService;
 
   constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
-    this.cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+    this.cacheService = new CacheService();
   }
 
   async getSettings(guildId: string): Promise<GuildSettings | null> {
-    const cachedSettings = this.cache.get<GuildSettings>(guildId);
+    const cachedSettings = await this.cacheService.get<GuildSettings>(
+      `settings:${guildId}`
+    );
     if (cachedSettings) {
       return cachedSettings;
     }
@@ -28,7 +30,7 @@ export class SettingsManager {
         .executeTakeFirst();
 
       if (settings) {
-        this.cache.set(guildId, settings);
+        await this.cacheService.set(`settings:${guildId}`, settings);
         return settings;
       }
       return null;
@@ -51,7 +53,7 @@ export class SettingsManager {
         .executeTakeFirst();
 
       if (newSettings) {
-        this.cache.set(guildId, newSettings);
+        await this.cacheService.set(`settings:${guildId}`, newSettings);
         return newSettings;
       }
       return null;
@@ -61,7 +63,7 @@ export class SettingsManager {
     }
   }
 
-  clearCache(guildId: string) {
-    this.cache.del(guildId);
+  async clearCache(guildId: string) {
+    await this.cacheService.del(`settings:${guildId}`);
   }
 }

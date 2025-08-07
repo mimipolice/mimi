@@ -2,14 +2,19 @@ import {
   ButtonInteraction,
   PermissionFlagsBits,
   ButtonBuilder,
+  Client,
 } from "discord.js";
-import { mimiDLCDb } from "../../shared/database";
 import { MessageFlags } from "discord-api-types/v10";
 import logger from "../../utils/logger";
+import { Services } from "../../interfaces/Command";
 
 export default {
   name: "confirm_purge:",
-  execute: async function (interaction: ButtonInteraction) {
+  execute: async function (
+    interaction: ButtonInteraction,
+    client: Client,
+    services: Services
+  ) {
     await interaction.deferUpdate();
 
     const parts = interaction.customId.split(":");
@@ -34,17 +39,8 @@ export default {
     }
 
     try {
-      await mimiDLCDb.transaction().execute(async (trx) => {
-        await trx
-          .deleteFrom("tickets")
-          .where("guildId", "=", interaction.guildId!)
-          .execute();
-        await trx
-          .updateTable("guild_ticket_counters")
-          .set({ lastTicketId: 0 })
-          .where("guildId", "=", interaction.guildId!)
-          .execute();
-      });
+      const { ticketManager } = services;
+      await ticketManager.purge(interaction.guildId!);
 
       const disabledButton = ButtonBuilder.from(
         interaction.component

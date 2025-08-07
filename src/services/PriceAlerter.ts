@@ -5,22 +5,22 @@ import {
   getAllAssetsWithLatestPrice,
   PriceAlert,
   updatePriceAlertNotified,
-} from "../shared/database/queries";
+} from "../repositories/asset.repository";
 import logger from "../utils/logger";
 import { getLocalizations } from "../utils/localization";
-import NodeCache from "node-cache";
 import { LocalizationManager } from "./LocalizationManager";
-
-const priceCache = new NodeCache({ stdTTL: 60 });
+import { CacheService } from "./CacheService";
 
 export class PriceAlerter {
   private client: Client;
   private interval: NodeJS.Timeout | null = null;
   private localizationManager: LocalizationManager;
+  private cacheService: CacheService;
 
   constructor(client: Client, localizationManager: LocalizationManager) {
     this.client = client;
     this.localizationManager = localizationManager;
+    this.cacheService = new CacheService();
   }
 
   public start(checkIntervalMs: number = 120000) {
@@ -40,14 +40,16 @@ export class PriceAlerter {
 
   private async checkAlerts() {
     try {
-      let priceMap = priceCache.get<Map<string, number>>("assetPrices");
+      let priceMap = await this.cacheService.get<Map<string, number>>(
+        "prices:latest"
+      );
 
       if (!priceMap) {
         const assets = await getAllAssetsWithLatestPrice();
         priceMap = new Map(
           assets.map((asset) => [asset.asset_symbol, asset.price])
         );
-        priceCache.set("assetPrices", priceMap);
+        await this.cacheService.set("prices:latest", priceMap, 60);
       }
 
       const alerts = await getAllPriceAlerts();

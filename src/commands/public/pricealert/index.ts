@@ -12,7 +12,7 @@ import {
   removePriceAlert,
   getAllAssetsWithLatestPrice,
   findNextAvailablePriceAlertId,
-} from "../../../shared/database/queries";
+} from "../../../repositories/asset.repository";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";

@@ -8,17 +8,13 @@ import {
   GuildMember,
   TextChannel,
 } from "discord.js";
-import NodeCache from "node-cache";
 import config from "../../config";
 import logger from "../../utils/logger";
-import { getAntiSpamLogChannel } from "../../shared/database/queries";
+import { getAntiSpamLogChannel } from "../../repositories/admin.repository";
 import { getAntiSpamSettingsForGuild } from "../../shared/cache";
 import { formatDistanceStrict } from "date-fns";
 
-const antiSpamCache = new NodeCache({
-  stdTTL: config.antiSpam.inactiveUserThreshold / 1000,
-  checkperiod: 600,
-});
+import { CacheService } from "../../services/CacheService";
 
 interface UserMessageData {
   timestamps: { ts: number; channelId: string }[];
@@ -183,6 +179,7 @@ async function handleSpamAction(
 
 // --- 4. Main Exported Function ---
 export async function handleAntiSpam(message: Message) {
+  const cacheService = new CacheService();
   if (message.author.bot || !message.inGuild() || !message.member) return;
 
   const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
@@ -216,7 +213,11 @@ export async function handleAntiSpam(message: Message) {
   const userId = message.author.id;
   const cacheKey = `antispam:${userId}`;
 
-  let userData = antiSpamCache.get<UserMessageData>(cacheKey);
+  let userData: UserMessageData | null = null;
+  const userDataFromCache = await cacheService.get<UserMessageData>(cacheKey);
+  if (userDataFromCache) {
+    userData = userDataFromCache;
+  }
 
   if (!userData) {
     userData = { timestamps: [], punishedUntil: null };
@@ -261,7 +262,11 @@ export async function handleAntiSpam(message: Message) {
   if (reason) {
     // Immediately mark as punished and update cache to prevent race conditions
     userData.punishedUntil = Date.now() + settings.timeoutDuration;
-    antiSpamCache.set(cacheKey, userData);
+    await cacheService.set(
+      cacheKey,
+      JSON.stringify(userData),
+      config.antiSpam.inactiveUserThreshold
+    );
 
     await handleSpamAction(
       message,
@@ -272,6 +277,10 @@ export async function handleAntiSpam(message: Message) {
     );
   } else {
     // If no punishment, just update the timestamps
-    antiSpamCache.set(cacheKey, userData);
+    await cacheService.set(
+      cacheKey,
+      JSON.stringify(userData),
+      config.antiSpam.inactiveUserThreshold
+    );
   }
 }

@@ -11,7 +11,7 @@ import {
   addKeyword,
   removeKeyword,
   getKeywordsByGuild,
-} from "../../../shared/database/queries";
+} from "../../../repositories/admin.repository";
 import { flushKeywordsCacheForGuild } from "../../../shared/cache";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";

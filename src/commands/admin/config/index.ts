@@ -13,7 +13,7 @@ import {
   setAntiSpamLogChannel,
   upsertAntiSpamSettings,
   deleteAntiSpamSettings,
-} from "../../../shared/database/queries";
+} from "../../../repositories/admin.repository";
 import {
   flushAntiSpamSettingsForGuild,
   getAntiSpamSettingsForGuild,

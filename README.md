@@ -36,7 +36,6 @@
     *   `chart.js` / `canvas`: 圖表與圖片生成
     *   `discord-html-transcripts`: 聊天紀錄匯出
     *   `openai`: OpenAI API 整合
-    *   `node-cache`: 記憶體快取
 
 ## 快速開始
 
