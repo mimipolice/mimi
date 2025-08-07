@@ -1,59 +1,65 @@
-# Command: /report
-
-## Overview
-Generates a price report for assets, including a detailed analysis of a single asset and a list of all available assets.
+## Summary
+Generates a detailed market report for a specific asset, including a candlestick chart and key statistics, or lists all available assets for trading.
 
 ## Syntax
 ```
 /report <subcommand> [options]
 ```
 
-## Parameters
+## Subcommands
 
-### `list` Subcommand
-Lists all queryable assets and their latest price update time.
+### `symbol`
+Generates a price report for a specific asset.
+
+| Parameter | Type   | Description                                                                                             | Required |
+| :-------- | :----- | :------------------------------------------------------------------------------------------------------ | :--- |
+| `symbol`  | String | The asset symbol to query. Supports autocomplete to help you find the asset.                            | Yes      |
+| `range`   | String | The time range for the report (e.g., `24h`, `7d`, `1m`). Defaults to `7d` (7 days). | No       |
+
+### `list`
+Lists all available asset symbols and their names.
 
 | Parameter | Type | Description | Required |
 | :--- | :--- | :--- | :--- |
 | N/A | N/A | N/A | N/A |
 
-### `symbol` Subcommand
-Retrieves a detailed price report for a single asset within a specified time range.
-
-| Parameter | Type | Description | Required |
-| :--- | :--- | :--- | :--- |
-| `symbol` | String | The ticker symbol or name of the asset. Autocomplete is supported. | Yes |
-| `range` | String | The time range, e.g., `7d` (7 days), `1m` (1 month), `all` (all time). Defaults to `7d`. | No |
-
 ## Return Value
-- **`list`**: Returns a text message containing the symbols, names, and last update times of all assets.
-- **`symbol`**: Returns a Discord embed message containing:
-    - **Title**: The asset's name and symbol.
-    - **Summary**: Includes the highest, lowest, and average price.
-    - **Price Change**: Shows the current price, absolute price change, and percentage change.
-    - **Price Chart**: A visual chart of the price history.
+- **`/report symbol`**: A Discord Container message with a detailed market report, including:
+    - A candlestick chart image showing the price trend.
+    - Key statistics: highest price, lowest price, average price, and current price for the selected range.
+- **`/report list`**: A simple text message listing all available assets.
 
-## Description
-The `/report` command is a powerful tool for querying asset price information.
+## Detailed Description
+The `/report` command is a powerful tool for market analysis.
 
-- **`list`**: Provides a quick way to view all available assets in the system, allowing users to see what they can query.
-- **`symbol`**: This subcommand is the core feature. It fetches the price history for a specified asset from the database within a given time range and performs a statistical analysis. It calculates the highest, lowest, and average prices, as well as the price change relative to the starting point. Most importantly, it dynamically generates a price trend chart, allowing users to intuitively understand the price trend. The color of the left border of the returned message will change based on the price movement (green for an increase, red for a decrease).
+- **Smart Interval Selection**: When you specify a `range`, the bot intelligently determines the most appropriate candlestick interval (e.g., 1h, 4h, 1d) to display a clear and readable chart with an optimal number of data points. You don't need to worry about picking the interval yourself.
+- **Autocomplete**: The `symbol` parameter features autocomplete, suggesting assets as you type to make searching quick and easy.
+- **Supported Ranges**: The `range` parameter is flexible, accepting units like `h` (hours), `d` (days), `w` (weeks), `m` (months), and `y` (years). For example, `30d` for 30 days or `1y` for one year.
 
 ## Examples
-**List all available assets:**
+**To get a 7-day report for Bitcoin (BTC):**
+```
+/report symbol symbol: BTC
+```
+
+**To get a 24-hour report for Ethereum (ETH):**
+```
+/report symbol symbol: ETH range: 24h
+```
+
+**To get a 3-month report for Dogecoin (DOGE):**
+```
+/report symbol symbol: DOGE range: 3m
+```
+
+**To list all available assets:**
 ```
 /report list
 ```
 
-**Get the price report for the asset "MIMI" for the last month:**
-```
-/report symbol symbol: MIMI range: 1m
-```
+## Error Handling/Exceptions
+- **No Data**: If there is insufficient historical data for the requested asset and time range, the bot will return an error message.
+- **Invalid Symbol**: If the specified symbol does not exist.
 
-## Error Handling / Edge Cases
-- **Invalid Time Range**: The user provides an unparsable format for the `range` parameter.
-- **No Data Found**: No price data for the asset can be found within the specified time range.
-- **Chart Generation Failed**: An error occurred on the backend while generating the price chart.
-
-## Related
+## See Also
 - N/A

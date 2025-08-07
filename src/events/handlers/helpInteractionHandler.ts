@@ -1,10 +1,4 @@
-import {
-  Interaction,
-  GuildMember,
-  ButtonInteraction,
-  StringSelectMenuInteraction,
-  MessageComponentInteraction,
-} from "discord.js";
+import { GuildMember, MessageComponentInteraction } from "discord.js";
 import { Services } from "../../interfaces/Command";
 import {
   buildHelpEmbed,
@@ -75,7 +69,10 @@ export async function handleHelpInteraction(
       member,
       services
     );
-    await interaction.editReply(payload);
+    await interaction.editReply({
+      components: [payload.container, ...payload.components],
+      files: payload.files,
+    });
   } catch (error) {
     logger.error("Error updating help embed:", error);
     await interaction.editReply({

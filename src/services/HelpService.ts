@@ -80,6 +80,19 @@ export class HelpService {
     }
   }
 
+  public getCommandDocPath(command: Command, lang: "zh-TW" | "en-US"): string {
+    const category = command.filePath?.split(sep).slice(-3, -2)[0];
+    if (!category) return "";
+
+    return join(
+      process.cwd(),
+      "src/commands/help_docs",
+      lang,
+      category,
+      `${command.data.name}.md`
+    );
+  }
+
   public getCommandMention(commandName: string): string {
     const appCommand = this.appCommands.find((cmd) => cmd.name === commandName);
     return appCommand

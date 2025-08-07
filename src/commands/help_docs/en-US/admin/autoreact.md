@@ -1,5 +1,3 @@
- Command: /autoreact
-
 ## Summary
 Manages automatic message reactions in specific channels, allowing the bot to automatically add a specified emoji to new messages.
 

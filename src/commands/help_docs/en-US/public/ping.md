@@ -1,5 +1,3 @@
-# Command: /ping
-
 ## Summary
 Checks the bot's connection latency and replies with an interactive "Pong!" message.
 

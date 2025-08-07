@@ -1,5 +1,3 @@
-# Command: /keyword
-
 ## Summary
 Manages keyword-based auto-replies, allowing the bot to automatically send a preset message when a specific keyword is detected.
 

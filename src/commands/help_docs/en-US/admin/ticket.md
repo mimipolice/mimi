@@ -1,5 +1,3 @@
-# Command: /ticket
-
 ## Summary
 Manages ticket-related operations, including adding/removing members and purging all tickets.
 

@@ -1,5 +1,3 @@
-# Command: /odog
-
 ## Summary
 Displays the Odog gacha rankings for players, with options to filter by a specific gacha pool and time period.
 
@@ -27,7 +25,7 @@ The `/odog` command provides a leaderboard to check player luck and investment i
 
 - **Time Period (`period`)**: This parameter allows users to view rankings within a specific timeframe, such as `7d` for the last seven days, `30d` for the last thirty days, or `all` for the all-time rankings.
 - **Autocomplete**: The `gacha_id` parameter supports autocomplete. As the user types, it will dynamically suggest matching gacha pools, making it easy to select the correct one.
-- **Spoiler Tag**: To prevent spamming the channel or causing disputes, the reply is spoiler-tagged by default. Users must click to reveal the content.
+- **Spoiler Tag**: ~~To prevent spamming the channel or causing disputes, the reply is spoiler-tagged by default. Users must click to reveal the content.~~ Nah, I just think this feature is cool lol.
 
 ## Examples
 **To view the global rankings for the last 7 days:**

@@ -23,6 +23,10 @@ export default {
       member,
       services
     );
-    await interaction.editReply(payload);
+    await interaction.editReply({
+      components: [payload.container, ...payload.components],
+      files: payload.files,
+      flags: MessageFlags.IsComponentsV2,
+    });
   },
 } as Command;

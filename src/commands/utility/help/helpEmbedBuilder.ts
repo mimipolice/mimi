@@ -1,15 +1,20 @@
-import { MessageFlags } from "discord-api-types/v10";
 import {
-  EmbedBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
   GuildMember,
   APISelectMenuOption,
+  AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
 } from "discord.js";
 import { HelpService } from "../../../services/HelpService";
 import { Services } from "../../../interfaces/Command";
+import { markdownTableToImage } from "../../../utils/markdown-to-image";
 
 export interface HelpState {
   lang: "zh-TW" | "en-US";
@@ -24,55 +29,133 @@ export async function buildHelpEmbed(
   member: GuildMember | null,
   services: Services
 ) {
-  const embed = new EmbedBuilder().setColor("#0099ff");
+  const container = new ContainerBuilder().setAccentColor(0x0099ff);
   const components: ActionRowBuilder<any>[] = [];
+  const files: AttachmentBuilder[] = [];
 
-  const accessibleCategories = helpService.getAccessibleCategories(member);
+  const accessibleCategories = helpService
+    .getAccessibleCategories(member)
+    .filter((c) => c !== "user");
 
   // View: Home (Default)
   if (!state.view || state.view === "home") {
-    embed
-      .setTitle("Help Center")
-      .setDescription(
+    container.components.push(
+      new TextDisplayBuilder().setContent("# Help Center"),
+      new TextDisplayBuilder().setContent(
         "Welcome! Please select a category to see available commands."
-      );
+      )
+    );
   }
 
   // View: Category
   if (state.view === "category" && state.category) {
-    const commands = helpService.getAccessibleCommandsInCategory(
+    let commands = helpService.getAccessibleCommandsInCategory(
       state.category,
       member
     );
-    embed
-      .setTitle(`Category: ${state.category}`)
-      .setDescription(
-        commands.length > 0
-          ? "Select a command below to see its details.\n\n" +
-              commands
-                .map((cmd) => helpService.getCommandMention(cmd.data.name))
-                .join("\n")
-          : "You do not have permission to view any commands in this category."
+    if (state.category === "admin") {
+      commands = commands.filter((c) => c.data.name !== "user-info");
+    }
+    container.components.push(
+      new TextDisplayBuilder().setContent(`# Category: ${state.category}`)
+    );
+    if (commands.length > 0) {
+      container.components.push(
+        new TextDisplayBuilder().setContent(
+          "Select a command below to see its details."
+        ),
+        new SeparatorBuilder(),
+        new TextDisplayBuilder().setContent(
+          commands
+            .map((cmd) => helpService.getCommandMention(cmd.data.name))
+            .join("\n")
+        )
       );
+    } else {
+      container.components.push(
+        new TextDisplayBuilder().setContent(
+          "You do not have permission to view any commands in this category."
+        )
+      );
+    }
   }
 
   // View: Command
   if (state.view === "command" && state.category && state.command) {
     const command = helpService
       .getAccessibleCommandsInCategory(state.category, member)
+      .filter((c) => c.data.name !== "user-info")
       .find((c) => c.data.name === state.command);
 
     if (command) {
-      const docContent = await helpService.getCommandDoc(command, state.lang);
+      const docPath = helpService.getCommandDocPath(command, state.lang);
+      let docContent = await helpService.getCommandDoc(command, state.lang);
       const mention = helpService.getCommandMention(command.data.name);
-      embed.setTitle(`Command: ${mention}`).setDescription(docContent);
+
+      container.components.push(
+        new TextDisplayBuilder().setContent(`# Command: ${mention}`)
+      );
+
+      const tableRegex = /\|.*?\r?\n\|.*?\r?\n(?:\|.*?\r?\n)*/g;
+      const tables = docContent.match(tableRegex);
+      const placeholders: string[] = [];
+
+      if (tables) {
+        for (let i = 0; i < tables.length; i++) {
+          const tableMarkdown = tables[i];
+          const placeholder = `__TABLE_PLACEHOLDER_${i}__`;
+          placeholders.push(placeholder);
+          docContent = docContent.replace(tableMarkdown, placeholder);
+
+          try {
+            const imageBuffer = await markdownTableToImage(
+              tableMarkdown,
+              docPath,
+              i
+            );
+            const attachmentName = `table-${i}.png`;
+            const attachment = new AttachmentBuilder(imageBuffer, {
+              name: attachmentName,
+            });
+            files.push(attachment);
+          } catch (error) {
+            console.error("Failed to generate table image:", error);
+            // If image generation fails, replace placeholder with original table
+            docContent = docContent.replace(placeholder, tableMarkdown);
+          }
+        }
+      }
+
+      const contentParts = docContent.split(/(__TABLE_PLACEHOLDER_\d+__)/);
+      let imageIndex = 0;
+
+      for (const part of contentParts) {
+        if (placeholders.includes(part)) {
+          const attachmentName = `table-${imageIndex}.png`;
+          if (files.some((f) => f.name === attachmentName)) {
+            container.components.push(
+              new MediaGalleryBuilder().addItems(
+                new MediaGalleryItemBuilder().setURL(
+                  `attachment://${attachmentName}`
+                )
+              )
+            );
+            imageIndex++;
+          }
+        } else if (part.trim()) {
+          container.components.push(
+            new TextDisplayBuilder().setContent(part.trim())
+          );
+        }
+      }
     } else {
-      embed
-        .setTitle("Error")
-        .setDescription(
+      container.components.push(
+        new TextDisplayBuilder().setContent("# Error"),
+        new TextDisplayBuilder().setContent(
           "Command not found or you do not have permission to view it."
         )
-        .setColor("Red");
+      );
+      container.setAccentColor(0xff0000); // Red
     }
   }
 
@@ -101,10 +184,13 @@ export async function buildHelpEmbed(
     (state.view === "category" || state.view === "command") &&
     state.category
   ) {
-    const commands = helpService.getAccessibleCommandsInCategory(
+    let commands = helpService.getAccessibleCommandsInCategory(
       state.category,
       member
     );
+    if (state.category === "admin") {
+      commands = commands.filter((c) => c.data.name !== "user-info");
+    }
     const commandOptions: APISelectMenuOption[] = commands.map((cmd) => ({
       label: `/${cmd.data.name}`,
       value: cmd.data.name,
@@ -145,5 +231,5 @@ export async function buildHelpEmbed(
   );
   components.push(buttonRow);
 
-  return { embeds: [embed], components };
+  return { container, components, files };
 }

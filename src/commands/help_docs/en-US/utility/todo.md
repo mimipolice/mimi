@@ -1,5 +1,3 @@
-# Command: /todo
-
 ## Summary
 Manages your personal to-do list.
 

@@ -1,5 +1,3 @@
-# Command: /panel
-
 ## Summary
 Manages the interactive panel for the ticket system, including setup, adding/removing ticket types, listing types, and customizing appearance.
 
