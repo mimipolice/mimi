@@ -105,14 +105,18 @@ export function buildSummaryText(
         t("responses.data_points", {
           count: data.rawDataPointCount.toString(),
         }),
-        t("responses.time_span", {
-          start: moment(data.startTime).format("YYYY-MM-DD HH:mm:ss"),
-          end: moment(data.endTime).format("YYYY-MM-DD HH:mm:ss"),
-          duration: data.durationHuman,
-        }),
       ];
       break;
   }
+
+  // 在所有視圖的底部添加時間區間
+  content.push(
+    t("responses.time_span", {
+      start: moment(data.startTime).format("YYYY-MM-DD HH:mm:ss"),
+      end: moment(data.endTime).format("YYYY-MM-DD HH:mm:ss"),
+      duration: data.durationHuman,
+    })
+  );
 
   return new TextDisplayBuilder().setContent(content.join("\n"));
 }
