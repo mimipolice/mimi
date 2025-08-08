@@ -106,6 +106,6 @@ export async function execute(
       // No success recording for autocomplete
     }
   } catch (error) {
-    errorHandler.handleInteractionError(interaction, error, client);
+    errorHandler.handleInteractionError(interaction, error, client, services);
   }
 }

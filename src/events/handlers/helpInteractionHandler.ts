@@ -20,7 +20,9 @@ export async function handleHelpInteraction(
   const originalUserId = parts.length > 2 ? parts[parts.length - 1] : null;
 
   if (originalUserId && interaction.user.id !== originalUserId) {
-    await interaction.followUp(createUnauthorizedReply(interaction));
+    await interaction.followUp(
+      createUnauthorizedReply(services.localizationManager, interaction)
+    );
     return;
   }
 

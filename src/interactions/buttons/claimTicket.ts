@@ -71,7 +71,11 @@ export default {
     } catch (error) {
       if (error instanceof BusinessError) {
         return interaction.reply(
-          createBusinessErrorReply(interaction, error.message)
+          createBusinessErrorReply(
+            services.localizationManager,
+            interaction,
+            error.message
+          )
         );
       }
       throw error;

@@ -2,15 +2,16 @@ import { InteractionReplyOptions } from "discord.js";
 import { createReply } from "./replyHelper";
 import { LocalizationManager } from "../services/LocalizationManager";
 
-const localizationManager = new LocalizationManager();
-
 function getLocale(interaction: { locale: string }): string {
   return interaction.locale;
 }
 
-export function createUnauthorizedReply(interaction: {
-  locale: string;
-}): InteractionReplyOptions {
+export function createUnauthorizedReply(
+  localizationManager: LocalizationManager,
+  interaction: {
+    locale: string;
+  }
+): InteractionReplyOptions {
   return createReply(
     localizationManager,
     "unauthorized",
@@ -19,6 +20,7 @@ export function createUnauthorizedReply(interaction: {
 }
 
 export function createBusinessErrorReply(
+  localizationManager: LocalizationManager,
   interaction: { locale: string },
   message: string
 ): InteractionReplyOptions {
@@ -31,6 +33,7 @@ export function createBusinessErrorReply(
 }
 
 export function createCheckFailureReply(
+  localizationManager: LocalizationManager,
   interaction: { locale: string },
   message: string
 ): InteractionReplyOptions {
@@ -43,6 +46,7 @@ export function createCheckFailureReply(
 }
 
 export function createCooldownReply(
+  localizationManager: LocalizationManager,
   interaction: { locale: string },
   remaining: number
 ): InteractionReplyOptions {
@@ -51,9 +55,12 @@ export function createCooldownReply(
   });
 }
 
-export function createInternalErrorReply(interaction: {
-  locale: string;
-}): InteractionReplyOptions {
+export function createInternalErrorReply(
+  localizationManager: LocalizationManager,
+  interaction: {
+    locale: string;
+  }
+): InteractionReplyOptions {
   return createReply(
     localizationManager,
     "internalError",
@@ -61,9 +68,12 @@ export function createInternalErrorReply(interaction: {
   );
 }
 
-export function createAutoModBlockedReply(interaction: {
-  locale: string;
-}): InteractionReplyOptions {
+export function createAutoModBlockedReply(
+  localizationManager: LocalizationManager,
+  interaction: {
+    locale: string;
+  }
+): InteractionReplyOptions {
   return createReply(
     localizationManager,
     "autoModBlocked",
@@ -71,9 +81,12 @@ export function createAutoModBlockedReply(interaction: {
   );
 }
 
-export function createDiscordErrorReply(interaction: {
-  locale: string;
-}): InteractionReplyOptions {
+export function createDiscordErrorReply(
+  localizationManager: LocalizationManager,
+  interaction: {
+    locale: string;
+  }
+): InteractionReplyOptions {
   return createReply(
     localizationManager,
     "discordError",
@@ -81,9 +94,12 @@ export function createDiscordErrorReply(interaction: {
   );
 }
 
-export function createMissingPermissionsReply(interaction: {
-  locale: string;
-}): InteractionReplyOptions {
+export function createMissingPermissionsReply(
+  localizationManager: LocalizationManager,
+  interaction: {
+    locale: string;
+  }
+): InteractionReplyOptions {
   return createReply(
     localizationManager,
     "missingPermissions",

@@ -13,7 +13,6 @@ import { CacheService } from "./CacheService";
 
 export class PriceAlerter {
   private client: Client;
-  private interval: NodeJS.Timeout | null = null;
   private localizationManager: LocalizationManager;
   private cacheService: CacheService;
 
@@ -23,22 +22,7 @@ export class PriceAlerter {
     this.cacheService = new CacheService();
   }
 
-  public start(checkIntervalMs: number = 120000) {
-    if (this.interval) {
-      this.stop();
-    }
-    this.interval = setInterval(() => this.checkAlerts(), checkIntervalMs);
-  }
-
-  public stop() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = null;
-      logger.info("PriceAlerter stopped.");
-    }
-  }
-
-  private async checkAlerts() {
+  public async checkAlerts() {
     try {
       let priceMap = await this.cacheService.get<Map<string, number>>(
         "prices:latest"
@@ -52,7 +36,10 @@ export class PriceAlerter {
         await this.cacheService.set("prices:latest", priceMap, 60);
       }
 
-      const alerts = await getAllPriceAlerts();
+      // Since this is now event-driven, we can check for any alert
+      // that hasn't been notified in the last minute to avoid spam,
+      // but still be highly responsive. A 60-second cooldown is reasonable.
+      const alerts = await getAllPriceAlerts(60);
       if (alerts.length === 0) {
         return;
       }

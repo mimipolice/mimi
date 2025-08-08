@@ -448,7 +448,12 @@ export default {
         });
       }
     } catch (error) {
-      errorHandler.handleInteractionError(interaction, error, _client);
+      errorHandler.handleInteractionError(
+        interaction,
+        error,
+        _client,
+        services
+      );
     }
   },
 };

@@ -44,9 +44,10 @@ export const command: Command = {
   async execute(
     interaction: UserContextMenuCommandInteraction,
     _client,
-    { localizationManager }: Services,
+    services: Services,
     _databases: Databases
   ) {
+    const { localizationManager } = services;
     const translations = getLocalizations(localizationManager, "userinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.targetUser;
@@ -429,7 +430,12 @@ export const command: Command = {
           });
         }
       } catch (error) {
-        errorHandler.handleInteractionError(i, error, interaction.client);
+        errorHandler.handleInteractionError(
+          i,
+          error,
+          interaction.client,
+          services
+        );
       }
     });
 

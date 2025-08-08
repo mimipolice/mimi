@@ -366,7 +366,9 @@ export async function removePriceAlert(
   return result.numDeletedRows;
 }
 
-export async function getAllPriceAlerts(): Promise<PriceAlert[]> {
+export async function getAllPriceAlerts(
+  notificationIntervalSeconds: number = 3600
+): Promise<PriceAlert[]> {
   return await mimiDLCDb
     .selectFrom("price_alerts")
     .selectAll()
@@ -375,7 +377,9 @@ export async function getAllPriceAlerts(): Promise<PriceAlert[]> {
         eb("last_notified_at", "is", null),
         eb.and([
           eb("repeatable", "=", true),
-          sql<boolean>`last_notified_at < NOW() - INTERVAL '1 hour'`,
+          sql<boolean>`last_notified_at < NOW() - INTERVAL '${sql.raw(
+            `${notificationIntervalSeconds} seconds`
+          )}'`,
         ]),
       ])
     )

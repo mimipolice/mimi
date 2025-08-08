@@ -48,7 +48,9 @@ export default {
         interaction.message.interaction?.user.id &&
         interaction.user.id !== interaction.message.interaction.user.id
       ) {
-        return interaction.reply(createUnauthorizedReply(interaction));
+        return interaction.reply(
+          createUnauthorizedReply(services.localizationManager, interaction)
+        );
       }
 
       await interaction.deferUpdate();
@@ -239,7 +241,12 @@ export default {
         files: [attachment],
       });
     } catch (error) {
-      errorHandler.handleInteractionError(interaction, error, _client);
+      errorHandler.handleInteractionError(
+        interaction,
+        error,
+        _client,
+        services
+      );
     }
   },
 };

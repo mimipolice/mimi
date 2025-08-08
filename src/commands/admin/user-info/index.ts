@@ -53,8 +53,9 @@ export const command: Command = {
   async execute(
     interaction: ChatInputCommandInteraction,
     client,
-    { localizationManager }: Services
+    services: Services
   ) {
+    const { localizationManager } = services;
     const translations = getLocalizations(localizationManager, "userinfo");
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
@@ -358,7 +359,12 @@ export const command: Command = {
           });
         }
       } catch (error) {
-        errorHandler.handleInteractionError(i, error, interaction.client);
+        errorHandler.handleInteractionError(
+          i,
+          error,
+          interaction.client,
+          services
+        );
       }
     });
 

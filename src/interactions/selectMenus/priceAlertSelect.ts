@@ -9,10 +9,11 @@ import logger from "../../utils/logger";
 import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
+import { Services } from "../../interfaces/Command";
 
 export default {
   name: "pricealert-select",
-  async execute(interaction: StringSelectMenuInteraction) {
+  async execute(interaction: StringSelectMenuInteraction, services: Services) {
     try {
       const [_, condition, targetPriceStr, originalUserId] =
         interaction.customId.split(":");
@@ -21,7 +22,9 @@ export default {
       const userId = interaction.user.id;
 
       if (originalUserId && userId !== originalUserId) {
-        await interaction.reply(createUnauthorizedReply(interaction));
+        await interaction.reply(
+          createUnauthorizedReply(services.localizationManager, interaction)
+        );
         return;
       }
 

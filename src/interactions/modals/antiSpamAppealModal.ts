@@ -17,14 +17,16 @@ const settingsManager = new AntiSpamSettingsManager(mimiDLCDb);
 
 const modal: Modal = {
   name: "anti_spam_appeal_modal",
-  execute: async (interaction: ModalSubmitInteraction) => {
+  execute: async (interaction: ModalSubmitInteraction, services: any) => {
     if (!interaction.isModalSubmit()) return;
 
     const { customId, client } = interaction;
     const [, userId, guildId, messageId] = customId.split(":");
 
     if (interaction.user.id !== userId) {
-      await interaction.reply(createUnauthorizedReply(interaction));
+      await interaction.reply(
+        createUnauthorizedReply(services.localizationManager, interaction)
+      );
       return;
     }
 

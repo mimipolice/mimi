@@ -23,7 +23,9 @@ export default {
     const originalUserId = parts[1];
 
     if (interaction.user.id !== originalUserId) {
-      await interaction.followUp(createUnauthorizedReply(interaction));
+      await interaction.followUp(
+        createUnauthorizedReply(services.localizationManager, interaction)
+      );
       return;
     }
 

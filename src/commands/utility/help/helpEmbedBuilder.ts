@@ -15,6 +15,8 @@ import {
 import { HelpService } from "../../../services/HelpService";
 import { Services } from "../../../interfaces/Command";
 import { markdownTableToImage } from "../../../utils/markdown-to-image";
+import { config } from "process";
+import Config from "../../../config";
 
 export interface HelpState {
   lang: "zh-TW" | "en-US";
@@ -226,9 +228,15 @@ export async function buildHelpEmbed(
     .setLabel(`Switch to ${otherLang === "en-US" ? "English" : "繁體中文"}`)
     .setStyle(ButtonStyle.Secondary);
 
+  const supportServer = new ButtonBuilder()
+    .setLabel("Support Server")
+    .setURL(Config.resources.links.supportServer)
+    .setStyle(ButtonStyle.Link);
+
   const buttonRow = new ActionRowBuilder().addComponents(
     homeButton,
-    langButton
+    langButton,
+    supportServer
   );
   components.push(buttonRow);
 

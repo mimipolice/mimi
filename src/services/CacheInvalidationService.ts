@@ -8,6 +8,7 @@ import redisClient from "../shared/redis";
 import logger from "../utils/logger";
 import { CacheService } from "./CacheService";
 import { ChartCacheService } from "./ChartCacheService";
+import { PriceAlerter } from "./PriceAlerter";
 
 const CHART_CACHE_DIR = path.join(process.cwd(), ".cache", "charts");
 
@@ -15,10 +16,12 @@ export class CacheInvalidationService {
   private listenClient: PoolClient | null = null;
   private cacheService: CacheService;
   private chartCacheService: ChartCacheService;
+  private priceAlerter: PriceAlerter;
 
-  constructor() {
+  constructor(priceAlerter: PriceAlerter) {
     this.cacheService = new CacheService();
     this.chartCacheService = new ChartCacheService();
+    this.priceAlerter = priceAlerter;
     logger.info("[CacheInvalidator] Service initialized.");
   }
 
@@ -31,11 +34,15 @@ export class CacheInvalidationService {
       );
 
       this.listenClient.on("notification", (msg) => {
-        if (msg.payload) {
+        if (msg.channel === "cache_invalidation" && msg.payload) {
           logger.debug(
-            `[CacheInvalidator] Received notification for symbol: ${msg.payload}`
+            `[CacheInvalidator] Received 'cache_invalidation' for symbol: ${msg.payload}. Invalidating cache and checking price alerts.`
           );
           this.invalidateCacheForSymbol(msg.payload);
+          // We add a small delay to ensure the transaction that triggered the notification is committed.
+          setTimeout(() => {
+            this.priceAlerter.checkAlerts();
+          }, 1000);
         }
       });
 

@@ -266,10 +266,8 @@ async function main() {
     logger.info(`Logged in as ${client.user.tag}!`);
     client.user.setActivity("米米><", { type: ActivityType.Custom });
     await services.helpService.initialize();
-    priceAlerter.start();
-
     // Start the cache invalidation listener
-    const cacheInvalidator = new CacheInvalidationService();
+    const cacheInvalidator = new CacheInvalidationService(priceAlerter);
     cacheInvalidator.startListening();
   });
 }

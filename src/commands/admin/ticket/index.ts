@@ -96,7 +96,10 @@ export const command: Command = {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)
       ) {
-        const replyOptions = createMissingPermissionsReply(interaction);
+        const replyOptions = createMissingPermissionsReply(
+          localizationManager,
+          interaction
+        );
         await interaction.editReply({ embeds: replyOptions.embeds });
         return;
       }
