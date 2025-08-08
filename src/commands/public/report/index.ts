@@ -8,6 +8,9 @@ import {
   Locale,
   AttachmentBuilder,
   MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from "discord.js";
 import { getOhlcPriceHistory } from "../../../repositories/asset.repository";
 import assetList from "../../../config/asset-list.json";
@@ -22,10 +25,24 @@ import {
   MediaGalleryItemBuilder,
 } from "@discordjs/builders";
 import { Services, Databases } from "../../../interfaces/Command";
+import moment from "moment";
+import { buildSummaryText } from "./summaryBuilder";
+import { ChartCacheService } from "../../../services/ChartCacheService";
 
 interface Asset {
   asset_symbol: string;
   asset_name: string;
+}
+
+function formatPrice(value: number): string {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatPercent(value: number): string {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
 }
 
 // NEW: K線週期設定，方便開發時調整
@@ -95,6 +112,113 @@ function determineInterval(range: string): { seconds: number; label: string } {
     }
   }
   return bestFit;
+}
+
+// Helper function to get report data, with caching
+export async function getReportData(
+  symbol: string,
+  range: string,
+  services: Services
+) {
+  const cacheKey = `report-data:${symbol}:${range}`;
+  const cachedData = await services.cacheService.get<any>(cacheKey);
+  if (cachedData) {
+    // Manually convert date strings back to Date objects
+    cachedData.history.forEach((point: any) => {
+      point.timestamp = new Date(point.timestamp);
+    });
+    return cachedData;
+  }
+
+  const { seconds: intervalSeconds, label: intervalLabel } =
+    determineInterval(range);
+  const { ohlcData: history, rawDataPointCount } = await getOhlcPriceHistory(
+    symbol,
+    range,
+    intervalSeconds
+  );
+
+  if (history.length < 2) {
+    return null;
+  }
+
+  const latestOhlc = history[history.length - 1];
+  const prevOhlc = history[history.length - 2];
+  const change = latestOhlc.close - prevOhlc.close;
+  const changePercent =
+    prevOhlc.close === 0 ? 0 : (change / prevOhlc.close) * 100;
+
+  const firstOhlc = history[0];
+  const startPrice = firstOhlc.open;
+  const endPrice = latestOhlc.close;
+  const totalChangeValue = endPrice - startPrice;
+  const totalChangePercent =
+    startPrice === 0 ? 0 : (totalChangeValue / startPrice) * 100;
+
+  const highRecord = history.reduce((max, p) => (p.high > max.high ? p : max));
+  const lowRecord = history.reduce((min, p) => (p.low < min.low ? p : min));
+  const overallHigh = highRecord.high;
+  const overallLow = lowRecord.low;
+  const highTimestamp = Math.floor(highRecord.timestamp.getTime() / 1000);
+  const lowTimestamp = Math.floor(lowRecord.timestamp.getTime() / 1000);
+
+  const avgPrice =
+    history.reduce((acc, c) => acc + (c.high + c.low) / 2, 0) / history.length;
+  const volatilityValue = overallHigh - overallLow;
+  const volatilityPercent =
+    avgPrice === 0 ? 0 : (volatilityValue / avgPrice) * 100;
+
+  const startTime = moment(firstOhlc.timestamp);
+  const endTime = moment(latestOhlc.timestamp);
+  const duration = moment.duration(endTime.diff(startTime));
+  const durationHuman = duration.humanize();
+
+  const totalVolume = history.reduce((acc, c) => acc + c.volume, 0);
+  const avgVolume = totalVolume / history.length;
+  const highVolumeRecord = history.reduce((max, p) =>
+    p.volume > max.volume ? p : max
+  );
+  const lowVolumeRecord = history.reduce((min, p) =>
+    p.volume < min.volume ? p : min
+  );
+  const highVolumeTimestamp = Math.floor(
+    highVolumeRecord.timestamp.getTime() / 1000
+  );
+  const lowVolumeTimestamp = Math.floor(
+    lowVolumeRecord.timestamp.getTime() / 1000
+  );
+
+  const reportData = {
+    history,
+    rawDataPointCount,
+    intervalLabel,
+    latestOhlc,
+    change,
+    changePercent,
+    startPrice,
+    endPrice,
+    totalChangeValue,
+    totalChangePercent,
+    overallHigh,
+    overallLow,
+    highTimestamp,
+    lowTimestamp,
+    avgPrice,
+    volatilityValue,
+    volatilityPercent,
+    startTime: startTime.toISOString(), // Store as ISO string for JSON compatibility
+    endTime: endTime.toISOString(),
+    durationHuman,
+    totalVolume,
+    avgVolume,
+    highVolumeRecord,
+    lowVolumeRecord,
+    highVolumeTimestamp,
+    lowVolumeTimestamp,
+  };
+
+  await services.cacheService.set(cacheKey, reportData, 900); // 15 minute TTL
+  return reportData;
 }
 
 export default {
@@ -188,32 +312,27 @@ export default {
         const symbol = interaction.options.getString("symbol", true);
         const range = interaction.options.getString("range") ?? "7d";
 
-        // CHANGED: 呼叫新的智慧判斷函數
-        const { seconds: intervalSeconds, label: intervalLabel } =
-          determineInterval(range);
+        const data = await getReportData(symbol, range, services);
 
-        // ... 後續邏輯完全相同 ...
-        const history = await getOhlcPriceHistory(
-          symbol,
-          range,
-          intervalSeconds
-        );
-        const assetName =
-          assetList.find((a: Asset) => a.asset_symbol === symbol)?.asset_name ||
-          symbol;
-
-        if (history.length < 2) {
+        if (!data) {
           await interaction.editReply(
             t.responses.no_data.replace("{{symbol}}", symbol)
           );
           return;
         }
 
-        const latestOhlc = history[history.length - 1];
-        const prevOhlc = history[history.length - 2];
-        const change = latestOhlc.close - prevOhlc.close;
-        const changePercent =
-          prevOhlc.close === 0 ? 0 : (change / prevOhlc.close) * 100;
+        const {
+          history,
+          intervalLabel,
+          latestOhlc,
+          change,
+          changePercent,
+          totalChangeValue,
+        } = data;
+
+        const assetName =
+          assetList.find((a: Asset) => a.asset_symbol === symbol)?.asset_name ||
+          symbol;
 
         const chartBuffer = await generateCandlestickChart(
           history,
@@ -222,45 +341,70 @@ export default {
           { latestOhlc, change, changePercent },
           true
         );
-        const attachment = new AttachmentBuilder(chartBuffer, {
+
+        // NEW: Cache the chart image to the filesystem
+        const chartCacheService = new ChartCacheService();
+        const chartCacheKey = `report-chart:${symbol}:${range}`;
+        const chartPath = await chartCacheService.saveChart(
+          chartCacheKey,
+          chartBuffer
+        );
+
+        if (!chartPath) {
+          // Handle error if chart saving fails
+          await interaction.editReply(t.responses.chart_error);
+          return;
+        }
+
+        const attachment = new AttachmentBuilder(chartPath, {
           name: "price-chart.png",
         });
 
-        const overallHigh = Math.max(...history.map((c) => c.high));
-        const overallLow = Math.min(...history.map((c) => c.low));
-        const avgPrice =
-          history.reduce((acc, c) => acc + (c.high + c.low) / 2, 0) /
-          history.length;
-        const overallChange = latestOhlc.close - history[0].open;
-        const color = overallChange >= 0 ? 0x22c55e : 0xef4444;
+        const color = totalChangeValue >= 0 ? 0x22c55e : 0xef4444;
+
+        // Create a t-function that matches the builder's expectation
+        const tFunc = (
+          key: string,
+          replacements?: { [key: string]: string | number }
+        ) => {
+          let translation = t.responses[key.split(".")[1]];
+          if (replacements) {
+            for (const [k, v] of Object.entries(replacements)) {
+              translation = translation.replace(`{{${k}}}`, String(v));
+            }
+          }
+          return translation;
+        };
 
         const container = new ContainerBuilder();
         container.setAccentColor(color);
 
         const title = new TextDisplayBuilder().setContent(
-          `# ${assetName} (${symbol})`
+          t.responses.report_title.replace("{{assetName}}", assetName)
         );
-        const rangeText = new TextDisplayBuilder().setContent(
-          `> ${t.responses.report_range.replace("{{range}}", range)}`
+        const lastUpdated = new TextDisplayBuilder().setContent(
+          t.responses.last_updated.replace(
+            "{{timestamp}}",
+            Math.floor(Date.now() / 1000).toString()
+          )
         );
-        const summaryText = new TextDisplayBuilder().setContent(
-          `${t.responses.summary_high.replace(
-            "{{price}}",
-            overallHigh.toFixed(2)
-          )}\n` +
-            `${t.responses.summary_low.replace(
-              "{{price}}",
-              overallLow.toFixed(2)
-            )}\n` +
-            `${t.responses.summary_avg.replace(
-              "{{price}}",
-              avgPrice.toFixed(2)
-            )}\n` +
-            `${t.responses.summary_now.replace(
-              "{{price}}",
-              latestOhlc.close.toFixed(2)
-            )}`
+
+        const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`report-price-${symbol}-${range}`)
+            .setLabel(t.responses.button_price_analysis)
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(true),
+          new ButtonBuilder()
+            .setCustomId(`report-detailed-${symbol}-${range}`)
+            .setLabel(t.responses.button_detailed_price)
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`report-volume-${symbol}-${range}`)
+            .setLabel(t.responses.button_volume_analysis)
+            .setStyle(ButtonStyle.Secondary)
         );
+
         const chartImage = new MediaGalleryBuilder().addItems(
           (item: MediaGalleryItemBuilder) =>
             item
@@ -273,11 +417,20 @@ export default {
               )
         );
 
+        const priceSummary = new TextDisplayBuilder().setContent(
+          `## ${formatPrice(data.latestOhlc.close)} ${formatPercent(
+            data.change
+          )} (${formatPercent(data.changePercent)}%)`
+        );
+
         container.components.push(
           title,
-          rangeText,
+          lastUpdated,
+          priceSummary,
           new SeparatorBuilder(),
-          summaryText,
+          buildSummaryText("price", tFunc, data),
+          new SeparatorBuilder(),
+          buttons,
           new SeparatorBuilder(),
           chartImage
         );

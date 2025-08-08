@@ -22,6 +22,8 @@ import appealButton from "./features/anti-spam/appealButton";
 import { DiscordService } from "./services/DiscordService";
 import { ForumService } from "./services/ForumService";
 import { MessageForwardingService } from "./services/MessageForwardingService";
+import { CacheService } from "./services/CacheService";
+import { CacheInvalidationService } from "./services/CacheInvalidationService";
 
 const pool = new Pool({
   host: process.env.DB_GACHA_HOST,
@@ -104,6 +106,7 @@ async function main() {
   const helpService = new HelpService(client);
   const forumService = new ForumService();
   const messageForwardingService = new MessageForwardingService(client);
+  const cacheService = new CacheService();
 
   const services: Services = {
     settingsManager,
@@ -112,6 +115,7 @@ async function main() {
     helpService,
     forumService,
     messageForwardingService,
+    cacheService,
   };
   const databases: Databases = {
     gachaDb: gachaDB,
@@ -263,6 +267,10 @@ async function main() {
     client.user.setActivity("米米><", { type: ActivityType.Custom });
     await services.helpService.initialize();
     priceAlerter.start();
+
+    // Start the cache invalidation listener
+    const cacheInvalidator = new CacheInvalidationService();
+    cacheInvalidator.startListening();
   });
 }
 

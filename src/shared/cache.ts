@@ -44,7 +44,7 @@ async function loadGachaPools() {
       gacha_name: name,
       gacha_name_alias: name,
     }));
-    logger.debug(`Successfully cached ${gachaPoolsCache.length} gacha pools.`);
+    logger.info(`Successfully cached ${gachaPoolsCache.length} gacha pools.`);
   } catch (error) {
     logger.error("Failed to load and cache gacha pools:", error);
   }

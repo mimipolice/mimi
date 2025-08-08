@@ -3,6 +3,7 @@ import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
 import { handleHelpInteraction } from "./handlers/helpInteractionHandler";
+import reportViewHandler from "../interactions/buttons/reportView";
 
 export const name = "interactionCreate";
 
@@ -43,6 +44,16 @@ export async function execute(
         client,
         interaction,
         interaction.commandName
+      );
+    } else if (
+      interaction.isButton() &&
+      interaction.customId.startsWith("report-")
+    ) {
+      await reportViewHandler.execute(interaction, client, services, databases);
+      errorHandler.recordSuccessfulCommand(
+        client,
+        interaction,
+        interaction.customId
       );
     } else if (interaction.isButton()) {
       const button = client.buttons.find((b) => {

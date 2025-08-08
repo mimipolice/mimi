@@ -39,14 +39,16 @@ export class CacheService {
     }
   }
 
-  // 刪除一個 key
-  public async del(key: string): Promise<void> {
+  // 刪除一個或多個 key
+  public async del(keys: string | string[]): Promise<void> {
     if (!redisClient) return;
     try {
-      await redisClient.del(key);
-      logger.info(`[Cache] DELETED for ${key}`);
+      await redisClient.del(keys);
+      const keysToDelete = Array.isArray(keys) ? keys.join(", ") : keys;
+      logger.debug(`[Cache] DELETED for ${keysToDelete}`);
     } catch (error) {
-      logger.error(`[Cache] Error DEL for ${key}:`, error);
+      const keysToDelete = Array.isArray(keys) ? keys.join(", ") : keys;
+      logger.error(`[Cache] Error DEL for ${keysToDelete}:`, error);
     }
   }
 

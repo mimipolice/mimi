@@ -407,7 +407,7 @@ export async function getOhlcPriceHistory(
   symbol: string,
   timeRange: string,
   intervalSeconds: number
-): Promise<OhlcData[]> {
+): Promise<{ ohlcData: OhlcData[]; rawDataPointCount: number }> {
   // Helper function to apply time range filter
   const applyTimeRange = (query: any, timestampColumn: string) => {
     if (timeRange !== "all") {
@@ -492,7 +492,11 @@ export async function getOhlcPriceHistory(
     }
   }
 
-  return Array.from(ohlcMap.values()).sort(
+  const ohlcData = Array.from(ohlcMap.values()).sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
   );
+  return {
+    ohlcData,
+    rawDataPointCount: priceHistory.length,
+  };
 }
