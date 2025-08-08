@@ -25,8 +25,8 @@ Chart.register(
 
 // NEW: Configurable chart defaults
 const CHART_DEFAULTS = {
-  WIDTH: 800,
-  HEIGHT: 450,
+  WIDTH: 900,
+  HEIGHT: 506.25,
 };
 
 interface OhlcData {

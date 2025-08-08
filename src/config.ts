@@ -44,6 +44,19 @@ const config = {
     memoryCleanupInterval: 60 * 60 * 1000, // 1 hour
     inactiveUserThreshold: 2 * 60 * 60 * 1000, // 2 hours
   },
+  resources: {
+    images: {
+      close:
+        "https://cdn.discordapp.com/attachments/1336020673730187334/1395531660908433418/close.png?ex=68967923&is=689527a3&hm=6dbfd3b01df5fe9d8a94076d9957a657485390d019f646ceff7bbe9db6f6a7c8&",
+      thumbnail:
+        "https://cdn.discordapp.com/attachments/1336020673730187334/1395531136079237141/1388098388058181723.webp?ex=689678a6&is=68952726&hm=85a1ae75b464eed605d8359bd3be3897dde8568362bc58a11e84a73baca91945&",
+      sandClock:
+        "https://cdn.discordapp.com/attachments/1336020673730187334/1395754284453335071/sand-clock.png?ex=689749a8&is=6895f828&hm=f252575c8f88f13a435a331d84b8893abf16a43748c4f4106661377e992a075c&",
+    },
+    links: {
+      supportServer: "https://discord.gg/kDua5dDt4v",
+    },
+  },
   // We will add feature-specific configs here later
   // e.g., odog, stock channels
 };

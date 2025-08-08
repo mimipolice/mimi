@@ -1,0 +1,44 @@
+{
+  "unauthorized": {
+    "author": "嗚哦！操作失敗。",
+    "description": "您無法操作此介面！",
+    "footer": "不要玩別人的界面！ 눈_눈"
+  },
+  "businessError": {
+    "author": "嗚哦！操作失敗。",
+    "description": "⚠️ {message}"
+  },
+  "checkFailure": {
+    "author": "嗚哦！操作失敗。",
+    "description": "❌ {message}"
+  },
+  "cooldown": {
+    "author": "冷卻中...",
+    "description": "⏰ 指令冷卻中，請等待 {remaining} 秒後再使用。",
+    "footer": "給 我 慢 一 點！！！！ 那麼快幹什麼阿 真是的 ヽ(`Д´)ノ"
+  },
+  "internalError": {
+    "author": "嗚哦！發生錯誤。",
+    "description": "❌ 處理您的請求時發生了未知的內部錯誤，我們已收到通知並會盡快處理。",
+    "footer": "截圖一下操作界面去官方支援群開單 謝謝尼<3"
+  },
+  "autoModBlocked": {
+    "author": "嗚哦！操作失敗。",
+    "description": "❌ 您的請求內容被 Discord AutoMod 攔截了，請調整後再試。",
+    "footer": "搞什麼阿 真是的 (#`Д´)ﾉ"
+  },
+  "discordError": {
+    "author": "嗚哦！操作失敗。",
+    "description": "❌ 處理請求時發生 Discord 錯誤，請稍後再試。",
+    "footer": "截圖一下操作界面去官方支援群開單 謝謝尼 (*´∀`)~♥"
+  },
+  "missingPermissions": {
+    "author": "嗚哦！權限不足。",
+    "description": "您沒有執行此操作所需的權限！",
+    "footer": "你需要管理員ㄇˊㄑ_ˋ"
+  },
+  "supportServer": "支援伺服器",
+  "ticket": {
+    "claimed": "您已成功接手此客服單。"
+  }
+}

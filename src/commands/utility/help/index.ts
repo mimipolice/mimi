@@ -21,7 +21,8 @@ export default {
       initialState,
       helpService,
       member,
-      services
+      services,
+      interaction.user.id
     );
     await interaction.editReply({
       components: [payload.container, ...payload.components],

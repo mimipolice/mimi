@@ -7,6 +7,27 @@ export class LocalizationManager {
 
   constructor() {
     this.loadAllLocalizations();
+    this.loadGlobalLocalizations();
+  }
+
+  private loadGlobalLocalizations(): void {
+    const localesPath = path.join(__dirname, "../locales");
+    if (existsSync(localesPath)) {
+      const localeFiles = readdirSync(localesPath).filter((file) =>
+        file.endsWith(".json")
+      );
+      for (const file of localeFiles) {
+        const lang = file.replace(".json", "");
+        const translations = require(path.join(localesPath, file));
+
+        let existing = this.localizations.get("global");
+        if (!existing) {
+          existing = {};
+          this.localizations.set("global", existing);
+        }
+        existing[lang] = translations;
+      }
+    }
   }
 
   private loadAllLocalizations(): void {
@@ -67,10 +88,7 @@ export class LocalizationManager {
   }
 
   // It might be useful to have a method to get a specific language
-  public getLocale(
-    commandName: string,
-    lang: string
-  ): Record<string, string> | undefined {
+  public getLocale(commandName: string, lang: string): any | undefined {
     const commandLocales = this.get(commandName);
     return commandLocales ? commandLocales[lang] : undefined;
   }

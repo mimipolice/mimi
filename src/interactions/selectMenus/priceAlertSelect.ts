@@ -1,4 +1,5 @@
 import { StringSelectMenuInteraction } from "discord.js";
+import { createUnauthorizedReply } from "../../utils/interactionReply";
 import {
   createPriceAlert,
   getAllAssetsWithLatestPrice,
@@ -13,10 +14,16 @@ export default {
   name: "pricealert-select",
   async execute(interaction: StringSelectMenuInteraction) {
     try {
-      const [_, condition, targetPriceStr] = interaction.customId.split(":");
+      const [_, condition, targetPriceStr, originalUserId] =
+        interaction.customId.split(":");
       const targetPrice = parseFloat(targetPriceStr);
       const selectedSymbol = interaction.values[0];
       const userId = interaction.user.id;
+
+      if (originalUserId && userId !== originalUserId) {
+        await interaction.reply(createUnauthorizedReply(interaction));
+        return;
+      }
 
       if (!condition || isNaN(targetPrice) || !selectedSymbol) {
         await interaction.update({

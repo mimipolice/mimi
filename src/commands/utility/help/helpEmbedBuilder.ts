@@ -27,7 +27,8 @@ export async function buildHelpEmbed(
   state: HelpState,
   helpService: HelpService,
   member: GuildMember | null,
-  services: Services
+  services: Services,
+  userId: string
 ) {
   const container = new ContainerBuilder().setAccentColor(0x0099ff);
   const components: ActionRowBuilder<any>[] = [];
@@ -74,7 +75,7 @@ export async function buildHelpEmbed(
     } else {
       container.components.push(
         new TextDisplayBuilder().setContent(
-          "You do not have permission to view any commands in this category."
+          "You do not have the required permissions to view any commands in this category."
         )
       );
     }
@@ -152,7 +153,7 @@ export async function buildHelpEmbed(
       container.components.push(
         new TextDisplayBuilder().setContent("# Error"),
         new TextDisplayBuilder().setContent(
-          "Command not found or you do not have permission to view it."
+          "Command not found or you do not have the required permissions to view it."
         )
       );
       container.setAccentColor(0xff0000); // Red
@@ -173,7 +174,7 @@ export async function buildHelpEmbed(
 
   if (categoryOptions.length > 0) {
     const categorySelect = new StringSelectMenuBuilder()
-      .setCustomId("help:category_select")
+      .setCustomId(`help:category_select:${userId}`)
       .setPlaceholder("Select a category...")
       .setOptions(categoryOptions);
     components.push(new ActionRowBuilder().addComponents(categorySelect));
@@ -200,7 +201,7 @@ export async function buildHelpEmbed(
 
     if (commandOptions.length > 0) {
       const commandSelect = new StringSelectMenuBuilder()
-        .setCustomId(`help:command_select:${state.category}`)
+        .setCustomId(`help:command_select:${state.category}:${userId}`)
         .setPlaceholder("Select a command for details...")
         .setOptions(commandOptions);
       components.push(new ActionRowBuilder().addComponents(commandSelect));
@@ -209,7 +210,7 @@ export async function buildHelpEmbed(
 
   // 3. Action Buttons
   const homeButton = new ButtonBuilder()
-    .setCustomId("help:home")
+    .setCustomId(`help:home:${userId}`)
     .setLabel("Home")
     .setStyle(ButtonStyle.Primary)
     .setDisabled(!state.view || state.view === "home");
@@ -220,7 +221,7 @@ export async function buildHelpEmbed(
     .setCustomId(
       `help:lang:${otherLang}:${state.view || "home"}:${state.category || ""}:${
         state.command || ""
-      }`
+      }:${userId}`
     )
     .setLabel(`Switch to ${otherLang === "en-US" ? "English" : "繁體中文"}`)
     .setStyle(ButtonStyle.Secondary);

@@ -10,6 +10,7 @@ import {
 import { Modal } from "../../interfaces/Modal";
 import { AntiSpamSettingsManager } from "../../services/AntiSpamSettingsManager";
 import { mimiDLCDb } from "../../shared/database";
+import { createUnauthorizedReply } from "../../utils/interactionReply";
 import logger from "../../utils/logger";
 
 const settingsManager = new AntiSpamSettingsManager(mimiDLCDb);
@@ -21,6 +22,11 @@ const modal: Modal = {
 
     const { customId, client } = interaction;
     const [, userId, guildId, messageId] = customId.split(":");
+
+    if (interaction.user.id !== userId) {
+      await interaction.reply(createUnauthorizedReply(interaction));
+      return;
+    }
 
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });

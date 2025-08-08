@@ -33,3 +33,10 @@ export class CustomCheckError extends Error {
     this.name = "CustomCheckError";
   }
 }
+
+export class MissingPermissionsError extends Error {
+  constructor(message: string = "User is missing necessary permissions.") {
+    super(message);
+    this.name = "MissingPermissionsError";
+  }
+}

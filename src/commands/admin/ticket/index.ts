@@ -10,6 +10,7 @@ import {
 import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
+import { createMissingPermissionsReply } from "../../../utils/interactionReply";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -95,9 +96,8 @@ export const command: Command = {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)
       ) {
-        await interaction.editReply({
-          content: t.subcommands.purge.responses.no_permission,
-        });
+        const replyOptions = createMissingPermissionsReply(interaction);
+        await interaction.editReply({ embeds: replyOptions.embeds });
         return;
       }
 

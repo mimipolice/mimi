@@ -1,4 +1,5 @@
 import { GuildMember, MessageComponentInteraction } from "discord.js";
+import { createUnauthorizedReply } from "../../utils/interactionReply";
 import { Services } from "../../interfaces/Command";
 import {
   buildHelpEmbed,
@@ -16,6 +17,13 @@ export async function handleHelpInteraction(
   const member =
     interaction.member instanceof GuildMember ? interaction.member : null;
   const parts = interaction.customId.split(":");
+  const originalUserId = parts.length > 2 ? parts[parts.length - 1] : null;
+
+  if (originalUserId && interaction.user.id !== originalUserId) {
+    await interaction.followUp(createUnauthorizedReply(interaction));
+    return;
+  }
+
   const [, action] = parts;
 
   // Determine language from the interaction if possible, otherwise default
@@ -67,7 +75,8 @@ export async function handleHelpInteraction(
       currentState,
       helpService,
       member,
-      services
+      services,
+      interaction.user.id
     );
     await interaction.editReply({
       components: [payload.container, ...payload.components],

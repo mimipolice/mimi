@@ -48,7 +48,7 @@ function formatPercent(value: number): string {
 // NEW: K線週期設定，方便開發時調整
 const CHART_INTERVAL_CONFIG = {
   // 圖表上最理想的 K 棒數量，可根據喜好調整
-  TARGET_CANDLESTICK_COUNT: 30,
+  TARGET_CANDLESTICK_COUNT: 35,
   // 預先定義好的、人類可讀的 K 棒週期選項
   PRESET_INTERVALS: [
     { label: "1m", seconds: 60 },
@@ -127,6 +127,10 @@ export async function getReportData(
     cachedData.history.forEach((point: any) => {
       point.timestamp = new Date(point.timestamp);
     });
+    // Add this check to ensure old cache formats don't break things
+    if (!cachedData.generatedAt) {
+      cachedData.generatedAt = Date.now();
+    }
     return cachedData;
   }
 
@@ -189,6 +193,7 @@ export async function getReportData(
   );
 
   const reportData = {
+    generatedAt: Date.now(),
     history,
     rawDataPointCount,
     intervalLabel,
@@ -328,6 +333,7 @@ export default {
           change,
           changePercent,
           totalChangeValue,
+          generatedAt,
         } = data;
 
         const assetName =
@@ -391,16 +397,16 @@ export default {
 
         const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
-            .setCustomId(`report-price-${symbol}-${range}`)
+            .setCustomId(`report-price-${symbol}-${range}-${generatedAt}`)
             .setLabel(t.responses.button_price_analysis)
             .setStyle(ButtonStyle.Primary)
             .setDisabled(true),
           new ButtonBuilder()
-            .setCustomId(`report-detailed-${symbol}-${range}`)
+            .setCustomId(`report-detailed-${symbol}-${range}-${generatedAt}`)
             .setLabel(t.responses.button_detailed_price)
             .setStyle(ButtonStyle.Secondary),
           new ButtonBuilder()
-            .setCustomId(`report-volume-${symbol}-${range}`)
+            .setCustomId(`report-volume-${symbol}-${range}-${generatedAt}`)
             .setLabel(t.responses.button_volume_analysis)
             .setStyle(ButtonStyle.Secondary)
         );

@@ -1,0 +1,44 @@
+{
+  "unauthorized": {
+    "author": "Oh no! Operation Failed.",
+    "description": "You cannot interact with this interface!",
+    "footer": "Don't play with others' interfaces! 눈_눈"
+  },
+  "businessError": {
+    "author": "Oh no! Operation Failed.",
+    "description": "⚠️ {message}"
+  },
+  "checkFailure": {
+    "author": "Oh no! Operation Failed.",
+    "description": "❌ {message}"
+  },
+  "cooldown": {
+    "author": "Cooldown...",
+    "description": "⏰ Command on cooldown, please wait {remaining} more seconds.",
+    "footer": "SLOW DOWN!!!! Why so fast? ヽ(`Д´)ノ"
+  },
+  "internalError": {
+    "author": "Oh no! An Error Occurred.",
+    "description": "❌ An unknown internal error occurred while processing your request. We have been notified and will fix it soon.",
+    "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
+  },
+  "autoModBlocked": {
+    "author": "Oh no! Operation Failed.",
+    "description": "❌ Your request was blocked by Discord AutoMod. Please adjust it and try again.",
+    "footer": "What the heck! (#`Д´)ﾉ"
+  },
+  "discordError": {
+    "author": "Oh no! Operation Failed.",
+    "description": "❌ A Discord error occurred while processing the request. Please try again later.",
+    "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
+  },
+  "missingPermissions": {
+    "author": "Oh no! Insufficient Permissions.",
+    "description": "You do not have the required permissions to perform this action!",
+    "footer": "Do you need an admin? ˊㄑ_ˋ"
+  },
+  "supportServer": "Support Server",
+  "ticket": {
+    "claimed": "You have successfully claimed this ticket."
+  }
+}

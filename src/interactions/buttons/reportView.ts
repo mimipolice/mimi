@@ -15,6 +15,7 @@ import {
   MediaGalleryItemBuilder,
 } from "@discordjs/builders";
 import { Services, Databases } from "../../interfaces/Command";
+import { createUnauthorizedReply } from "../../utils/interactionReply";
 import { getLocalizations } from "../../utils/localization";
 import { errorHandler } from "../../utils/errorHandler";
 import { getReportData } from "../../commands/public/report";
@@ -42,9 +43,18 @@ export default {
     _databases: Databases
   ) {
     try {
+      // [FIX] Check if the interactor is the original command user
+      if (
+        interaction.message.interaction?.user.id &&
+        interaction.user.id !== interaction.message.interaction.user.id
+      ) {
+        return interaction.reply(createUnauthorizedReply(interaction));
+      }
+
       await interaction.deferUpdate();
 
-      const [_, view, symbol, range] = interaction.customId.split("-");
+      const [_, view, symbol, range, generatedAt] =
+        interaction.customId.split("-");
 
       const translations = getLocalizations(
         services.localizationManager,
@@ -123,17 +133,17 @@ export default {
 
       const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId(`report-price-${symbol}-${range}`)
+          .setCustomId(`report-price-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_price_analysis)
           .setStyle(ButtonStyle.Primary)
           .setDisabled(view === "price"),
         new ButtonBuilder()
-          .setCustomId(`report-detailed-${symbol}-${range}`)
+          .setCustomId(`report-detailed-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_detailed_price)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(view === "detailed"),
         new ButtonBuilder()
-          .setCustomId(`report-volume-${symbol}-${range}`)
+          .setCustomId(`report-volume-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_volume_analysis)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(view === "volume")
@@ -159,6 +169,55 @@ export default {
       const chartCacheService = new ChartCacheService();
       const chartCacheKey = `report-chart:${symbol}:${range}`;
       const chartPath = chartCacheService.getChartPath(chartCacheKey);
+
+      // [FIX] Check if the chart file still exists AND if the data timestamp matches.
+      if (data.generatedAt.toString() !== generatedAt) {
+        // Data is stale.
+        const disabledButtons =
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            ...buttons.components.map((button) => button.setDisabled(true))
+          );
+        container.spliceComponents(
+          container.components.length - 1,
+          1,
+          disabledButtons
+        );
+
+        // Try to preserve the existing image from the message
+        const existingAttachment = interaction.message.attachments.first();
+        if (existingAttachment) {
+          const chartImage = new MediaGalleryBuilder().addItems(
+            (item: MediaGalleryItemBuilder) =>
+              item
+                .setURL(existingAttachment.url)
+                .setDescription(
+                  t.responses.chart_description.replace(
+                    "{{assetName}}",
+                    assetName
+                  )
+                )
+          );
+          container.components.push(new SeparatorBuilder(), chartImage);
+        }
+
+        // Explicitly tell Discord to keep the existing attachments.
+        const attachmentsToKeep = interaction.message.attachments.map((att) => {
+          return { id: att.id };
+        });
+
+        await interaction.editReply({
+          components: [container],
+          attachments: attachmentsToKeep,
+        });
+
+        // Send a follow-up message explaining why.
+        await interaction.followUp({
+          content: t.responses.report_stale,
+          ephemeral: true,
+        });
+
+        return; // Stop further execution
+      }
 
       const attachment = new AttachmentBuilder(chartPath, {
         name: "price-chart.png",

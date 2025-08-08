@@ -13,7 +13,11 @@ import { MimiDLCDB } from "../shared/database/types";
 import { TicketRepository, Ticket } from "../repositories/ticket.repository";
 import { TicketStatus } from "../types/ticket";
 import { DiscordService } from "./DiscordService";
-import { BusinessError, CustomCheckError } from "../errors";
+import {
+  BusinessError,
+  CustomCheckError,
+  MissingPermissionsError,
+} from "../errors";
 import { GuildMember } from "discord.js";
 
 export class TicketManager {
@@ -174,7 +178,7 @@ export class TicketManager {
       !settings.staffRoleId ||
       !member.roles.cache.has(settings.staffRoleId)
     ) {
-      throw new CustomCheckError(
+      throw new MissingPermissionsError(
         "You do not have permission to claim this ticket."
       );
     }

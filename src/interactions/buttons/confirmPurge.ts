@@ -6,7 +6,9 @@ import {
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import logger from "../../utils/logger";
+import { createUnauthorizedReply } from "../../utils/interactionReply";
 import { Services } from "../../interfaces/Command";
+import { MissingPermissionsError } from "../../errors";
 
 export default {
   name: "confirm_purge:",
@@ -21,21 +23,16 @@ export default {
     const originalUserId = parts[1];
 
     if (interaction.user.id !== originalUserId) {
-      await interaction.followUp({
-        content: "Only the user who initiated the purge can confirm it.",
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.followUp(createUnauthorizedReply(interaction));
       return;
     }
 
     if (
       !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)
     ) {
-      await interaction.followUp({
-        content: "You no longer have permission to do this.",
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
+      throw new MissingPermissionsError(
+        "You no longer have permission to do this."
+      );
     }
 
     try {

@@ -9,6 +9,8 @@ import {
   ComponentType,
 } from "discord.js";
 import { Services } from "../../interfaces/Command"; // Import Services and Databases
+import { createBusinessErrorReply } from "../../utils/interactionReply";
+import { BusinessError } from "../../errors";
 
 export default {
   name: "claim_ticket",
@@ -53,11 +55,25 @@ export default {
         });
       }
 
+      const locale = interaction.locale;
+      const localizations = services.localizationManager.getLocale(
+        "global",
+        locale
+      );
+      const claimedMessage =
+        localizations?.ticket?.claimed ||
+        "You have successfully claimed this ticket.";
+
       return interaction.reply({
-        content: "You have claimed this ticket.",
+        content: claimedMessage,
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {
+      if (error instanceof BusinessError) {
+        return interaction.reply(
+          createBusinessErrorReply(interaction, error.message)
+        );
+      }
       throw error;
     }
   },
