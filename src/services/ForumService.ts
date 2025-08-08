@@ -40,7 +40,7 @@ export class ForumService {
     }
 
     try {
-      const newTags = [...thread.appliedTags, solveTag.id];
+      const newTags = [...new Set([...thread.appliedTags, solveTag.id])];
       await thread.setAppliedTags(newTags);
       await thread.setLocked(true);
       await message.react("✅");

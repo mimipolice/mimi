@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { mimiDLCDb } from "../shared/database";
 import { MimiDLCDB } from "../shared/database/types";
+import logger from "../utils/logger";
 
 // Auto-React Queries
 export interface AutoReact {
@@ -218,6 +219,22 @@ export async function getAntiSpamSettings(
     .selectAll()
     .where("guildid", "=", guildId)
     .executeTakeFirst();
+
+  if (result && result.ignored_roles) {
+    try {
+      // Assuming ignored_roles is stored as a JSON string in a TEXT column
+      // @ts-ignore
+      result.ignored_roles = JSON.parse(result.ignored_roles);
+    } catch (e) {
+      logger.error(
+        `Failed to parse ignored_roles for guild ${guildId}:`,
+        result.ignored_roles,
+        e
+      );
+      result.ignored_roles = [];
+    }
+  }
+
   return result ?? null;
 }
 
@@ -225,17 +242,26 @@ export async function upsertAntiSpamSettings(
   settings: Partial<AntiSpamSettings> & { guildid: string }
 ): Promise<void> {
   const { guildid, ...updateData } = settings;
+
+  const dataForDb = {
+    ...updateData,
+    ignored_roles: updateData.ignored_roles
+      ? JSON.stringify(updateData.ignored_roles)
+      : null,
+  };
+
   await mimiDLCDb
     .insertInto("anti_spam_settings")
     .values({
       guildid: guildid,
-      messagethreshold: updateData.messagethreshold ?? 5,
-      time_window: updateData.time_window ?? 5000,
-      timeoutduration: updateData.timeoutduration ?? 86400000,
-      multichannelthreshold: updateData.multichannelthreshold,
-      multichanneltimewindow: updateData.multichanneltimewindow,
+      messagethreshold: dataForDb.messagethreshold ?? 5,
+      time_window: dataForDb.time_window ?? 5000,
+      timeoutduration: dataForDb.timeoutduration ?? 86400000,
+      multichannelthreshold: dataForDb.multichannelthreshold,
+      multichanneltimewindow: dataForDb.multichanneltimewindow,
+      ignored_roles: dataForDb.ignored_roles as any,
     })
-    .onConflict((oc) => oc.column("guildid").doUpdateSet(updateData))
+    .onConflict((oc) => oc.column("guildid").doUpdateSet(dataForDb as any))
     .execute();
 }
 

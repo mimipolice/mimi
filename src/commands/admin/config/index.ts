@@ -176,6 +176,20 @@ export const command: Command = {
                 })
                 .setRequired(true)
             )
+            .addStringOption((option) =>
+              option
+                .setName("ignored_roles")
+                .setDescription(
+                  "Roles to ignore for spam detection (comma-separated IDs)."
+                )
+                .setNameLocalizations({
+                  [Locale.ChineseTW]: "豁免身分組",
+                })
+                .setDescriptionLocalizations({
+                  [Locale.ChineseTW]: "豁免偵測的身分組 (請用逗號分隔 ID)。",
+                })
+                .setRequired(false)
+            )
         )
         .addSubcommand((subcommand) =>
           subcommand
@@ -220,18 +234,30 @@ export const command: Command = {
         const threshold = interaction.options.getInteger("threshold", true);
         const timeout = interaction.options.getInteger("timeout", true);
         const timeWindow = interaction.options.getInteger("time_window", true);
+        const ignoredRolesStr =
+          interaction.options.getString("ignored_roles") || "";
+        const ignoredRoles = ignoredRolesStr
+          .split(/[, ]+/)
+          .filter((id) => /^\d+$/.test(id));
 
         await upsertAntiSpamSettings({
           guildid: interaction.guildId,
           messagethreshold: threshold,
           time_window: timeWindow * 1000, // Convert to ms
           timeoutduration: timeout * 1000, // Convert to ms
+          ignored_roles: ignoredRoles,
         });
 
         flushAntiSpamSettingsForGuild(interaction.guildId);
 
+        let replyContent = `Anti-spam settings updated: Threshold=${threshold}, Time Window=${timeWindow}s, Timeout=${timeout}s.`;
+        if (ignoredRoles.length > 0) {
+          replyContent += `\nIgnored roles: ${ignoredRoles
+            .map((id) => `<@&${id}>`)
+            .join(", ")}`;
+        }
         await interaction.editReply({
-          content: `Anti-spam settings updated: Threshold=${threshold}, Time Window=${timeWindow}s, Timeout=${timeout}s.`,
+          content: replyContent,
         });
       } else if (subcommand === "show") {
         const settings = await getAntiSpamSettingsForGuild(interaction.guildId);
@@ -241,7 +267,17 @@ export const command: Command = {
               settings.messagethreshold
             } messages\n- Time Window: ${
               settings.time_window / 1000
-            } seconds\n- Timeout: ${settings.timeoutduration / 1000} seconds`,
+            } seconds\n- Timeout: ${
+              settings.timeoutduration / 1000
+            } seconds\n- Ignored Roles: ${
+              settings.ignored_roles &&
+              Array.isArray(settings.ignored_roles) &&
+              settings.ignored_roles.length > 0
+                ? settings.ignored_roles
+                    .map((id: string) => `<@&${id}>`)
+                    .join(", ")
+                : "None"
+            }`,
           });
         } else {
           await interaction.editReply({

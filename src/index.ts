@@ -91,6 +91,7 @@ async function main() {
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.GuildScheduledEvents,
+      GatewayIntentBits.GuildMessageReactions,
     ],
   });
 
