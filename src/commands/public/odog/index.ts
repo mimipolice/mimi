@@ -2,8 +2,6 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
   Locale,
   Client,
 } from "discord.js";
@@ -118,26 +116,46 @@ export default {
         .replace("{{gachaName}}", gachaName)
         .replace("{{period}}", period);
 
-      const title = new TextDisplayBuilder().setContent(`# ${titleText}`);
-      container.components.push(title, new SeparatorBuilder());
+      container.addTextDisplayComponents((text) =>
+        text.setContent(`# ${titleText}`)
+      );
 
-      rankings.slice(0, 15).forEach((user, index) => {
-        const rarityDetails = user.rarity_counts
-          ? Object.entries(user.rarity_counts)
-              .sort(([a], [b]) => Number(b) - Number(a))
-              .map(([rarity, count]) => `R${rarity}: ${count}`)
-              .join(" | ")
-          : t.responses.no_top_tier;
+      const rarityEmojis: { [key: string]: string } = {
+        "7": "<:t7:1403031930164744222>",
+        "6": "<:t6:1403031970727985214>",
+        "5": "<:t5:1403031998381031505>",
+        "4": "<:t4:1403032033428504596>",
+        "3": "<:t3:1403032061949907105>",
+        "2": "<:t2:1403032084036980756>",
+        "1": "<:t1:1403032106950721646>",
+      };
 
-        const userRankText = new TextDisplayBuilder().setContent(
-          t.responses.user_rank_line
-            .replace("{{rank}}", (index + 1).toString())
-            .replace("{{nickname}}", user.nickname || `User ${user.user_id}`)
-            .replace("{{rarityDetails}}", rarityDetails)
-            .replace("{{totalDraws}}", user.total_draws.toString())
-        );
-        container.components.push(userRankText);
-      });
+      const rankList = rankings
+        .slice(0, 10)
+        .map((user, index) => {
+          const rank = `**${index + 1}**.`;
+          const username = `**${user.nickname || `User ${user.user_id}`}**`;
+
+          const rarityDetails = user.rarity_counts
+            ? Object.entries(user.rarity_counts)
+                .sort(([a], [b]) => Number(b) - Number(a))
+                .map(
+                  ([rarity, count]) =>
+                    `${rarityEmojis[rarity] || "R" + rarity}: ${count}`
+                )
+                .join(" | ")
+            : t.responses.no_top_tier;
+
+          const totalDraws = t.responses.user_rank_summary.replace(
+            "{{totalDraws}}",
+            `${user.total_draws.toString()}`
+          );
+
+          return `${rank} ${username}\n- ${rarityDetails}\n- ${totalDraws}`;
+        })
+        .join("\n\n");
+
+      container.addTextDisplayComponents((text) => text.setContent(rankList));
 
       await interaction.editReply({
         components: [container],

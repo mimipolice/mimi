@@ -1,6 +1,6 @@
 {
   "name": "odog",
-  "description": "Shows the Odog gacha rankings.",
+  "description": "Shows the Odog rankings.",
   "options": {
     "gacha_id": {
       "name": "gacha_id",
@@ -17,7 +17,8 @@
     "title": "Odog Rankings for {{gachaName}} (Last {{period}})",
     "global": "ALL pool",
     "no_top_tier": "No top-tier draws",
-    "user_rank_line": "**{{rank}}.** {{nickname}} - {{rarityDetails}} (Total: {{totalDraws}})",
+    "user_rank_details": "Rank: **{{rank}}**\n{{rarityDetails}}",
+    "user_rank_summary": "**Total Draws**: `{{totalDraws}}`",
     "error_fetching": "An error occurred while fetching the rankings."
   }
 }
