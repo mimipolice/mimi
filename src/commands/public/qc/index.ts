@@ -1,4 +1,4 @@
-import { Message, EmbedBuilder } from "discord.js";
+import { Message, EmbedBuilder, TextChannel } from "discord.js";
 import { getSolutionsByTag } from "../../../repositories/forum.repository";
 import { mimiDLCDb } from "../../../shared/database";
 import { MessageCommand } from "../../../interfaces/MessageCommand";
@@ -20,6 +20,15 @@ const QcCommand: MessageCommand = {
     if (solutions.length === 0) {
       await message.reply(`❌ No solutions found with the tag "${tag}".`);
       return;
+    }
+
+    for (const solution of solutions) {
+      const channel = message.guild?.channels.cache.get(solution.thread_id);
+      if (channel && channel.isTextBased()) {
+        await (channel as TextChannel).send(
+          `-# User ${message.author.username} mentioned this post in ${message.url}`
+        );
+      }
     }
 
     const response = solutions
