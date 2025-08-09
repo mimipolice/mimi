@@ -250,4 +250,10 @@ export interface MimiDLCDB {
     item: string;
     created_at: ColumnType<Date, string | undefined, string>;
   };
+  forum_post_solutions: {
+    thread_id: string;
+    message_id: string;
+    author_id: string;
+    tags: string[] | null;
+  };
 }

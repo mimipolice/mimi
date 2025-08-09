@@ -1,29 +1,32 @@
-import { Events, MessageReaction, User } from "discord.js";
-import { Client } from "discord.js";
+import { Events, MessageReaction, User, Client } from "discord.js";
 import { Services, Databases } from "../interfaces/Command";
 
-module.exports = {
-  name: Events.MessageReactionAdd,
-  once: false,
-  async execute(
-    reaction: MessageReaction,
-    user: User,
-    client: Client,
-    { messageForwardingService }: Services,
-    databases: Databases
-  ) {
-    if (user.bot) return;
+export const name = Events.MessageReactionAdd;
+export const once = false;
 
-    // Handle partial reaction data
-    if (reaction.partial) {
-      try {
-        await reaction.fetch();
-      } catch (error) {
-        console.error("Something went wrong when fetching the message:", error);
-        return;
-      }
+export async function execute(
+  reaction: MessageReaction,
+  user: User,
+  client: Client,
+  services: Services,
+  databases: Databases
+) {
+  if (user.bot) return;
+
+  // Handle partial reaction data
+  if (reaction.partial) {
+    try {
+      await reaction.fetch();
+    } catch (error) {
+      console.error("Something went wrong when fetching the message:", error);
+      return;
     }
+  }
 
-    await messageForwardingService.handleReaction(reaction, user);
-  },
-};
+  try {
+    await services.messageForwardingService.handleReaction(reaction, user);
+  } catch (error) {
+    console.error("Error in messageReactionAdd:", error);
+    console.error("Services object:", services);
+  }
+}

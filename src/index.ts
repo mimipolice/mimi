@@ -159,6 +159,8 @@ async function main() {
             .get(category)!
             .set(command.data.name, command);
           // logger.info(`Loaded command: ${command.data.name} in category: ${category}`);
+        } else if (command && "name" in command && "execute" in command) {
+          // This is a message command
         } else {
           logger.warn(
             `The command at ${fullPath} is missing a required "data" or "execute" property.`
@@ -243,7 +245,9 @@ async function main() {
     );
   for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
-    const event = require(filePath);
+    const eventModule = require(filePath);
+    const event = eventModule.default || eventModule;
+
     if (event.once) {
       client.once(event.name, (...args) =>
         event.execute(...args, client, services, databases)

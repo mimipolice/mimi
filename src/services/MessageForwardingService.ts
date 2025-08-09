@@ -9,10 +9,15 @@ import {
   User,
 } from "discord.js";
 import logger from "../utils/logger";
+import { getSolution } from "../repositories/forum.repository";
+import { mimiDLCDb } from "../shared/database";
 
 export class MessageForwardingService {
   private client: Client;
-  private forwardedMessageGroups: Map<string, string[]> = new Map();
+  private forwardedMessageGroups: Map<
+    string,
+    { authorId: string; groupIds: string[] }
+  > = new Map();
   private userCooldowns: Map<string, number> = new Map();
   private readonly cooldownTime = 5000; // 5 seconds
 
@@ -72,6 +77,20 @@ export class MessageForwardingService {
             const targetMessage = await (
               channel as TextChannel | NewsChannel | ThreadChannel
             ).messages.fetch(messageId);
+
+            if (channel.isThread()) {
+              const solution = await getSolution(mimiDLCDb, channel.id);
+              if (solution) {
+                const solutionMessage = await channel.messages.fetch(
+                  solution.message_id
+                );
+                await solutionMessage.forward(message.channel);
+                await channel.send(
+                  `-# User ${message.author.username} mentioned this post in ${message.url}`
+                );
+              }
+            }
+
             const newForwardedMessage = await targetMessage.forward(
               message.channel
             );
@@ -90,8 +109,12 @@ export class MessageForwardingService {
           replyMessage.id,
           ...forwardedMessages.map((m) => m.id),
         ];
+        const groupData = {
+          authorId: message.author.id,
+          groupIds,
+        };
         for (const id of groupIds) {
-          this.forwardedMessageGroups.set(id, groupIds);
+          this.forwardedMessageGroups.set(id, groupData);
         }
 
         setTimeout(() => {
@@ -117,9 +140,10 @@ export class MessageForwardingService {
     if (reaction.emoji.name !== "❌") return;
 
     const messageId = reaction.message.id;
-    const groupIds = this.forwardedMessageGroups.get(messageId);
+    const groupData = this.forwardedMessageGroups.get(messageId);
 
-    if (groupIds) {
+    if (groupData && groupData.authorId === user.id) {
+      const { groupIds } = groupData;
       const channel = reaction.message.channel;
       for (const id of groupIds) {
         try {

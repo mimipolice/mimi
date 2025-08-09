@@ -10,6 +10,30 @@ import { handleAntiSpam } from "../features/anti-spam/handler";
 
 import { Client } from "discord.js";
 import { Services, Databases } from "../interfaces/Command";
+import { MessageCommand } from "../interfaces/MessageCommand";
+import QsCommand from "../commands/admin/qs";
+import QcCommand from "../commands/public/qc";
+import UnqsCommand from "../commands/admin/unqs";
+
+const messageCommands = new Map<string, MessageCommand>();
+messageCommands.set(QsCommand.name, QsCommand);
+if (QsCommand.aliases) {
+  for (const alias of QsCommand.aliases) {
+    messageCommands.set(alias, QsCommand);
+  }
+}
+messageCommands.set(QcCommand.name, QcCommand);
+if (QcCommand.aliases) {
+  for (const alias of QcCommand.aliases) {
+    messageCommands.set(alias, QcCommand);
+  }
+}
+messageCommands.set(UnqsCommand.name, UnqsCommand);
+if (UnqsCommand.aliases) {
+  for (const alias of UnqsCommand.aliases) {
+    messageCommands.set(alias, UnqsCommand);
+  }
+}
 
 module.exports = {
   name: Events.MessageCreate,
@@ -22,6 +46,26 @@ module.exports = {
   ) {
     if (message.author.bot || !message.guild) {
       return;
+    }
+
+    const prefix = "?";
+    if (message.content.startsWith(prefix)) {
+      const args = message.content.slice(prefix.length).trim().split(/ +/);
+      const commandName = args.shift()?.toLowerCase();
+
+      if (commandName) {
+        const command = messageCommands.get(commandName);
+        if (command) {
+          try {
+            await command.execute(message, args);
+          } catch (error) {
+            console.error(error);
+            await message.reply(
+              "There was an error trying to execute that command!"
+            );
+          }
+        }
+      }
     }
 
     // ?solve command logic
