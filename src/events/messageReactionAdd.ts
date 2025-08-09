@@ -9,7 +9,7 @@ module.exports = {
     reaction: MessageReaction,
     user: User,
     client: Client,
-    services: Services,
+    { messageForwardingService }: Services,
     databases: Databases
   ) {
     if (user.bot) return;
@@ -24,6 +24,6 @@ module.exports = {
       }
     }
 
-    await services.messageForwardingService.handleReaction(reaction, user);
+    await messageForwardingService.handleReaction(reaction, user);
   },
 };
