@@ -22,11 +22,4 @@ export async function execute(
       return;
     }
   }
-
-  try {
-    await services.messageForwardingService.handleReaction(reaction, user);
-  } catch (error) {
-    console.error("Error in messageReactionAdd:", error);
-    console.error("Services object:", services);
-  }
 }

@@ -131,35 +131,4 @@ export class MessageForwardingService {
       );
     }
   }
-
-  public async handleReaction(
-    reaction: MessageReaction,
-    user: User
-  ): Promise<void> {
-    if (user.bot) return;
-    if (reaction.emoji.name !== "❌") return;
-
-    const messageId = reaction.message.id;
-    const groupData = this.forwardedMessageGroups.get(messageId);
-
-    if (groupData && groupData.authorId === user.id) {
-      const { groupIds } = groupData;
-      const channel = reaction.message.channel;
-      for (const id of groupIds) {
-        try {
-          const msgToDelete = await channel.messages.fetch(id);
-          await msgToDelete.delete();
-        } catch (error) {
-          logger.error(
-            `Failed to delete message ${id} from forwarded group:`,
-            error
-          );
-        }
-      }
-
-      for (const id of groupIds) {
-        this.forwardedMessageGroups.delete(id);
-      }
-    }
-  }
 }
