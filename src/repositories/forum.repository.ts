@@ -68,3 +68,10 @@ export async function removeSolution(
     .where("thread_id", "=", threadId)
     .execute();
 }
+export async function getAllTags(db: Kysely<MimiDLCDB>): Promise<string[]> {
+  const result = await sql<{ tag: string }>`
+    SELECT DISTINCT unnest(tags) as tag FROM forum_post_solutions
+  `.execute(db);
+
+  return result.rows.map((row) => row.tag);
+}
