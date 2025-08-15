@@ -11,7 +11,7 @@ import logger from "../../../utils/logger";
 const QcCommand: MessageCommand = {
   name: "qc",
   aliases: ["?qc"],
-  async execute(message: Message, args: string[]) {
+  async execute(message: Message, args: string[], services) {
     if (
       message.channel.type !== ChannelType.GuildText &&
       message.channel.type !== ChannelType.GuildAnnouncement &&

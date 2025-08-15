@@ -65,7 +65,7 @@ export default {
       const currentPrice = currentAsset ? currentAsset.price : null;
 
       // --- 建立提醒 ---
-      const nextId = await findNextAvailablePriceAlertId(userId);
+      const nextId = await findNextAvailablePriceAlertId();
       await createPriceAlert(
         nextId,
         userId,

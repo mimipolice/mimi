@@ -14,6 +14,7 @@ import { MessageCommand } from "../interfaces/MessageCommand";
 import QsCommand from "../commands/admin/qs";
 import QcCommand from "../commands/public/qc";
 import UnqsCommand from "../commands/admin/unqs";
+import TopCommand from "../commands/public/top";
 
 const messageCommands = new Map<string, MessageCommand>();
 messageCommands.set(QsCommand.name, QsCommand);
@@ -32,6 +33,12 @@ messageCommands.set(UnqsCommand.name, UnqsCommand);
 if (UnqsCommand.aliases) {
   for (const alias of UnqsCommand.aliases) {
     messageCommands.set(alias, UnqsCommand);
+  }
+}
+messageCommands.set(TopCommand.name, TopCommand);
+if (TopCommand.aliases) {
+  for (const alias of TopCommand.aliases) {
+    messageCommands.set(alias, TopCommand);
   }
 }
 
@@ -57,7 +64,7 @@ module.exports = {
         const command = messageCommands.get(commandName);
         if (command) {
           try {
-            await command.execute(message, args);
+            await command.execute(message, args, services);
           } catch (error) {
             console.error(error);
             await message.reply(

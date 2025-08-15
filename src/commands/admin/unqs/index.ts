@@ -7,7 +7,7 @@ import config from "../../../config";
 const UnqsCommand: MessageCommand = {
   name: "unqs",
   aliases: ["?unqs"],
-  async execute(message: Message, args: string[]) {
+  async execute(message: Message, args: string[], services) {
     if (message.guild?.id !== config.discord.guildId) return;
     if (
       !message.member?.permissions.has(PermissionsBitField.Flags.ManageMessages)
