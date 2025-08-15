@@ -17,6 +17,8 @@ module.exports = {
     }
 
     try {
+      // Wait for 2 seconds before fetching the starter message
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const starterMessage = await thread.fetchStarterMessage();
       if (starterMessage && !starterMessage.pinned) {
         await starterMessage.pin();
