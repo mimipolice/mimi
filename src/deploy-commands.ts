@@ -9,6 +9,24 @@ const globalCommands = [];
 const commandsPath = path.join(__dirname, "commands");
 const devOnlyFolders = ["user", "message"];
 
+// --- Load all localizations at once ---
+const allLocalizations: { [lang: string]: any } = {};
+const localesPath = path.join(__dirname, "locales");
+if (fs.existsSync(localesPath)) {
+  const localeFiles = fs
+    .readdirSync(localesPath)
+    .filter((f) => f.endsWith(".json"));
+  for (const file of localeFiles) {
+    const lang = file.replace(".json", "");
+    try {
+      allLocalizations[lang] = require(path.join(localesPath, file));
+    } catch (e) {
+      logger.error(`Error parsing localization file ${file}`, e);
+    }
+  }
+}
+// --- End Loading Localizations ---
+
 // Recursive function to get all command files
 function getCommandFiles(dir: string): string[] {
   const commandFiles: string[] = [];
@@ -39,90 +57,96 @@ for (const file of commandFiles) {
   }
 
   // --- Localizations ---
-  const commandDir = path.dirname(file);
-  const localesDir = path.join(commandDir, "locales");
+  const commandName = command.data.name;
+  const nameLocalizations: { [key: string]: string } = {};
+  const descriptionLocalizations: { [key: string]: string } = {};
 
-  if (fs.existsSync(localesDir)) {
-    const allTranslations: { [key: string]: any } = {};
-    const localeFiles = fs
-      .readdirSync(localesDir)
-      .filter((f) => f.endsWith(".json"));
-
-    for (const localeFile of localeFiles) {
-      const locale = localeFile.replace(".json", "");
-      try {
-        allTranslations[locale] = require(path.join(localesDir, localeFile));
-      } catch (e) {
-        logger.error(`Error parsing ${localeFile}`, e);
+  for (const lang in allLocalizations) {
+    const commandLoc = allLocalizations[lang]?.commands?.[commandName];
+    if (commandLoc) {
+      if (commandLoc.name) {
+        nameLocalizations[lang] = commandLoc.name;
+      }
+      if (commandLoc.description) {
+        descriptionLocalizations[lang] = commandLoc.description;
       }
     }
+  }
 
-    const nameLocalizations: { [key: string]: string } = {};
-    const descriptionLocalizations: { [key: string]: string } = {};
-
-    for (const locale in allTranslations) {
-      if (allTranslations[locale].name) {
-        nameLocalizations[locale] = allTranslations[locale].name;
-      }
-      if (allTranslations[locale].description) {
-        descriptionLocalizations[locale] = allTranslations[locale].description;
-      }
-    }
-
+  // Only apply if there are any localizations
+  if (Object.keys(nameLocalizations).length > 0) {
     command.data.setNameLocalizations(nameLocalizations);
-    if (
-      "setDescriptionLocalizations" in command.data &&
-      Object.keys(descriptionLocalizations).length > 0
-    ) {
-      command.data.setDescriptionLocalizations(descriptionLocalizations);
-    }
+  }
+  if (
+    "setDescriptionLocalizations" in command.data &&
+    Object.keys(descriptionLocalizations).length > 0
+  ) {
+    command.data.setDescriptionLocalizations(descriptionLocalizations);
+  }
 
-    // --- Recursive function to apply localizations to options ---
-    function applyNestedLocalizations(options: any[], translations: any) {
-      if (!options || !translations) return;
+  // --- Recursive function to apply localizations to options ---
+  function applyNestedLocalizations(
+    options: any[],
+    lang: string,
+    commandLoc: any
+  ) {
+    if (!options || !commandLoc) return;
 
-      for (const option of options) {
-        const optionName = option.name;
-        const optionTranslations = translations[optionName];
+    for (const option of options) {
+      const optionName = option.name;
+      const subcommandsLoc = commandLoc.subcommands?.[optionName];
+      const optionsLoc = commandLoc.options?.[optionName];
+      const targetLoc = subcommandsLoc || optionsLoc;
 
-        if (optionTranslations) {
-          // Apply description localizations
-          const descriptionLocalizations: { [key: string]: string } = {};
-          for (const locale in allTranslations) {
-            const localeTranslations = allTranslations[locale];
-            // Traverse the nested structure
-            const nestedTrans =
-              localeTranslations.subcommands?.[optionName] ||
-              localeTranslations.options?.[optionName];
-            if (nestedTrans?.description) {
-              descriptionLocalizations[locale] = nestedTrans.description;
+      if (targetLoc) {
+        // Apply name and description localizations for the option itself
+        const optNameLocalizations: { [key: string]: string } = {};
+        const optDescLocalizations: { [key: string]: string } = {};
+
+        for (const innerLang in allLocalizations) {
+          const innerCommandLoc =
+            allLocalizations[innerLang]?.commands?.[commandName];
+          if (innerCommandLoc) {
+            const innerTargetLoc =
+              innerCommandLoc.subcommands?.[optionName] ||
+              innerCommandLoc.options?.[optionName];
+            if (innerTargetLoc) {
+              if (innerTargetLoc.name)
+                optNameLocalizations[innerLang] = innerTargetLoc.name;
+              if (innerTargetLoc.description)
+                optDescLocalizations[innerLang] = innerTargetLoc.description;
             }
           }
-          if (Object.keys(descriptionLocalizations).length > 0) {
-            option.setDescriptionLocalizations(descriptionLocalizations);
-          }
+        }
 
-          // Recursively apply to sub-options
-          if (
-            option.options &&
-            (optionTranslations.options || optionTranslations.subcommands)
-          ) {
-            applyNestedLocalizations(
-              option.options,
-              optionTranslations.options || optionTranslations.subcommands
-            );
-          }
+        if (Object.keys(optNameLocalizations).length > 0) {
+          option.setNameLocalizations(optNameLocalizations);
+        }
+        if (Object.keys(optDescLocalizations).length > 0) {
+          option.setDescriptionLocalizations(optDescLocalizations);
+        }
+
+        // Recursively apply to sub-options
+        if (option.options && (targetLoc.options || targetLoc.subcommands)) {
+          applyNestedLocalizations(option.options, lang, targetLoc);
         }
       }
     }
+  }
 
-    if (command.data.options) {
-      const baseTranslations =
-        allTranslations["en-US"] || allTranslations["zh-TW"] || {};
-      applyNestedLocalizations(
-        command.data.options,
-        baseTranslations.subcommands || baseTranslations.options
-      );
+  if (command.data.options) {
+    // We can use any language as the base structure, as they should be consistent
+    const baseLang = Object.keys(allLocalizations)[0];
+    if (baseLang) {
+      const baseCommandLoc =
+        allLocalizations[baseLang]?.commands?.[commandName];
+      if (baseCommandLoc) {
+        applyNestedLocalizations(
+          command.data.options,
+          baseLang,
+          baseCommandLoc
+        );
+      }
     }
   }
   // --- End Localizations ---

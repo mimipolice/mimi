@@ -1,44 +1,604 @@
 {
-  "unauthorized": {
-    "author": "Oh no! Operation Failed.",
-    "description": "You cannot interact with this interface!",
-    "footer": "Don't play with others' interfaces! 눈_눈"
+  "global": {
+    "unauthorized": {
+      "author": "Oh no! Operation Failed.",
+      "description": "You cannot interact with this interface!",
+      "footer": "Don't play with others' interfaces! 눈_눈"
+    },
+    "businessError": {
+      "author": "Oh no! Operation Failed.",
+      "description": "⚠️ {message}"
+    },
+    "checkFailure": {
+      "author": "Oh no! Operation Failed.",
+      "description": "❌ {message}"
+    },
+    "cooldown": {
+      "author": "Cooldown...",
+      "description": "⏰ Command on cooldown, please wait {remaining} more seconds.",
+      "footer": "SLOW DOWN!!!! Why so fast? ヽ(`Д´)ノ"
+    },
+    "internalError": {
+      "author": "Oh no! An Error Occurred.",
+      "description": "❌ An unknown internal error occurred while processing your request. We have been notified and will fix it soon.",
+      "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
+    },
+    "autoModBlocked": {
+      "author": "Oh no! Operation Failed.",
+      "description": "❌ Your request was blocked by Discord AutoMod. Please adjust it and try again.",
+      "footer": "What the heck! (#`Д´)ﾉ"
+    },
+    "discordError": {
+      "author": "Oh no! Operation Failed.",
+      "description": "❌ A Discord error occurred while processing the request. Please try again later.",
+      "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
+    },
+    "missingPermissions": {
+      "author": "Oh no! Insufficient Permissions.",
+      "description": "You do not have the required permissions to perform this action!",
+      "footer": "Do you need an admin? ˊㄑ_ˋ"
+    },
+    "supportServer": "Support Server",
+    "ticket": {
+      "claimed": "You have successfully claimed this ticket."
+    }
   },
-  "businessError": {
-    "author": "Oh no! Operation Failed.",
-    "description": "⚠️ {message}"
-  },
-  "checkFailure": {
-    "author": "Oh no! Operation Failed.",
-    "description": "❌ {message}"
-  },
-  "cooldown": {
-    "author": "Cooldown...",
-    "description": "⏰ Command on cooldown, please wait {remaining} more seconds.",
-    "footer": "SLOW DOWN!!!! Why so fast? ヽ(`Д´)ノ"
-  },
-  "internalError": {
-    "author": "Oh no! An Error Occurred.",
-    "description": "❌ An unknown internal error occurred while processing your request. We have been notified and will fix it soon.",
-    "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
-  },
-  "autoModBlocked": {
-    "author": "Oh no! Operation Failed.",
-    "description": "❌ Your request was blocked by Discord AutoMod. Please adjust it and try again.",
-    "footer": "What the heck! (#`Д´)ﾉ"
-  },
-  "discordError": {
-    "author": "Oh no! Operation Failed.",
-    "description": "❌ A Discord error occurred while processing the request. Please try again later.",
-    "footer": "Please take a screenshot of the interface and open a ticket in the official support server. Thank you (*´∀`)~♥"
-  },
-  "missingPermissions": {
-    "author": "Oh no! Insufficient Permissions.",
-    "description": "You do not have the required permissions to perform this action!",
-    "footer": "Do you need an admin? ˊㄑ_ˋ"
-  },
-  "supportServer": "Support Server",
-  "ticket": {
-    "claimed": "You have successfully claimed this ticket."
+  "commands": {
+    "autoreact": {
+      "name": "autoreact",
+      "description": "Manages auto-reactions for channels.",
+      "subcommands": {
+        "set": {
+          "name": "set",
+          "description": "Sets an auto-reaction for a channel.",
+          "options": {
+            "emoji": {
+              "name": "emoji",
+              "description": "The emoji to react with."
+            },
+            "channel": {
+              "name": "channel",
+              "description": "The channel to set the auto-reaction for."
+            }
+          },
+          "responses": {
+            "success": "Auto-reaction set to {{emoji}} for <#{{channelId}}>."
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Removes the auto-reaction from a channel.",
+          "options": {
+            "channel": {
+              "name": "channel",
+              "description": "The channel to remove the auto-reaction from."
+            }
+          },
+          "responses": {
+            "success": "Auto-reaction removed from <#{{channelId}}>."
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "Lists all auto-reaction configurations.",
+          "responses": {
+            "no_configs": "No auto-reactions are set up.",
+            "title": "**Auto-reactions:**",
+            "list_item": "<#{{channelId}}>: {{emoji}}"
+          }
+        }
+      },
+      "general_error": "An error occurred while managing auto-reactions."
+    },
+    "config": {
+      "name": "config",
+      "description": "Configure the ticket bot for this server.",
+      "subcommands": {
+        "set": {
+          "name": "set",
+          "description": "Set a configuration value.",
+          "options": {
+            "staff_role": {
+              "name": "staff_role",
+              "description": "The role for ticket staff."
+            },
+            "ticket_category": {
+              "name": "ticket_category",
+              "description": "The category to create tickets in."
+            },
+            "log_channel": {
+              "name": "log_channel",
+              "description": "The channel to log ticket events to."
+            },
+            "panel_channel": {
+              "name": "panel_channel",
+              "description": "The channel to send the ticket panel to."
+            },
+            "archive_category": {
+              "name": "archive_category",
+              "description": "The category to archive tickets in."
+            }
+          },
+          "responses": {
+            "success": "Configuration updated successfully.",
+            "error": "Please provide all the required options."
+          }
+        },
+        "view": {
+          "name": "view",
+          "description": "View the current configuration.",
+          "responses": {
+            "no_config": "No configuration found for this server.",
+            "title": "**Current Configuration:**",
+            "staff_role": "- Staff Role:",
+            "ticket_category": "- Ticket Category:",
+            "log_channel": "- Log Channel:",
+            "panel_channel": "- Panel Channel:",
+            "archive_category": "- Archive Category:"
+          }
+        }
+      },
+      "general_error": "An error occurred while handling the config command."
+    },
+    "keyword": {
+      "name": "keyword",
+      "description": "Manages keyword replies.",
+      "subcommands": {
+        "add": {
+          "name": "add",
+          "description": "Adds or updates a keyword.",
+          "options": {
+            "type": {
+              "name": "type",
+              "description": "The match type.",
+              "choices": {
+                "exact": "Exact Match",
+                "contains": "Contains Match"
+              }
+            },
+            "keyword": {
+              "name": "keyword",
+              "description": "The keyword to listen for."
+            },
+            "reply": {
+              "name": "reply",
+              "description": "The reply message."
+            }
+          },
+          "responses": {
+            "success": "Keyword \"{{keyword}}\" has been added/updated."
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Removes a keyword.",
+          "options": {
+            "keyword": {
+              "name": "keyword",
+              "description": "The keyword to remove."
+            }
+          },
+          "responses": {
+            "success": "Keyword \"{{keyword}}\" has been removed."
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "Lists all configured keywords.",
+          "responses": {
+            "no_keywords": "No keywords are set up.",
+            "title": "**Configured Keywords:**",
+            "list_item": "**{{keyword}}** (Type: {{match_type}}):\n> {{reply}}"
+          }
+        }
+      },
+      "general_error": "An error occurred while managing keywords."
+    },
+    "panel": {
+      "name": "panel",
+      "description": "Manage the ticket panel.",
+      "subcommands": {
+        "setup": {
+          "name": "setup",
+          "description": "Setup the ticket panel.",
+          "responses": {
+            "no_channel": "Panel channel is not configured. Please run `/config set panel_channel` first.",
+            "channel_not_found": "The configured panel channel could not be found or is not a text channel.",
+            "no_types": "No ticket types have been configured. Please add one with `/panel add` first.",
+            "success": "Ticket panel has been created in {{channel}}.",
+            "error": "An error occurred while creating the panel. Please check my permissions and try again."
+          }
+        },
+        "add": {
+          "name": "add",
+          "description": "Add a ticket type.",
+          "options": {
+            "type_id": {
+              "name": "type_id",
+              "description": "The unique ID for this ticket type."
+            },
+            "label": {
+              "name": "label",
+              "description": "The text to display on the button/option."
+            },
+            "style": {
+              "name": "style",
+              "description": "The button style.",
+              "choices": {
+                "Primary": "Primary",
+                "Secondary": "Secondary",
+                "Success": "Success",
+                "Danger": "Danger"
+              }
+            },
+            "emoji": {
+              "name": "emoji",
+              "description": "The emoji to display."
+            }
+          },
+          "responses": {
+            "success": "Ticket type `{{typeId}}` has been saved.",
+            "error": "An error occurred while saving the ticket type."
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Remove a ticket type.",
+          "options": {
+            "type_id": {
+              "name": "type_id",
+              "description": "The ID of the ticket type to remove."
+            }
+          },
+          "responses": {
+            "success": "Ticket type with ID `{{typeId}}` has been removed.",
+            "not_found": "Ticket type with ID `{{typeId}}` not found.",
+            "error": "An error occurred while removing the ticket type."
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "List all ticket types.",
+          "responses": {
+            "no_types": "No ticket types configured.",
+            "title": "Configured Ticket Types",
+            "type_line": "**Label:** {{label}} | **ID:** `{{type_id}}` | **Emoji:** {{emoji}}"
+          }
+        },
+        "customize": {
+          "name": "customize",
+          "description": "Customize the ticket panel's embed.",
+          "options": {
+            "title": {
+              "name": "title",
+              "description": "The Title for the embed."
+            },
+            "author_icon_url": {
+              "name": "author_icon_url",
+              "description": "The author icon URL for the embed."
+            },
+            "thumbnail_url": {
+              "name": "thumbnail_url",
+              "description": "The thumbnail URL for the embed."
+            },
+            "footer_icon_url": {
+              "name": "footer_icon_url",
+              "description": "The footer icon URL for the embed."
+            },
+            "message_id": {
+              "name": "message_id",
+              "description": "The ID of the message to use as the panel description."
+            }
+          },
+          "responses": {
+            "no_options": "You must provide at least one option to customize.",
+            "message_not_found": "Message not found.",
+            "message_fetch_error": "Could not fetch the message. Make sure the ID is correct and I have permission to read and delete messages in this channel.",
+            "success": "The ticket panel has been customized.",
+            "error": "An error occurred while customizing the panel."
+          }
+        }
+      },
+      "autocomplete": {
+        "type_id_choice": "{{label}} ({{type_id}})"
+      },
+      "general_error": "An error occurred while managing the panel."
+    },
+    "ticket": {
+      "name": "ticket",
+      "description": "Ticket commands.",
+      "subcommands": {
+        "add": {
+          "name": "add",
+          "description": "Add a user to a ticket.",
+          "options": {
+            "user": {
+              "name": "user",
+              "description": "The user to add."
+            }
+          },
+          "responses": {
+            "success": "Successfully added {{userTag}} to the ticket.",
+            "not_ticket": "This command can only be used in a ticket channel.",
+            "user_not_found": "User not found."
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Remove a user from a ticket.",
+          "options": {
+            "user": {
+              "name": "user",
+              "description": "The user to remove."
+            }
+          },
+          "responses": {
+            "success": "Successfully removed {{userTag}} from the ticket.",
+            "not_ticket": "This command can only be used in a ticket channel.",
+            "user_not_found": "User not found."
+          }
+        },
+        "purge": {
+          "name": "purge",
+          "description": "Permanently delete all tickets and reset the ID counter.",
+          "responses": {
+            "no_permission": "You do not have permission to use this command.",
+            "confirmation_prompt": "⚠️ **DANGER** ⚠️\nThis will permanently delete ALL tickets and reset the ID counter. This action cannot be undone.",
+            "confirm_button": "Confirm Permanent Deletion"
+          }
+        }
+      }
+    },
+    "odog": {
+      "name": "odog",
+      "description": "Shows the Odog rankings.",
+      "options": {
+        "gacha_id": {
+          "name": "gacha_id",
+          "description": "The ID of the gacha pool to rank."
+        },
+        "period": {
+          "name": "period",
+          "description": "The time period for the rankings, defaulting to 7 days (e.g., 7d, all)."
+        }
+      },
+      "responses": {
+        "invalid_period": "Invalid period format. Use \"all\" or a number of days (e.g., \"7d\").",
+        "no_ranking_data": "No ranking data found for the specified gacha pool and period.",
+        "title": "Odog Rankings for {{gachaName}} (Last {{period}})",
+        "global": "ALL pool",
+        "no_top_tier": "No top-tier draws",
+        "user_rank_details": "Rank: **{{rank}}**\n{{rarityDetails}}",
+        "user_rank_summary": "**Total Draws**: `{{totalDraws}}`",
+        "error_fetching": "An error occurred while fetching the rankings."
+      }
+    },
+    "ping": {
+      "name": "ping",
+      "description": "Checks the bot's latency.",
+      "responses": {
+        "pong": "🏓 **Pong!**",
+        "latency": "Latency: `{{latency}}` ms!\n> I've been poked `{{count}}` times",
+        "button_label": "Test Again"
+      }
+    },
+    "pricealert": {
+      "name": "pricealert",
+      "description": "Manage price alerts for assets.",
+      "subcommands": {
+        "set": {
+          "name": "set",
+          "description": "Set a new price alert.",
+          "options": {
+            "symbol": {
+              "name": "symbol",
+              "description": "The symbol of the asset"
+            },
+            "condition": {
+              "name": "condition",
+              "description": "The condition for the alert (e.g., above, below)",
+              "choices": {
+                "above": "Above",
+                "below": "Below"
+              }
+            },
+            "price": {
+              "name": "price",
+              "description": "The target price"
+            },
+            "repeatable": {
+              "name": "repeatable",
+              "description": "Whether the alert should be repeatable"
+            }
+          },
+          "responses": {
+            "success": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** {{currentPrice}}",
+            "no_current_price": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** Not available",
+            "asset_not_found": "❌ Could not find an asset with the symbol `{{symbol}}`."
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "List your active price alerts.",
+          "responses": {
+            "no_alerts": "You have no active price alerts.",
+            "title": "**Your active price alerts:**",
+            "alert_line": "> `ID: {{id}}` - **{{assetSymbol}}** {{condition}} **{{targetPrice}}** (Set: <t:{{timestamp}}:R>)"
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Remove a price alert.",
+          "options": {
+            "alert_id": {
+              "name": "alert_id",
+              "description": "The ID of the alert to remove"
+            }
+          },
+          "responses": {
+            "success": "✅ Successfully removed alert ID: `{{alertId}}`.",
+            "not_found": "❌ Could not find your alert with ID: `{{alertId}}`, or it has already been removed."
+          }
+        }
+      },
+      "autocomplete": {
+        "alert_id_choice": "ID: {{id}} - {{assetSymbol}} {{condition}} {{targetPrice}}"
+      },
+      "notification": {
+        "title": "🔔 **Price Alert** 🔔",
+        "body": "Your price alert for **{{assetSymbol}}** has been triggered!\n\n> **Condition:** {{condition}} {{targetPrice}}\n> **Current Price:** {{currentPrice}}"
+      },
+      "general_error": "An error occurred while processing your command."
+    },
+    "report": {
+      "name": "report",
+      "description": "Generates a price report for assets.",
+      "subcommands": {
+        "symbol": {
+          "name": "symbol",
+          "description": "Get a detailed report for a single asset.",
+          "options": {
+            "symbol": {
+              "name": "symbol",
+              "description": "The symbol or name of the asset to query."
+            },
+            "range": {
+              "name": "range",
+              "description": "The time range to query (e.g., 7d, 2w, 1m, 6h, defaults to 7d)."
+            }
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "List all queryable assets and their latest prices."
+        }
+      },
+      "responses": {
+        "list_title": "**Queryable Asset List**",
+        "list_total": "There are currently {{count}} assets",
+        "list_asset_line": "> `{{symbol}}` - {{name}} (Last update: <t:{{timestamp}}:R>)",
+        "list_footer": "If the update time is more than `5` minutes ago, there might be an issue with the bot. Please check for announcements.",
+        "invalid_range": "Invalid time range. Please use a format like 7d, 2w, 1m, or a preset value.",
+        "no_data": "No data found for symbol `{{symbol}}` in the selected time range.",
+        "report_title": "# {{assetName}} Historical Analysis Report",
+        "last_updated": "-# Last Updated: <t:{{timestamp}}:R>",
+        "report_range": "Time Range: `{{range}}`",
+        "chart_description": "Price chart for {{assetName}}",
+        "start_price": "> Start Price: `{{price}}`",
+        "end_price": "> End Price: `{{price}}`",
+        "total_change_value": "> Total Change: `{{change}}`",
+        "total_change_percent": "> Total Change %% : `{{percent}}%`",
+        "high_price": "> Highest Price: `{{price}}` (<t:{{timestamp}}:F>)",
+        "low_price": "> Lowest Price: `{{price}}` (<t:{{timestamp}}:F>)",
+        "avg_price": "> Average Price: `{{price}}`",
+        "range_high": "Range High: `{{price}}`",
+        "range_low": "Range Low: `{{price}}`",
+        "range_avg": "Range Avg: `{{price}}`",
+        "volatility": "> Volatility: `{{value}}` (`{{percent}}%`)",
+        "data_points": "> Data Points: `{{count}}`",
+        "time_span": "> Timespan: `{{start}}` ~ `{{end}}` (Total {{duration}})",
+        "total_volume": "> Total Volume: `{{volume}}`",
+        "avg_volume": "> Average Volume: `{{volume}}`",
+        "high_volume": "> Highest Volume: `{{volume}}` (<t:{{timestamp}}:F>)",
+        "low_volume": "> Lowest Volume: `{{volume}}` (<t:{{timestamp}}:F>)",
+        "error_fetching": "An error occurred while fetching the report.",
+        "button_price_analysis": "Price Analysis",
+        "button_volume_analysis": "Volume Analysis",
+        "button_detailed_price": "Detailed Price",
+        "report_stale": "This report is outdated because new data is available. Please run the `/report` command again to get the latest information."
+      },
+      "autocomplete": {
+        "range_1d": "1 Day",
+        "range_7d": "7 Days",
+        "range_1m": "1 Month",
+        "range_all": "All Time"
+      }
+    },
+    "top": {
+      "responses": {
+        "no_messages": "There are no messages in this channel.",
+        "no_permission": "I need the 'Read Message History' permission to find the first message.",
+        "fetch_error": "Could not retrieve the first message. Please try again later."
+      }
+    },
+    "userinfo": {
+      "name": "User Info",
+      "description": "Get information about a user.",
+      "embed": {
+        "title": "User Information for {username}",
+        "fields": {
+          "id": "ID",
+          "tag": "Tag",
+          "createdAt": "Account Created"
+        }
+      }
+    },
+    "help": {
+      "name": "help",
+      "description": "Displays a list of available commands.",
+      "interface": {
+        "title": "Help Menu",
+        "select_placeholder": "Select a category...",
+        "initial_description": "Please select a category to see the commands within it.",
+        "select_command_prompt": "Please select a command to see its details.",
+        "no_permission": "You do not have permission to use any commands.",
+        "category_title": "{category} Commands",
+        "no_commands_in_category": "No commands found in this category.",
+        "expired_title": "Help Menu Expired",
+        "expired_description": "This help menu has expired. Please use `/help` again."
+      }
+    },
+    "todo": {
+      "name": "todo",
+      "description": "Manages your to-do list.",
+      "subcommands": {
+        "add": {
+          "name": "add",
+          "description": "Adds an item to your to-do list.",
+          "options": {
+            "item": {
+              "name": "item",
+              "description": "The to-do item."
+            }
+          },
+          "responses": {
+            "success": "Added \"{{item}}\" to your to-do list."
+          }
+        },
+        "remove": {
+          "name": "remove",
+          "description": "Removes an item from your to-do list.",
+          "options": {
+            "id": {
+              "name": "id",
+              "description": "The ID of the item to remove."
+            }
+          },
+          "responses": {
+            "success": "Removed to-do item #{{id}}.",
+            "not_found": "Could not find a to-do item with ID #{{id}} that belongs to you."
+          }
+        },
+        "list": {
+          "name": "list",
+          "description": "Lists your to-do items.",
+          "responses": {
+            "empty": "Your to-do list is empty.",
+            "title": "**Your To-Do List:**"
+          }
+        },
+        "clear": {
+          "name": "clear",
+          "description": "Clears your entire to-do list.",
+          "responses": {
+            "success": "Your to-do list has been cleared."
+          }
+        }
+      },
+      "autocomplete": {
+        "id_choice": "[{{id}}] {{item}}"
+      },
+      "general_error": "An error occurred while managing your to-do list."
+    }
   }
 }

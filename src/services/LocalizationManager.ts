@@ -6,90 +6,71 @@ export class LocalizationManager {
   private localizations: Map<string, Record<string, any>> = new Map();
 
   constructor() {
-    this.loadAllLocalizations();
-    this.loadGlobalLocalizations();
+    this.loadLocalizations();
   }
 
-  private loadGlobalLocalizations(): void {
+  private loadLocalizations(): void {
     const localesPath = path.join(__dirname, "../locales");
-    if (existsSync(localesPath)) {
-      const localeFiles = readdirSync(localesPath).filter((file) =>
-        file.endsWith(".json")
-      );
-      for (const file of localeFiles) {
-        const lang = file.replace(".json", "");
+    if (!existsSync(localesPath)) {
+      logger.warn("Locales directory not found.");
+      return;
+    }
+
+    const localeFiles = readdirSync(localesPath).filter((file) =>
+      file.endsWith(".json")
+    );
+
+    for (const file of localeFiles) {
+      const lang = file.replace(".json", "");
+      try {
         const translations = require(path.join(localesPath, file));
-
-        let existing = this.localizations.get("global");
-        if (!existing) {
-          existing = {};
-          this.localizations.set("global", existing);
-        }
-        existing[lang] = translations;
+        this.localizations.set(lang, translations);
+      } catch (error) {
+        logger.error(`Error loading localization file: ${file}`, error);
       }
     }
+    logger.info(`Successfully loaded ${this.localizations.size} languages.`);
   }
 
-  private loadAllLocalizations(): void {
-    const commandsBasePath = path.join(__dirname, "../commands");
-    logger.info("Pre-loading all localizations...");
-    // Only scan command directories, excluding help_docs
-    const commandCategories = readdirSync(commandsBasePath, {
-      withFileTypes: true,
-    })
-      .filter((dirent) => dirent.isDirectory() && dirent.name !== "help_docs")
-      .map((dirent) => dirent.name);
+  public get(
+    key: string,
+    lang: string,
+    options?: Record<string, string | number>
+  ): string | undefined {
+    const langFile = this.localizations.get(lang);
+    if (!langFile) return undefined;
 
-    for (const category of commandCategories) {
-      const categoryPath = path.join(commandsBasePath, category);
-      const commandFolders = readdirSync(categoryPath, { withFileTypes: true })
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name);
-
-      for (const commandName of commandFolders) {
-        const localesPath = path.join(categoryPath, commandName, "locales");
-        if (existsSync(localesPath)) {
-          const localeFiles = readdirSync(localesPath).filter((file) =>
-            file.endsWith(".json")
-          );
-          for (const file of localeFiles) {
-            const lang = file.replace(".json", "");
-            const translations = require(path.join(localesPath, file));
-            const commandKey = `${commandName}_${lang}`;
-
-            // This logic seems a bit off, let's adjust to store by command name
-            // and have nested languages. But for now, let's stick to the user's request structure
-            // to get things working first. A better structure would be:
-            // this.localizations.set(commandName, { [lang]: translations });
-            // For now, let's assume we retrieve the whole object for a command.
-
-            let existing = this.localizations.get(commandName);
-            if (!existing) {
-              existing = {};
-              this.localizations.set(commandName, existing);
-            }
-            existing[lang] = translations;
-          }
-        }
+    const keys = key.split(".");
+    let current = langFile;
+    for (const k of keys) {
+      if (current[k]) {
+        current = current[k];
+      } else {
+        return undefined;
       }
     }
-    // A more accurate logging based on the corrected logic
-    const loadedLangs = Array.from(this.localizations.values()).reduce(
-      (acc, langs) => acc + Object.keys(langs).length,
-      0
-    );
-    logger.info(
-      `Successfully pre-loaded localizations for ${this.localizations.size} commands across ${loadedLangs} language files.`
-    );
+
+    if (typeof current !== "string") return undefined;
+
+    if (options) {
+      return Object.entries(options).reduce(
+        (acc, [key, value]) =>
+          acc.replace(new RegExp(`{{${key}}}`, "g"), String(value)),
+        current as string
+      );
+    }
+
+    return current;
   }
 
-  public get(commandName: string): Record<string, any> | undefined {
-    return this.localizations.get(commandName);
-  }
-
-  // It might be useful to have a method to get a specific language
   public getLocale(commandName: string, lang: string): any | undefined {
-    const commandLocales = this.get(commandName);
-    return commandLocales ? commandLocales[lang] : undefined;
+    const langFile = this.localizations.get(lang);
+    if (!langFile) return undefined;
+
+    return langFile.commands?.[commandName];
+  }
+
+  public getAvailableLanguages(): string[] {
+    return Array.from(this.localizations.keys());
   }
 }

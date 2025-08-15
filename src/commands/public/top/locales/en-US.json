@@ -1,7 +1,0 @@
-{
-  "responses": {
-    "no_messages": "There are no messages in this channel.",
-    "no_permission": "I need the 'Read Message History' permission to find the first message.",
-    "fetch_error": "Could not retrieve the first message. Please try again later."
-  }
-}
