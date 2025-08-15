@@ -28,12 +28,20 @@ export class PriceAlerter {
         "prices:latest"
       );
 
+      if (priceMap && !(priceMap instanceof Map)) {
+        priceMap = new Map(Object.entries(priceMap));
+      }
+
       if (!priceMap) {
         const assets = await getAllAssetsWithLatestPrice();
         priceMap = new Map(
           assets.map((asset) => [asset.asset_symbol, asset.price])
         );
-        await this.cacheService.set("prices:latest", priceMap, 60);
+        await this.cacheService.set(
+          "prices:latest",
+          Object.fromEntries(priceMap),
+          60
+        );
       }
 
       // Since this is now event-driven, we can check for any alert

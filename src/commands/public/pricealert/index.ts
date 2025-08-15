@@ -261,7 +261,7 @@ export default {
         const currentPrice = currentAsset ? currentAsset.price : null;
 
         // --- Create alert ---
-        const nextId = await findNextAvailablePriceAlertId(userId);
+        const nextId = await findNextAvailablePriceAlertId();
         await createPriceAlert(
           nextId,
           userId,

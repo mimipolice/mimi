@@ -292,31 +292,13 @@ export async function getPriceHistoryWithVolume(
   }));
 }
 
-export async function findNextAvailablePriceAlertId(
-  userId: string
-): Promise<number> {
+export async function findNextAvailablePriceAlertId(): Promise<number> {
   const result = await mimiDLCDb
     .selectFrom("price_alerts")
-    .select("id")
-    .where("user_id", "=", userId)
-    .orderBy("id", "asc")
-    .execute();
+    .select((eb) => eb.fn.max("id").as("max_id"))
+    .executeTakeFirst();
 
-  const ids = result.map((row) => row.id);
-
-  if (ids.length === 0) {
-    return 1;
-  }
-
-  let expectedId = 1;
-  for (const id of ids) {
-    if (id !== expectedId) {
-      return expectedId;
-    }
-    expectedId++;
-  }
-
-  return ids[ids.length - 1] + 1;
+  return (result?.max_id || 0) + 1;
 }
 
 export async function createPriceAlert(
