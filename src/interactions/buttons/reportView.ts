@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ComponentType,
   AttachmentBuilder,
+  MessageFlags,
 } from "discord.js";
 import {
   ContainerBuilder,
@@ -70,7 +71,7 @@ export default {
         // Should not happen if the button exists, but as a safeguard
         await interaction.followUp({
           content: t.responses.error_fetching,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -94,7 +95,7 @@ export default {
         // This should not happen in a valid report message
         await interaction.followUp({
           content: "Error: Could not find the original message container.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -215,7 +216,7 @@ export default {
         // Send a follow-up message explaining why.
         await interaction.followUp({
           content: t.responses.report_stale,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return; // Stop further execution
