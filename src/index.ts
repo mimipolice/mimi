@@ -21,7 +21,6 @@ import { loadCaches } from "./shared/cache";
 import appealButton from "./features/anti-spam/appealButton";
 import { DiscordService } from "./services/DiscordService";
 import { ForumService } from "./services/ForumService";
-import { MessageForwardingService } from "./services/MessageForwardingService";
 import { CacheService } from "./services/CacheService";
 import { CacheInvalidationService } from "./services/CacheInvalidationService";
 
@@ -106,7 +105,6 @@ async function main() {
   const priceAlerter = new PriceAlerter(client, localizationManager);
   const helpService = new HelpService(client);
   const forumService = new ForumService();
-  const messageForwardingService = new MessageForwardingService(client);
   const cacheService = new CacheService();
 
   const services: Services = {
@@ -115,7 +113,6 @@ async function main() {
     localizationManager,
     helpService,
     forumService,
-    messageForwardingService,
     cacheService,
   };
   const databases: Databases = {

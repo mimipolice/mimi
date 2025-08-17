@@ -78,9 +78,6 @@ module.exports = {
     // ?solve command logic
     await services.forumService.handleSolveCommand(message);
 
-    // Message forwarding logic
-    await services.messageForwardingService.handleMessageForwarding(message);
-
     // Anti-spam check
     await handleAntiSpam(message);
 
