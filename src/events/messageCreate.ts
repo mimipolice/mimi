@@ -15,6 +15,7 @@ import QsCommand from "../commands/admin/qs";
 import QcCommand from "../commands/public/qc";
 import UnqsCommand from "../commands/admin/unqs";
 import TopCommand from "../commands/public/top";
+import ForumCommand from "../commands/admin/forum";
 
 const messageCommands = new Map<string, MessageCommand>();
 messageCommands.set(QsCommand.name, QsCommand);
@@ -39,6 +40,12 @@ messageCommands.set(TopCommand.name, TopCommand);
 if (TopCommand.aliases) {
   for (const alias of TopCommand.aliases) {
     messageCommands.set(alias, TopCommand);
+  }
+}
+messageCommands.set(ForumCommand.name, ForumCommand);
+if (ForumCommand.aliases) {
+  for (const alias of ForumCommand.aliases) {
+    messageCommands.set(alias, ForumCommand);
   }
 }
 
