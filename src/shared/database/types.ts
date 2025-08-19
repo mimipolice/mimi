@@ -167,6 +167,7 @@ export interface MimiDLCDB {
     panelAuthorIconUrl: string | null;
     panelThumbnailUrl: string | null;
     panelFooterIconUrl: string | null;
+    forum_autotags: ColumnType<string, string, string> | null;
   };
   tickets: {
     id: ColumnType<number, never, never>;

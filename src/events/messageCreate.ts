@@ -71,7 +71,7 @@ module.exports = {
         const command = messageCommands.get(commandName);
         if (command) {
           try {
-            await command.execute(message, args, services);
+            await command.execute(message, args, services, databases);
           } catch (error) {
             console.error(error);
             await message.reply(

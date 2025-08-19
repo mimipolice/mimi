@@ -1,19 +1,40 @@
-import { Events, ThreadChannel, ChannelType } from "discord.js";
+import { Events, ThreadChannel, ChannelType, Client } from "discord.js";
 import config from "../config";
 import logger from "../utils/logger";
+import { Databases, Services } from "../interfaces/Command";
 
 module.exports = {
   name: Events.ThreadCreate,
   once: false,
-  async execute(thread: ThreadChannel, newlyCreated: boolean) {
+  async execute(
+    thread: ThreadChannel,
+    client: Client,
+    services: Services,
+    databases: Databases
+  ) {
     // This feature is only for the dev server
     if (thread.guild.id !== config.discord.guildId) {
       return;
     }
 
     // Only for forum channels and only when the thread is first created
-    if (thread.parent?.type !== ChannelType.GuildForum || !newlyCreated) {
+    if (thread.parent?.type !== ChannelType.GuildForum) {
       return;
+    }
+
+    // Autotag logic
+    if (thread.parentId) {
+      const settings = await services.settingsManager.getSettings(
+        thread.guild.id
+      );
+      if (settings && settings.forum_autotags) {
+        const autotags = JSON.parse(settings.forum_autotags);
+        const tagId = autotags[thread.parentId];
+        if (tagId) {
+          const newTags = [...new Set([...thread.appliedTags, tagId])];
+          await thread.setAppliedTags(newTags);
+        }
+      }
     }
 
     try {

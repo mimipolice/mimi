@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { Services } from "./Command";
+import { Services, Databases } from "./Command";
 
 export interface MessageCommand {
   name: string;
@@ -7,6 +7,7 @@ export interface MessageCommand {
   execute: (
     message: Message,
     args: string[],
-    services: Services
+    services: Services,
+    databases: Databases
   ) => Promise<void>;
 }
