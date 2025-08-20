@@ -224,22 +224,13 @@ export default {
       const userId = interaction.user.id;
 
       if (subcommand === "set") {
-        const symbol = interaction.options.getString(
-          t.subcommands.set.options.symbol.name,
-          true
-        );
-        const condition = interaction.options.getString(
-          t.subcommands.set.options.condition.name,
-          true
-        ) as "above" | "below";
-        const targetPrice = interaction.options.getNumber(
-          t.subcommands.set.options.price.name,
-          true
-        );
+        const symbol = interaction.options.getString("symbol", true);
+        const condition = interaction.options.getString("condition", true) as
+          | "above"
+          | "below";
+        const targetPrice = interaction.options.getNumber("price", true);
         const repeatable =
-          interaction.options.getBoolean(
-            t.subcommands.set.options.repeatable.name
-          ) ?? false;
+          interaction.options.getBoolean("repeatable") ?? false;
 
         const asset = assetList.find((a) => a.symbol.toLowerCase() === symbol);
 
@@ -323,10 +314,7 @@ export default {
         );
       } else if (subcommand === "remove") {
         const alertId = parseInt(
-          interaction.options.getString(
-            t.subcommands.remove.options.alert_id.name,
-            true
-          ),
+          interaction.options.getString("alert_id", true),
           10
         );
         const removedCount = await removePriceAlert(alertId, userId);
