@@ -8,6 +8,7 @@ module.exports = {
   once: false,
   async execute(
     thread: ThreadChannel,
+    _newlyCreated: boolean,
     client: Client,
     services: Services,
     databases: Databases

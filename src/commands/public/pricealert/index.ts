@@ -78,7 +78,7 @@ export default {
             .setDescription("The asset symbol.")
             .setNameLocalizations({
               [Locale.EnglishUS]: "symbol",
-              [Locale.ChineseTW]: "代號",
+              [Locale.ChineseTW]: "股票代號",
             })
             .setDescriptionLocalizations({
               [Locale.EnglishUS]: "The asset symbol.",
