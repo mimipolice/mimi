@@ -414,7 +414,9 @@
           "responses": {
             "success": "✅ **已成功設定價格提醒！**\n> **公司:** {{assetName}} ({{assetSymbol}})\n> **條件:** 當價格 **{{condition}} {{targetPrice}}**\n> **目前價格:** {{currentPrice}}",
             "no_current_price": "✅ **已成功設定價格提醒！**\n> **公司:** {{assetName}} ({{assetSymbol}})\n> **條件:** 當價格 **{{condition}} {{targetPrice}}**\n> **目前價格:** 尚無資料",
-            "asset_not_found": "❌ 找不到股票代號為「{{symbol}}」的股票。"
+            "asset_not_found": "❌ 找不到股票代號為「{{symbol}}」的股票。",
+            "dm_verification_success": "✅ **已成功設定價格提醒！**\n> 一則確認訊息已發送至您的私訊。",
+            "dm_verification_failed": "⚠️ **需要您進行操作！**\n> 我無法傳送私訊給您。請確認您已開啟此伺服器的私訊功能。\n> \n> 開啟私訊後，請重新執行 `/pricealert set` 指令。"
           }
         },
         "list": {

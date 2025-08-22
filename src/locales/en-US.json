@@ -414,7 +414,9 @@
           "responses": {
             "success": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** {{currentPrice}}",
             "no_current_price": "✅ **Successfully set price alert!**\n> **Company:** {{assetName}} ({{assetSymbol}})\n> **Condition:** When price is **{{condition}} {{targetPrice}}**\n> **Current Price:** Not available",
-            "asset_not_found": "❌ Could not find an asset with the symbol `{{symbol}}`."
+            "asset_not_found": "❌ Could not find an asset with the symbol `{{symbol}}`.",
+            "dm_verification_success": "✅ **Successfully set price alert!**\n> A confirmation message has been sent to your DMs.",
+            "dm_verification_failed": "⚠️ **Action Required!**\n> I couldn't send you a DM. Please make sure your DMs are open for this server.\n> \n> After enabling DMs, please run the `/pricealert set` command again."
           }
         },
         "list": {

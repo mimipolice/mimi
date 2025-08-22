@@ -4,6 +4,7 @@ import {
   AutocompleteInteraction,
   Locale,
   Client,
+  DiscordAPIError,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import {
@@ -263,29 +264,45 @@ export default {
           interaction.locale
         );
 
-        // --- Respond with details ---
+        // --- Respond with details and DM verification ---
         const conditionText =
           condition === "above"
             ? t.subcommands.set.options.condition.choices.above
             : t.subcommands.set.options.condition.choices.below;
 
-        let reply;
-        if (currentPrice !== null) {
-          reply = t.subcommands.set.responses.success
-            .replace("{{assetName}}", asset.name)
-            .replace("{{assetSymbol}}", asset.symbol)
-            .replace("{{condition}}", conditionText)
-            .replace("{{targetPrice}}", targetPrice.toString())
-            .replace("{{currentPrice}}", currentPrice.toFixed(2));
-        } else {
-          reply = t.subcommands.set.responses.no_current_price
-            .replace("{{assetName}}", asset.name)
-            .replace("{{assetSymbol}}", asset.symbol)
-            .replace("{{condition}}", conditionText)
-            .replace("{{targetPrice}}", targetPrice.toString());
-        }
+        const dmMessage =
+          currentPrice !== null
+            ? t.subcommands.set.responses.success
+                .replace("{{assetName}}", asset.name)
+                .replace("{{assetSymbol}}", asset.symbol)
+                .replace("{{condition}}", conditionText)
+                .replace("{{targetPrice}}", targetPrice.toString())
+                .replace("{{currentPrice}}", currentPrice.toFixed(2))
+            : t.subcommands.set.responses.no_current_price
+                .replace("{{assetName}}", asset.name)
+                .replace("{{assetSymbol}}", asset.symbol)
+                .replace("{{condition}}", conditionText)
+                .replace("{{targetPrice}}", targetPrice.toString());
 
-        await interaction.editReply(reply);
+        try {
+          await interaction.user.send(dmMessage);
+          await interaction.editReply(
+            t.subcommands.set.responses.dm_verification_success
+          );
+        } catch (error) {
+          if (error instanceof DiscordAPIError && error.code === 50007) {
+            logger.warn(
+              `Failed to send DM to user ${userId} (DMs closed), removing price alert.`
+            );
+            await removePriceAlert(nextId, userId);
+            await interaction.editReply(
+              t.subcommands.set.responses.dm_verification_failed
+            );
+          } else {
+            // For other errors, re-throw to be handled by the main error handler
+            throw error;
+          }
+        }
       } else if (subcommand === "list") {
         const alerts = await getUserPriceAlerts(userId);
         if (alerts.length === 0) {
