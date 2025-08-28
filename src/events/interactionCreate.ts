@@ -1,4 +1,5 @@
 import { Interaction, Client } from "discord.js";
+import retry from "async-retry";
 import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
@@ -30,7 +31,22 @@ export async function execute(
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
-      await command.execute(interaction, client, services, databases);
+      await retry(
+        async () => {
+          await command.execute(interaction, client, services, databases);
+        },
+        {
+          retries: 3,
+          factor: 2,
+          minTimeout: 200,
+          onRetry: (error: Error, attempt) => {
+            logger.warn(
+              `[DB Retry] Command execution failed on attempt ${attempt}. Retrying...`,
+              error.message
+            );
+          },
+        }
+      );
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,

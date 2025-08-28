@@ -21,6 +21,12 @@ export const gachaPool = new Pool({
   user: config.gachaDatabase.user,
   password: config.gachaDatabase.password,
   port: config.gachaDatabase.port,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+gachaPool.on("error", (err, client) => {
+  logger.error("[Gacha Pool] An idle client has experienced an error", err);
 });
 
 // mimiDLC Database Pool (also used for tickets)
@@ -30,6 +36,12 @@ const mimiDLCPool = new Pool({
   user: config.mimiDLCDatabase.user,
   password: config.mimiDLCDatabase.password,
   port: config.mimiDLCDatabase.port,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+mimiDLCPool.on("error", (err, client) => {
+  logger.error("[MimiDLC Pool] An idle client has experienced an error", err);
 });
 
 // ===== Kysely Instances =====
