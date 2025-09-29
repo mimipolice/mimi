@@ -45,8 +45,23 @@ const ForumCommand: MessageCommand = {
         // @ts-ignore
         await story(message, args, services);
         break;
+      case "help": {
+        const helpMessage = `**Forum Command Usage**
+\`?forum <subcommand> [arguments]\`
+
+**Subcommands:**
+- \`add-tag <forum_channel_id> <tag_name>\`: Adds a tag to a forum channel.
+- \`cleanup-tags <forum_channel_id>\`: Removes all tags from a forum channel.
+- \`autotag <set|remove|view> [forum_channel_id] [tag_id]\`: Manages autotagging for forum channels.
+- \`story <set|remove|view> [forum_channel_id]\`: Manages story forum channels.
+- \`help\`: Shows this help message.`;
+        await message.reply(helpMessage);
+        break;
+      }
       default:
-        await message.reply(`Unknown subcommand: ${subCommand}`);
+        await message.reply(
+          `Unknown subcommand: ${subCommand}. Use \`?forum help\` to see available commands.`
+        );
         break;
     }
   },
