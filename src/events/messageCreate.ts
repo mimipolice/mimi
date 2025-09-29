@@ -62,6 +62,9 @@ module.exports = {
       return;
     }
 
+    // Story Forum Logic
+    await services.storyForumService.validateMessage(message);
+
     const prefix = "?";
     if (message.content.startsWith(prefix)) {
       const args = message.content.slice(prefix.length).trim().split(/ +/);

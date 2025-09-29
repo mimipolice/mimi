@@ -4,6 +4,7 @@ import { Services } from "../../../interfaces/Command";
 import { addTag } from "./add-tag";
 import { cleanupTags } from "./cleanup-tags";
 import { autotag } from "./autotag";
+import { story } from "./story";
 
 const ForumCommand: MessageCommand = {
   name: "forum",
@@ -39,6 +40,10 @@ const ForumCommand: MessageCommand = {
       case "autotag":
         // @ts-ignore
         await autotag(message, args, services);
+        break;
+      case "story":
+        // @ts-ignore
+        await story(message, args, services);
         break;
       default:
         await message.reply(`Unknown subcommand: ${subCommand}`);

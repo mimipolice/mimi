@@ -168,6 +168,7 @@ export interface MimiDLCDB {
     panelThumbnailUrl: string | null;
     panelFooterIconUrl: string | null;
     forum_autotags: ColumnType<string, string, string> | null;
+    story_forum_channels: string[] | null;
   };
   tickets: {
     id: ColumnType<number, never, never>;
@@ -256,5 +257,12 @@ export interface MimiDLCDB {
     message_id: string;
     author_id: string;
     tags: string[] | null;
+  };
+  story_forum_threads: {
+    thread_id: string;
+    guild_id: string;
+    author_id: string;
+    status: "pending" | "validated";
+    created_at: ColumnType<Date, string | undefined, string>;
   };
 }

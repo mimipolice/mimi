@@ -15,6 +15,7 @@ import { LocalizationManager } from "../services/LocalizationManager";
 import { HelpService } from "../services/HelpService";
 import { ForumService } from "../services/ForumService";
 import { CacheService } from "../services/CacheService";
+import { StoryForumService } from "../services/StoryForumService";
 import { Kysely } from "kysely";
 
 export interface Services {
@@ -24,6 +25,7 @@ export interface Services {
   helpService: HelpService;
   forumService: ForumService;
   cacheService: CacheService;
+  storyForumService: StoryForumService;
 }
 
 export interface Databases {

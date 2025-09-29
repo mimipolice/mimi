@@ -22,6 +22,7 @@ import appealButton from "./features/anti-spam/appealButton";
 import { DiscordService } from "./services/DiscordService";
 import { ForumService } from "./services/ForumService";
 import { CacheService } from "./services/CacheService";
+import { StoryForumService } from "./services/StoryForumService";
 import { CacheInvalidationService } from "./services/CacheInvalidationService";
 
 const pool = new Pool({
@@ -106,6 +107,7 @@ async function main() {
   const helpService = new HelpService(client);
   const forumService = new ForumService();
   const cacheService = new CacheService();
+  const storyForumService = new StoryForumService(mimiDLCDb, client);
 
   const services: Services = {
     settingsManager,
@@ -114,6 +116,7 @@ async function main() {
     helpService,
     forumService,
     cacheService,
+    storyForumService,
   };
   const databases: Databases = {
     gachaDb: gachaDB,
