@@ -48,6 +48,11 @@ export class StoryForumService {
       this.timeoutValidation(thread.id);
     }, VALIDATION_TIMEOUT_MS);
     this.validationTimers.set(thread.id, timer);
+
+    // Immediately check the format on post creation
+    if (thread.ownerId) {
+      await this.checkThreadFormat(thread, thread.ownerId);
+    }
   }
 
   private async timeoutValidation(threadId: string): Promise<void> {
@@ -299,5 +304,27 @@ export class StoryForumService {
     logger.info(
       `[StoryForum] User confirmed submission for thread: ${threadId}`
     );
+
+    const thread = (await this.client.channels
+      .fetch(threadId)
+      .catch(() => null)) as ThreadChannel | null;
+
+    if (thread) {
+      const messages = await thread.messages.fetch({ limit: 100 });
+      const hintMessages = messages.filter(
+        (m) =>
+          m.author.id === this.client.user?.id &&
+          m.content.includes("你的故事似乎還缺少以下部分")
+      );
+
+      for (const message of hintMessages.values()) {
+        await message.delete().catch((err) => {
+          logger.error(
+            `[StoryForum] Failed to delete hint message ${message.id} in thread ${threadId}`,
+            err
+          );
+        });
+      }
+    }
   }
 }
