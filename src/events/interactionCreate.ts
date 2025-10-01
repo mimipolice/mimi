@@ -87,7 +87,8 @@ export async function execute(
       try {
         await services.storyForumService.confirmSubmission(threadId);
         await interaction.update({
-          content: "✅ 投稿已確認，感謝您的創作！",
+          content:
+            "✅ 投稿已確認，感謝您的創作！\n\n身為作者，你現在可以使用 `?pin` 和 `?unpin` 指令來管理此貼文中的重要訊息。",
           components: [],
         });
       } catch (error) {

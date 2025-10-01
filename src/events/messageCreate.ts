@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { getKeywordsForGuild, getAutoreactsForGuild } from "../shared/cache";
 import { handleAntiSpam } from "../features/anti-spam/handler";
+import { handleStoryForumCommand } from "./handlers/storyForumCommandHandler";
 
 import { Client } from "discord.js";
 import { Services, Databases } from "../interfaces/Command";
@@ -64,6 +65,11 @@ module.exports = {
 
     // Story Forum Logic
     await services.storyForumService.validateMessage(message);
+
+    // Handle Story Forum specific commands like ?pin/?unpin
+    if (await handleStoryForumCommand(message, services)) {
+      return; // Stop further processing if it was a story forum command
+    }
 
     const prefix = "?";
     if (message.content.startsWith(prefix)) {

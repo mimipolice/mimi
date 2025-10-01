@@ -335,4 +335,12 @@ export class StoryForumService {
       }
     }
   }
+
+  public async getThreadInfo(threadId: string) {
+    return this.db
+      .selectFrom("story_forum_threads")
+      .selectAll()
+      .where("thread_id", "=", threadId)
+      .executeTakeFirst();
+  }
 }
