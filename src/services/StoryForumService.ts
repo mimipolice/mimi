@@ -9,9 +9,10 @@ import {
 } from "discord.js";
 import { Kysely } from "kysely";
 import { MimiDLCDB } from "../shared/database/types";
+import config from "../config";
 import logger from "../utils/logger";
 
-const VALIDATION_TIMEOUT_MS = 90 * 1000; // 90 秒
+const VALIDATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 分鐘
 const REQUIRED_SECTIONS = [
   "# 你的故事標題",
   "# 故事的開場白",
@@ -20,10 +21,13 @@ const REQUIRED_SECTIONS = [
 
 export class StoryForumService {
   private validationTimers: Map<string, NodeJS.Timeout> = new Map();
+  private hintCooldowns: Map<string, number> = new Map();
 
   constructor(private db: Kysely<MimiDLCDB>, private client: Client) {}
 
   public async registerThread(thread: ThreadChannel): Promise<void> {
+    if (thread.guild.id !== config.discord.guildId) return;
+
     logger.info(`[StoryForum] Registering new story thread: ${thread.id}`);
     await this.db
       .insertInto("story_forum_threads")
@@ -75,11 +79,23 @@ export class StoryForumService {
           .map((m) => m.content)
           .join("\n\n");
 
+        const contentTrimmed = fullContent.trim();
+        const missingSections = REQUIRED_SECTIONS.filter(
+          (section) => !contentTrimmed.includes(section)
+        );
+
+        let reason = "您的投稿在時間內未完成格式，已被自動移除。";
+        if (missingSections.length > 0) {
+          reason = `您的投稿缺少以下部分，已被自動移除：\n- ${missingSections.join(
+            "\n- "
+          )}`;
+        }
+
         await this.rejectPost(
           thread,
           threadInfo.author_id,
           fullContent,
-          "您的投稿在時間內未完成格式，已被自動移除。"
+          reason
         );
       } else {
         await this.db
@@ -91,7 +107,12 @@ export class StoryForumService {
   }
 
   public async validateMessage(message: Message): Promise<void> {
-    if (!message.guild || !message.channel.isThread()) return;
+    if (
+      !message.guild ||
+      !message.channel.isThread() ||
+      message.guild.id !== config.discord.guildId
+    )
+      return;
 
     const threadInfo = await this.db
       .selectFrom("story_forum_threads")
@@ -133,19 +154,45 @@ export class StoryForumService {
       .join("\n\n");
 
     const contentTrimmed = fullContent.trim();
-    for (const section of REQUIRED_SECTIONS) {
-      if (!contentTrimmed.includes(section)) {
-        logger.debug(
-          `[StoryForum] Thread ${thread.id} is still missing section: ${section}`
-        );
-        return;
-      }
+    const missingSections = REQUIRED_SECTIONS.filter(
+      (section) => !contentTrimmed.includes(section)
+    );
+
+    if (missingSections.length > 0) {
+      logger.debug(
+        `[StoryForum] Thread ${
+          thread.id
+        } is still missing sections: ${missingSections.join(", ")}`
+      );
+      await this.sendFormatHint(thread, missingSections);
+      return;
     }
 
     logger.info(
       `[StoryForum] Thread ${thread.id} format is correct. Approving post.`
     );
     await this.approvePost(thread, authorId);
+  }
+
+  private async sendFormatHint(
+    thread: ThreadChannel,
+    missingSections: string[]
+  ): Promise<void> {
+    const now = Date.now();
+    const lastHint = this.hintCooldowns.get(thread.id);
+    const cooldown = 30 * 1000; // 30 秒冷卻
+
+    if (lastHint && now - lastHint < cooldown) {
+      logger.debug(`[StoryForum] Hint for thread ${thread.id} is on cooldown.`);
+      return;
+    }
+
+    const hintMessage = `你的故事似乎還缺少以下部分，請繼續完成：\n- ${missingSections.join(
+      "\n- "
+    )}`;
+
+    await thread.send(hintMessage);
+    this.hintCooldowns.set(thread.id, now);
   }
 
   private async approvePost(
