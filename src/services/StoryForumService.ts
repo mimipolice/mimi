@@ -49,10 +49,18 @@ export class StoryForumService {
     }, VALIDATION_TIMEOUT_MS);
     this.validationTimers.set(thread.id, timer);
 
-    // Immediately check the format on post creation
-    if (thread.ownerId) {
-      await this.checkThreadFormat(thread, thread.ownerId);
-    }
+    // Check the format shortly after creation to ensure the starter message is available
+    // and to avoid race conditions with the messageCreate event.
+    setTimeout(() => {
+      if (thread.ownerId) {
+        this.checkThreadFormat(thread, thread.ownerId).catch((err) => {
+          logger.error(
+            `[StoryForum] Error during initial format check for thread ${thread.id}`,
+            err
+          );
+        });
+      }
+    }, 2000); // 2-second delay
   }
 
   private async timeoutValidation(threadId: string): Promise<void> {
