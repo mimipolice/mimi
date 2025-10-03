@@ -154,6 +154,11 @@ export class StoryForumService {
     thread: ThreadChannel,
     authorId: string
   ): Promise<void> {
+    const threadInfo = await this.getThreadInfo(thread.id);
+    if (!threadInfo || threadInfo.status !== "pending") {
+      return;
+    }
+
     const messages = await thread.messages.fetch({ limit: 100 });
     const authorMessages = messages.filter((m) => m.author.id === authorId);
     const starterMessage = await thread.fetchStarterMessage().catch(() => null);
