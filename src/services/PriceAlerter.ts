@@ -23,6 +23,7 @@ export class PriceAlerter {
   }
 
   public async checkAlerts() {
+    logger.info("[PriceAlerter] Starting alert check cycle...");
     try {
       let priceMap = await this.cacheService.get<Map<string, number>>(
         "prices:latest"
@@ -49,12 +50,19 @@ export class PriceAlerter {
       // but still be highly responsive. A 60-second cooldown is reasonable.
       const alerts = await getAllPriceAlerts(60);
       if (alerts.length === 0) {
+        logger.info("[PriceAlerter] No pending alerts found.");
         return;
       }
+      logger.info(
+        `[PriceAlerter] Found ${alerts.length} pending alerts to check.`
+      );
 
       for (const alert of alerts) {
         const currentPrice = priceMap.get(alert.asset_symbol);
         if (currentPrice === undefined) {
+          logger.warn(
+            `[PriceAlerter] No price found for symbol ${alert.asset_symbol} for alert #${alert.id}. Skipping.`
+          );
           continue;
         }
 
@@ -63,17 +71,26 @@ export class PriceAlerter {
           (alert.condition === "below" && currentPrice < alert.target_price);
 
         if (conditionMet) {
+          logger.info(
+            `[PriceAlerter] Alert #${alert.id} triggered for ${alert.asset_symbol}. Condition: ${alert.condition} ${alert.target_price}, Current Price: ${currentPrice}.`
+          );
           await this.sendNotification(alert, currentPrice);
           // First, always update the notified timestamp to prevent immediate re-triggering
+          logger.info(
+            `[PriceAlerter] Updating timestamp for alert #${alert.id}.`
+          );
           await updatePriceAlertNotified(alert.id);
 
           // If the alert is not repeatable, then attempt to remove it.
           if (!alert.repeatable) {
+            logger.info(
+              `[PriceAlerter] Removing non-repeatable alert #${alert.id}.`
+            );
             try {
               await removePriceAlert(alert.id, alert.user_id);
             } catch (removeError) {
               logger.error(
-                `Failed to remove non-repeatable alert #${alert.id} after notification. It will be cleaned up by a separate process.`,
+                `[PriceAlerter] Failed to remove non-repeatable alert #${alert.id} after notification. It will be cleaned up by a separate process.`,
                 removeError
               );
             }
