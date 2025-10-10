@@ -116,14 +116,8 @@ export default {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       if (subcommand === "set") {
-        const emoji = interaction.options.getString(
-          t.subcommands.set.options.emoji.name,
-          true
-        );
-        const channel = interaction.options.getChannel(
-          t.subcommands.set.options.channel.name,
-          true
-        );
+        const emoji = interaction.options.getString("emoji", true);
+        const channel = interaction.options.getChannel("channel", true);
         await setAutoreact(mimiDLCDb, interaction.guildId, channel.id, emoji);
         flushAutoreactsForGuild(interaction.guildId);
         await interaction.editReply(
@@ -132,10 +126,7 @@ export default {
             .replace("{{channelId}}", channel.id)
         );
       } else if (subcommand === "remove") {
-        const channel = interaction.options.getChannel(
-          t.subcommands.remove.options.channel.name,
-          true
-        );
+        const channel = interaction.options.getChannel("channel", true);
         await removeAutoreact(mimiDLCDb, interaction.guildId, channel.id);
         flushAutoreactsForGuild(interaction.guildId);
         await interaction.editReply(
@@ -162,7 +153,10 @@ export default {
         );
       }
     } catch (error) {
-      logger.error("Autoreact command error:", error);
+      logger.error(
+        `Autoreact command error on guild ${interaction.guildId}:`,
+        error
+      );
       await interaction.editReply(t.general_error);
     }
   },

@@ -77,12 +77,12 @@ export async function sendErrorResponse(
 async function handleCheckFailure(
   interaction: Interaction,
   error: CustomCheckError,
-  userInfo: string,
+  contextInfo: string,
   services: any
 ): Promise<void> {
   const commandName = interaction.isCommand() ? interaction.commandName : "N/A";
   logger.warn(
-    `[ErrorHandler] Command check failed: command '${commandName}' by user ${userInfo}. Error: ${error.message}`
+    `[ErrorHandler] Command check failed: command '${commandName}' | ${contextInfo}. Error: ${error.message}`
   );
   await sendErrorResponse(
     interaction,
@@ -97,12 +97,12 @@ async function handleCheckFailure(
 async function handleMissingPermissions(
   interaction: Interaction,
   error: MissingPermissionsError,
-  userInfo: string,
+  contextInfo: string,
   services: any
 ): Promise<void> {
   const commandName = interaction.isCommand() ? interaction.commandName : "N/A";
   logger.warn(
-    `[ErrorHandler] Permission check failed: command '${commandName}' by user ${userInfo}. Error: ${error.message}`
+    `[ErrorHandler] Permission check failed: command '${commandName}' | ${contextInfo}. Error: ${error.message}`
   );
   await sendErrorResponse(
     interaction,
@@ -113,13 +113,13 @@ async function handleMissingPermissions(
 async function handleCooldown(
   interaction: Interaction,
   error: CooldownError,
-  userInfo: string,
+  contextInfo: string,
   commandName: string,
   services: any
 ): Promise<void> {
   const remaining = error.retryAfter;
   logger.warn(
-    `[ErrorHandler] Command on cooldown: user ${userInfo}, command '${commandName}', retryAfter: ${remaining.toFixed(
+    `[ErrorHandler] Command on cooldown: command '${commandName}' | ${contextInfo}, retryAfter: ${remaining.toFixed(
       2
     )}s`
   );
@@ -132,11 +132,11 @@ async function handleCooldown(
 async function handleDiscordHttpException(
   interaction: Interaction,
   error: DiscordAPIError,
-  userInfo: string,
+  contextInfo: string,
   commandName: string,
   services: any
 ): Promise<void> {
-  const logMsg = `[ErrorHandler] Discord HTTP Error (Status: ${error.status}, Code: ${error.code}): source '${commandName}' by user ${userInfo}. Error: ${error.message}`;
+  const logMsg = `[ErrorHandler] Discord HTTP Error (Status: ${error.status}, Code: ${error.code}): source '${commandName}' | ${contextInfo}. Error: ${error.message}`;
 
   if (error.status === 429) {
     logger.error(`${logMsg} - Rate Limited`);
@@ -192,7 +192,10 @@ export async function handleInteractionError(
   client: Client,
   services: any
 ): Promise<void> {
-  const userInfo = `'${interaction.user.tag}' (ID: ${interaction.user.id})`;
+  const contextInfo =
+    `User: '${interaction.user.tag}' (${interaction.user.id}) | ` +
+    `Guild: ${interaction.guildId || "N/A"} | ` +
+    `Channel: ${interaction.channelId || "N/A"}`;
   const commandName = interaction.isCommand()
     ? (interaction as CommandInteraction).commandName
     : interaction.isMessageComponent() || interaction.isModalSubmit()
@@ -204,25 +207,25 @@ export async function handleInteractionError(
   // --- Error Classification and Handling ---
 
   if (originalError instanceof CustomCheckError) {
-    await handleCheckFailure(interaction, originalError, userInfo, services);
+    await handleCheckFailure(interaction, originalError, contextInfo, services);
   } else if (originalError instanceof MissingPermissionsError) {
     await handleMissingPermissions(
       interaction,
       originalError,
-      userInfo,
+      contextInfo,
       services
     );
   } else if (originalError instanceof CooldownError) {
     await handleCooldown(
       interaction,
       originalError,
-      userInfo,
+      contextInfo,
       commandName,
       services
     );
   } else if (originalError instanceof BusinessError) {
     logger.error(
-      `[ErrorHandler] Business logic error: command '${commandName}' by user ${userInfo}. Error: ${originalError.message}`
+      `[ErrorHandler] Business logic error: command '${commandName}' | ${contextInfo}. Error: ${originalError.message}`
     );
     await sendErrorResponse(
       interaction,
@@ -236,14 +239,14 @@ export async function handleInteractionError(
     await handleDiscordHttpException(
       interaction,
       originalError,
-      userInfo,
+      contextInfo,
       commandName,
       services
     );
   } else {
     // --- Fallback for Unhandled Errors (Bugs) ---
     logger.error(
-      `[ErrorHandler] Unhandled interaction error (BUG): command '${commandName}' by user ${userInfo}.`,
+      `[ErrorHandler] Unhandled interaction error (BUG): command '${commandName}' | ${contextInfo}.`,
       originalError // Pass the full error object for stack tracing
     );
     await sendErrorResponse(
