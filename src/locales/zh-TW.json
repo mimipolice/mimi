@@ -439,7 +439,8 @@
           },
           "responses": {
             "success": "✅ 已成功移除提醒 ID: `{{alertId}}`。",
-            "not_found": "❌ 找不到屬於您的提醒 ID: `{{alertId}}`，或它已被移除。"
+            "not_found": "❌ 找不到屬於您的提醒 ID: `{{alertId}}`，或它已被移除。",
+            "invalid_id": "❌ 提供的提醒 ID 無效。"
           }
         }
       },

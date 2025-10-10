@@ -330,10 +330,20 @@ export default {
           `${t.subcommands.list.responses.title}\n${alertList}`
         );
       } else if (subcommand === "remove") {
-        const alertId = parseInt(
-          interaction.options.getString("alert_id", true),
-          10
+        const alertIdString = interaction.options.getString("alert_id", true);
+        logger.info(
+          `[PriceAlert Remove] Received alert_id string: "${alertIdString}"`
         );
+        const alertId = parseInt(alertIdString, 10);
+        logger.info(`[PriceAlert Remove] Parsed alertId: ${alertId}`);
+
+        if (isNaN(alertId)) {
+          await interaction.editReply(
+            t.subcommands.remove.responses.invalid_id
+          );
+          return;
+        }
+
         const removedCount = await removePriceAlert(alertId, userId);
 
         if (removedCount > 0) {

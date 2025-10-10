@@ -439,7 +439,8 @@
           },
           "responses": {
             "success": "✅ Successfully removed alert ID: `{{alertId}}`.",
-            "not_found": "❌ Could not find your alert with ID: `{{alertId}}`, or it has already been removed."
+            "not_found": "❌ Could not find your alert with ID: `{{alertId}}`, or it has already been removed.",
+            "invalid_id": "❌ The provided alert ID is invalid."
           }
         }
       },
