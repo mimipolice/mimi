@@ -268,8 +268,7 @@ async function main() {
       logger.error("Client user is not available.");
       return;
     }
-    logger.info(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity("米米><", { type: ActivityType.Custom });
+    // logger.info(`Logged in as ${client.user.tag}!`);
     await services.helpService.initialize();
     // Start the cache invalidation listener
     const cacheInvalidator = new CacheInvalidationService(priceAlerter);
