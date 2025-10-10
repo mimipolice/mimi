@@ -71,27 +71,33 @@ export class PriceAlerter {
           (alert.condition === "below" && currentPrice < alert.target_price);
 
         if (conditionMet) {
-          logger.info(
-            `[PriceAlerter] Alert #${alert.id} triggered for ${alert.asset_symbol}. Condition: ${alert.condition} ${alert.target_price}, Current Price: ${currentPrice}.`
-          );
-          await this.sendNotification(alert, currentPrice);
-          // First, always update the notified timestamp to prevent immediate re-triggering
-          logger.info(
-            `[PriceAlerter] Updating timestamp for alert #${alert.id}.`
-          );
-          await updatePriceAlertNotified(alert.id);
-
-          // If the alert is not repeatable, then attempt to remove it.
           if (!alert.repeatable) {
-            logger.info(
-              `[PriceAlerter] Removing non-repeatable alert #${alert.id}.`
+            // ATOMIC ACTION: Try to delete the alert. If we succeed (count > 0), we own it.
+            const removedCount = await removePriceAlert(
+              alert.id,
+              alert.user_id
             );
-            try {
-              await removePriceAlert(alert.id, alert.user_id);
-            } catch (removeError) {
-              logger.error(
-                `[PriceAlerter] Failed to remove non-repeatable alert #${alert.id} after notification. It will be cleaned up by a separate process.`,
-                removeError
+            if (removedCount > 0) {
+              logger.info(
+                `[PriceAlerter] Atomically removed alert #${alert.id}. Sending notification.`
+              );
+              await this.sendNotification(alert, currentPrice);
+            } else {
+              logger.debug(
+                `[PriceAlerter] Alert #${alert.id} was already removed by another process. Skipping notification.`
+              );
+            }
+          } else {
+            // ATOMIC ACTION: Try to update the timestamp. If we succeed (count > 0), we own it.
+            const updatedCount = await updatePriceAlertNotified(alert.id);
+            if (updatedCount > 0) {
+              logger.info(
+                `[PriceAlerter] Atomically updated timestamp for alert #${alert.id}. Sending notification.`
+              );
+              await this.sendNotification(alert, currentPrice);
+            } else {
+              logger.debug(
+                `[PriceAlerter] Alert #${alert.id} was already updated by another process. Skipping notification.`
               );
             }
           }

@@ -368,12 +368,24 @@ export async function getAllPriceAlerts(
     .execute();
 }
 
-export async function updatePriceAlertNotified(alertId: number): Promise<void> {
-  await mimiDLCDb
+export async function updatePriceAlertNotified(
+  alertId: number
+): Promise<bigint> {
+  const result = await mimiDLCDb
     .updateTable("price_alerts")
     .set({ last_notified_at: new Date().toISOString() })
     .where("id", "=", alertId)
-    .execute();
+    // Only update if it hasn't been notified in the last 5 minutes
+    // to prevent race conditions from other nodes.
+    .where((eb) =>
+      eb.or([
+        eb("last_notified_at", "is", null),
+        eb("last_notified_at", "<", sql`NOW() - INTERVAL '5 minutes'` as any),
+      ])
+    )
+    .executeTakeFirst();
+
+  return result?.numUpdatedRows ?? BigInt(0);
 }
 
 // src/repositories/asset.repository.ts
