@@ -64,10 +64,19 @@ export class PriceAlerter {
 
         if (conditionMet) {
           await this.sendNotification(alert, currentPrice);
-          if (alert.repeatable) {
-            await updatePriceAlertNotified(alert.id);
-          } else {
-            await removePriceAlert(alert.id, alert.user_id);
+          // First, always update the notified timestamp to prevent immediate re-triggering
+          await updatePriceAlertNotified(alert.id);
+
+          // If the alert is not repeatable, then attempt to remove it.
+          if (!alert.repeatable) {
+            try {
+              await removePriceAlert(alert.id, alert.user_id);
+            } catch (removeError) {
+              logger.error(
+                `Failed to remove non-repeatable alert #${alert.id} after notification. It will be cleaned up by a separate process.`,
+                removeError
+              );
+            }
           }
         }
       }
