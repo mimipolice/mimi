@@ -23,24 +23,24 @@ module.exports = {
       return;
     }
 
-    // Story Forum Logic
-    const storyForumSettings = await services.settingsManager.getSettings(
-      thread.guild.id
-    );
-    const isStoryForum = storyForumSettings?.story_forum_channels?.includes(
-      thread.parentId!
-    );
+    // Story Forum Logic - DISABLED
+    // const storyForumSettings = await services.settingsManager.getSettings(
+    //   thread.guild.id
+    // );
+    // const isStoryForum = storyForumSettings?.story_forum_channels?.includes(
+    //   thread.parentId!
+    // );
 
-    if (isStoryForum && thread.ownerId) {
-      try {
-        await services.storyForumService.registerThread(thread);
-      } catch (error) {
-        logger.error(
-          `[StoryForum] Failed to register thread ${thread.id}`,
-          error
-        );
-      }
-    }
+    // if (isStoryForum && thread.ownerId) {
+    //   try {
+    //     await services.storyForumService.registerThread(thread);
+    //   } catch (error) {
+    //     logger.error(
+    //       `[StoryForum] Failed to register thread ${thread.id}`,
+    //       error
+    //     );
+    //   }
+    // }
 
     // Autotag logic
     if (thread.parentId) {

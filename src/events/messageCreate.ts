@@ -63,8 +63,8 @@ module.exports = {
       return;
     }
 
-    // Story Forum Logic
-    await services.storyForumService.validateMessage(message);
+    // Story Forum Logic - DISABLED
+    // await services.storyForumService.validateMessage(message);
 
     // Handle Story Forum specific commands like ?pin/?unpin
     if (await handleStoryForumCommand(message, services)) {
