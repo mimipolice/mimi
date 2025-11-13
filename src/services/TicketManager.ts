@@ -114,43 +114,68 @@ export class TicketManager {
       const settings = await this.settingsManager.getSettings(guild.id);
       const sanitizedReason = sanitize(reason);
 
+      // Generate transcript
       const transcriptUrl = await generateTranscript(channel);
 
+      // Send log message
       if (settings?.logChannelId) {
-        const logMessageId = await this.discordService.sendLogMessage(
+        try {
+          const logMessageId = await this.discordService.sendLogMessage(
+            guild,
+            settings.logChannelId,
+            ticket,
+            owner,
+            interaction.user,
+            sanitizedReason,
+            transcriptUrl
+          );
+          if (logMessageId) {
+            await this.db
+              .updateTable("tickets")
+              .set({ logMessageId: logMessageId })
+              .where("id", "=", ticket.id)
+              .execute();
+          }
+        } catch (error) {
+          logger.error(`Failed to send log message for ticket ${ticket.id}:`, error);
+          // Continue even if logging fails
+        }
+      }
+
+      // CRITICAL: Update database status BEFORE archiving
+      // This ensures the ticket is marked as closed even if archiving fails
+      await this.ticketRepository.closeTicket(channel.id, {
+        closedById: interaction.user.id,
+        closeReason: sanitizedReason,
+        transcriptUrl: transcriptUrl || undefined,
+      });
+      logger.info(`Ticket ${ticket.id} marked as closed in database`);
+
+      // Try to archive the channel
+      try {
+        await this.discordService.archiveTicketChannel(channel, owner, settings);
+      } catch (archiveError) {
+        logger.error(`Failed to archive channel ${channel.id}, but ticket is closed in database:`, archiveError);
+        // Don't throw - ticket is already closed in DB
+        return interaction.editReply(
+          "Ticket closed successfully, but there was an issue archiving the channel. Please contact an administrator if the channel is still visible."
+        );
+      }
+
+      // Send DM notification (non-critical)
+      try {
+        await this.discordService.sendDMOnClose(
           guild,
-          settings.logChannelId,
           ticket,
           owner,
           interaction.user,
           sanitizedReason,
           transcriptUrl
         );
-        if (logMessageId) {
-          await this.db
-            .updateTable("tickets")
-            .set({ logMessageId: logMessageId })
-            .where("id", "=", ticket.id)
-            .execute();
-        }
+      } catch (dmError) {
+        logger.warn(`Failed to send DM to user ${owner.id} for ticket ${ticket.id}:`, dmError);
+        // Continue - DM failure is not critical
       }
-
-      await this.ticketRepository.closeTicket(channel.id, {
-        closedById: interaction.user.id,
-        closeReason: sanitizedReason,
-        transcriptUrl: transcriptUrl || undefined,
-      });
-
-      await this.discordService.archiveTicketChannel(channel, owner, settings);
-
-      await this.discordService.sendDMOnClose(
-        guild,
-        ticket,
-        owner,
-        interaction.user,
-        sanitizedReason,
-        transcriptUrl
-      );
 
       return interaction.editReply("Ticket closed.");
     } catch (error: any) {

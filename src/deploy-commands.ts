@@ -191,13 +191,57 @@ const rest = new REST({ version: "10" }).setToken(config.discord.token!);
       logger.info(
         `Started refreshing ${globalCommands.length} application (/) commands.`
       );
-      const data = (await rest.put(
-        Routes.applicationCommands(config.discord.clientId!),
-        { body: globalCommands }
-      )) as any[];
-      logger.info(
-        `Successfully reloaded ${data.length} global application (/) commands.`
-      );
+      
+      try {
+        const data = (await rest.put(
+          Routes.applicationCommands(config.discord.clientId!),
+          { body: globalCommands }
+        )) as any[];
+        logger.info(
+          `Successfully reloaded ${data.length} global application (/) commands.`
+        );
+      } catch (error: any) {
+        if (error.code === 50240) {
+          logger.warn(
+            "Entry Point command conflict detected. Fetching existing commands to preserve Entry Point..."
+          );
+          
+          // Fetch existing commands
+          const existingCommands = (await rest.get(
+            Routes.applicationCommands(config.discord.clientId!)
+          )) as any[];
+          
+          // Find the Entry Point command
+          const entryPointCommand = existingCommands.find(
+            (cmd: any) => cmd.integration_types?.includes(1) && cmd.handler === 1
+          );
+          
+          if (entryPointCommand) {
+            logger.info(`Found Entry Point command: ${entryPointCommand.name}`);
+            
+            // Check if our commands already include it
+            const hasEntryPoint = globalCommands.some(
+              (cmd: any) => cmd.name === entryPointCommand.name
+            );
+            
+            if (!hasEntryPoint) {
+              logger.info("Adding Entry Point command to deployment...");
+              globalCommands.push(entryPointCommand);
+            }
+          }
+          
+          // Retry deployment
+          const data = (await rest.put(
+            Routes.applicationCommands(config.discord.clientId!),
+            { body: globalCommands }
+          )) as any[];
+          logger.info(
+            `Successfully reloaded ${data.length} global application (/) commands.`
+          );
+        } else {
+          throw error;
+        }
+      }
     }
 
     // Deploy Guild-specific Commands

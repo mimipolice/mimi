@@ -41,6 +41,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@types/async-retry": "^1.4.9",
     "@types/jsdom": "^21.1.7",
     "@types/marked": "^5.0.2",
     "@types/node": "^20.14.10",

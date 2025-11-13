@@ -39,7 +39,7 @@ export async function execute(
           retries: 3,
           factor: 2,
           minTimeout: 200,
-          onRetry: (error: Error, attempt) => {
+          onRetry: (error: Error, attempt: number) => {
             logger.warn(
               `[DB Retry] Command execution failed on attempt ${attempt}. Retrying...`,
               error.message

@@ -14,6 +14,11 @@ import logger from "../utils/logger";
 import { GuildSettings } from "./SettingsManager";
 import { Ticket } from "../repositories/ticket.repository";
 import { TicketAction } from "../types/ticket";
+import {
+  logChannelPermissions,
+  safeDeletePermissionOverwrite,
+  safeEditPermissionOverwrite,
+} from "../utils/ticketDebug";
 
 export class DiscordService {
   private client: Client;
@@ -165,20 +170,88 @@ export class DiscordService {
     settings: GuildSettings | null
   ) {
     try {
-      await Promise.all([
-        channel.permissionOverwrites.delete(owner.id).catch(() => {}),
-        channel.permissionOverwrites
-          .delete(channel.guild.roles.everyone.id)
-          .catch(() => {}),
-      ]);
+      // Log initial state for debugging
+      logChannelPermissions(channel, "Before Archive");
 
+      // Step 1: Move to archive category if configured
       if (settings?.archiveCategoryId) {
+        // Verify archive category exists before moving
+        const archiveCategory = await channel.guild.channels.fetch(
+          settings.archiveCategoryId
+        );
+        if (!archiveCategory) {
+          logger.error(
+            `Archive category ${settings.archiveCategoryId} not found for guild ${channel.guild.id}`
+          );
+          throw new Error("Archive category not found");
+        }
+
+        // Move channel and lock permissions to inherit from archive category
+        // This will automatically apply the archive category's permission settings
         await channel.setParent(settings.archiveCategoryId, {
           lockPermissions: true,
         });
+        logger.info(
+          `Moved channel ${channel.id} to archive category ${settings.archiveCategoryId} with locked permissions`
+        );
+
+        // Small delay to ensure Discord API processes the move
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Step 2: Only remove the owner's specific permission overwrite
+        // This ensures the owner can't see the archived ticket
+        await safeDeletePermissionOverwrite(
+          channel,
+          owner.id,
+          `Owner ${owner.username}`
+        );
+
+        logger.info(`Successfully archived channel ${channel.id}`);
+      } else {
+        // If no archive category, manually set permissions to lock the channel
+        logger.info(
+          `No archive category configured, manually locking channel ${channel.id}`
+        );
+
+        // Set @everyone to not view
+        await safeEditPermissionOverwrite(
+          channel,
+          channel.guild.roles.everyone.id,
+          "@everyone",
+          { ViewChannel: false }
+        );
+
+        // Remove owner's access
+        await safeDeletePermissionOverwrite(
+          channel,
+          owner.id,
+          `Owner ${owner.username}`
+        );
+
+        // Ensure staff can still view (read-only)
+        if (settings?.staffRoleId) {
+          await safeEditPermissionOverwrite(
+            channel,
+            settings.staffRoleId,
+            "Staff Role",
+            {
+              ViewChannel: true,
+              SendMessages: false,
+              ReadMessageHistory: true,
+            }
+          );
+        }
       }
+
+      // Log final state for debugging
+      logChannelPermissions(channel, "After Archive");
     } catch (error) {
-      logger.warn(`Failed to archive channel ${channel.id}.`, error);
+      logger.error(`Critical error archiving channel ${channel.id}:`, error);
+      logChannelPermissions(channel, "After Archive Error");
+      // Don't silently fail - this is important for debugging
+      throw new Error(
+        `Failed to archive ticket channel: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 
@@ -189,7 +262,14 @@ export class DiscordService {
   }
 
   async removeUserFromChannel(channel: TextChannel, user: User): Promise<void> {
-    await channel.permissionOverwrites.delete(user.id);
+    const success = await safeDeletePermissionOverwrite(
+      channel,
+      user.id,
+      `User ${user.username}`
+    );
+    if (!success) {
+      throw new Error(`Failed to remove user ${user.username} from channel`);
+    }
   }
 
   async sendDMOnClose(

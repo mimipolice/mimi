@@ -12,10 +12,8 @@ export default {
     const { ticketManager } = services; // Destructure ticketManager from services
     const reason = interaction.fields.getTextInputValue("close_reason");
     await interaction.deferReply(); // Defer with ephemeral
+    
+    // The close method handles the reply internally
     await ticketManager.close(interaction, reason);
-    // The reply is handled within the close method, but we can add a final confirmation.
-    await interaction.editReply({
-      content: "Ticket has been successfully closed and archived.",
-    });
   },
 };
