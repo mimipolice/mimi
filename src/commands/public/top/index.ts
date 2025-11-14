@@ -1,6 +1,7 @@
 import { Message, Locale } from "discord.js";
 import { MessageCommand } from "../../../interfaces/MessageCommand";
 import { getLocalizations } from "../../../utils/localization";
+import logger from "../../../utils/logger";
 
 const TopCommand: MessageCommand = {
   name: "top",
@@ -22,7 +23,7 @@ const TopCommand: MessageCommand = {
         await message.reply(t.responses.no_messages);
       }
     } catch (error: any) {
-      console.error("Error fetching the first message:", error);
+      logger.error("Error fetching the first message:", error);
       if (error.code === 50013) {
         await message.reply(t.responses.no_permission);
       } else {

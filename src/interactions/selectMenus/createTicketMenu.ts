@@ -4,30 +4,53 @@ import {
   StringSelectMenuInteraction,
   TextInputBuilder,
   TextInputStyle,
+  MessageFlags,
 } from "discord.js";
+import logger from "../../utils/logger";
 
 export default {
   name: "create_ticket_menu",
   execute: async function (interaction: StringSelectMenuInteraction) {
-    const ticketType = interaction.values[0].split(":")[1];
+    try {
+      const ticketType = interaction.values[0].split(":")[1];
 
-    const modal = new ModalBuilder()
-      .setCustomId(`create_ticket_modal:${ticketType || ""}`)
-      .setTitle("Create a New Ticket");
+      const modal = new ModalBuilder()
+        .setCustomId(`create_ticket_modal:${ticketType || ""}`)
+        .setTitle("Create a New Ticket");
 
-    const issueDescription = new TextInputBuilder()
-      .setCustomId("ticket_issue_description")
-      .setLabel("Please describe your issue")
-      .setStyle(TextInputStyle.Paragraph)
-      .setRequired(true)
-      .setMinLength(10);
+      const issueDescription = new TextInputBuilder()
+        .setCustomId("ticket_issue_description")
+        .setLabel("Please describe your issue")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMinLength(10)
+        .setMaxLength(1024); // Discord embed field limit
 
-    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-      issueDescription
-    );
+      const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+        issueDescription
+      );
 
-    modal.addComponents(actionRow);
+      modal.addComponents(actionRow);
 
-    await interaction.showModal(modal);
+      await interaction.showModal(modal);
+    } catch (error) {
+      logger.error("Error in createTicketMenu:", {
+        error,
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+      });
+
+      // Try to inform the user
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ An error occurred while opening the ticket form. Please try again.",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+      } catch (replyError) {
+        logger.error("Failed to send error message in createTicketMenu:", replyError);
+      }
+    }
   }
 };

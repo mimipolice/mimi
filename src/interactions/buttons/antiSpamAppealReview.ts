@@ -5,6 +5,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { Button } from "../../interfaces/Button";
+import logger from "../../utils/logger";
 
 const appealReviewButton: Button = {
   name: /^(appeal_approve|appeal_deny):(\d+):(\d+)$/,
@@ -40,7 +41,7 @@ const appealReviewButton: Button = {
             "Your appeal has been approved, and your timeout has been removed."
           )
           .catch(() => {
-            console.log(`Could not DM user ${userId}`);
+            logger.warn(`Could not DM user ${userId} for appeal approval`);
           });
         newEmbed.setTitle("Appeal Approved").setColor("Green").addFields({
           name: "Moderator",
@@ -48,7 +49,12 @@ const appealReviewButton: Button = {
           inline: true,
         });
       } catch (error) {
-        console.error(error);
+        logger.error("Failed to approve appeal:", {
+          error,
+          userId,
+          guildId,
+          moderator: interaction.user.id,
+        });
         await interaction.reply({
           content: "Failed to remove timeout.",
           flags: MessageFlags.Ephemeral,
@@ -58,7 +64,7 @@ const appealReviewButton: Button = {
     } else if (action === "appeal_deny") {
       try {
         await member.send("Your appeal has been denied.").catch(() => {
-          console.log(`Could not DM user ${userId}`);
+          logger.warn(`Could not DM user ${userId} for appeal denial`);
         });
         newEmbed.setTitle("Appeal Denied").setColor("Red").addFields({
           name: "Moderator",
@@ -66,7 +72,12 @@ const appealReviewButton: Button = {
           inline: true,
         });
       } catch (error) {
-        console.error(error);
+        logger.error("Failed to deny appeal:", {
+          error,
+          userId,
+          guildId,
+          moderator: interaction.user.id,
+        });
       }
     }
 

@@ -30,7 +30,8 @@ export default {
       .setLabel("Please describe your issue")
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(true)
-      .setMinLength(10);
+      .setMinLength(10)
+      .setMaxLength(1024);
 
     const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
       issueDescription

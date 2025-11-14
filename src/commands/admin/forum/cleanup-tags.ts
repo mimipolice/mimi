@@ -1,5 +1,6 @@
 import { Message, ChannelType, ForumChannel, TextChannel } from "discord.js";
 import { Services } from "../../../interfaces/Command";
+import logger from "../../../utils/logger";
 
 export const cleanupTags = async (
   message: Message,
@@ -56,7 +57,7 @@ export const cleanupTags = async (
       );
     }
   } catch (error) {
-    console.error("Error cleaning up tags in forum threads:", error);
+    logger.error("Error cleaning up tags in forum threads:", error);
     if (message.channel instanceof TextChannel) {
       await message.channel.send(
         "An error occurred while trying to clean up the tags."

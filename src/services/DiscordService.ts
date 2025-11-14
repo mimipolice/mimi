@@ -72,6 +72,15 @@ export class DiscordService {
     ticketType?: string,
     issueDescription?: string
   ) {
+    // Truncate issue description if it exceeds Discord's embed field value limit (1024 characters)
+    let truncatedDescription = issueDescription || "No issue description provided.";
+    if (truncatedDescription.length > 1024) {
+      logger.warn(
+        `Issue description for ticket ${channel.id} exceeds 1024 characters, truncating...`
+      );
+      truncatedDescription = truncatedDescription.substring(0, 1021) + "...";
+    }
+
     const embed = new EmbedBuilder()
       .setAuthor({
         name: "New Support Ticket",
@@ -84,7 +93,7 @@ export class DiscordService {
         { name: "Type", value: ticketType || "General" },
         {
           name: "Issue",
-          value: issueDescription || "No issue description provided.",
+          value: truncatedDescription,
         }
       )
       .setTimestamp();

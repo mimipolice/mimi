@@ -1,4 +1,5 @@
 import winston from "winston";
+import { DiscordWebhookTransport } from "./discordWebhookTransport";
 
 // 1. (新增) 建立一個自訂 format，專門將 level 字串轉為大寫
 //    這一步是為了解決問題的核心
@@ -7,26 +8,40 @@ const upperCaseLevel = winston.format((info) => {
   return info;
 });
 
+const transports: winston.transport[] = [
+  new winston.transports.File({ filename: "error.log", level: "error" }),
+  new winston.transports.File({ filename: "combined.log" }),
+];
+
+// Add Discord webhook transport if configured
+if (process.env.ERROR_WEBHOOK_URL) {
+  transports.push(
+    new DiscordWebhookTransport({
+      level: "error", // Only send error logs to Discord
+      webhookUrl: process.env.ERROR_WEBHOOK_URL,
+    })
+  );
+}
+
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
   // 這是寫入檔案的 format，沒有顏色，所以直接轉大寫即可
   format: winston.format.combine(
     winston.format.timestamp(),
-    winston.format.printf(({ level, message, timestamp, ...rest }) => {
+    winston.format.errors({ stack: true }), // Capture stack traces
+    winston.format.printf(({ level, message, timestamp, stack, ...rest }) => {
       // (優化) 讓檔案日誌的 level 也變成大寫，以求格式一致
       const levelStr = `[${level.toUpperCase()}]`;
       const timestampStr = timestamp;
       const messageStr = message;
+      const stackStr = stack ? `\n${stack}` : "";
       const metaStr = Object.keys(rest).length
         ? JSON.stringify(rest, null, 2)
         : "";
-      return `${levelStr} ${timestampStr}: ${messageStr} ${metaStr}`;
+      return `${levelStr} ${timestampStr}: ${messageStr}${stackStr} ${metaStr}`;
     })
   ),
-  transports: [
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
+  transports,
 });
 
 // 無論在哪個環境，都新增 console 輸出，但 level 會根據環境變動

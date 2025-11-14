@@ -17,6 +17,7 @@ import QcCommand from "../commands/public/qc";
 import UnqsCommand from "../commands/admin/unqs";
 import TopCommand from "../commands/public/top";
 import ForumCommand from "../commands/admin/forum";
+import logger from "../utils/logger";
 
 const messageCommands = new Map<string, MessageCommand>();
 messageCommands.set(QsCommand.name, QsCommand);
@@ -82,7 +83,12 @@ module.exports = {
           try {
             await command.execute(message, args, services, databases);
           } catch (error) {
-            console.error(error);
+            logger.error("Error executing message command:", {
+              command: commandName,
+              error,
+              userId: message.author.id,
+              guildId: message.guild?.id,
+            });
             await message.reply(
               "There was an error trying to execute that command!"
             );

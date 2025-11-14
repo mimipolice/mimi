@@ -11,6 +11,7 @@ import {
 import { Services } from "../../interfaces/Command"; // Import Services and Databases
 import { createBusinessErrorReply } from "../../utils/interactionReply";
 import { BusinessError } from "../../errors";
+import logger from "../../utils/logger";
 
 export default {
   name: "claim_ticket",
@@ -78,7 +79,25 @@ export default {
           )
         );
       }
-      throw error;
+
+      logger.error("Error in claimTicket:", {
+        error,
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+        channelId: interaction.channelId,
+      });
+
+      // Try to inform the user
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ An error occurred while claiming the ticket. Please try again or contact an administrator.",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+      } catch (replyError) {
+        logger.error("Failed to send error message in claimTicket:", replyError);
+      }
     }
   },
 };

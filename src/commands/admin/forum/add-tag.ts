@@ -1,5 +1,6 @@
 import { Message, ChannelType, ForumChannel, TextChannel } from "discord.js";
 import { Services } from "../../../interfaces/Command";
+import logger from "../../../utils/logger";
 
 export const addTag = async (
   message: Message,
@@ -68,7 +69,7 @@ export const addTag = async (
       );
     }
   } catch (error) {
-    console.error("Error adding tag to forum threads:", error);
+    logger.error("Error adding tag to forum threads:", error);
     if (message.channel instanceof TextChannel) {
       await message.channel.send(
         "An error occurred while trying to add the tag."

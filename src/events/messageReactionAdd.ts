@@ -1,5 +1,6 @@
 import { Events, MessageReaction, User, Client } from "discord.js";
 import { Services, Databases } from "../interfaces/Command";
+import logger from "../utils/logger";
 
 export const name = Events.MessageReactionAdd;
 export const once = false;
@@ -18,7 +19,7 @@ export async function execute(
     try {
       await reaction.fetch();
     } catch (error) {
-      console.error("Something went wrong when fetching the message:", error);
+      logger.error("Something went wrong when fetching the message:", error);
       return;
     }
   }
