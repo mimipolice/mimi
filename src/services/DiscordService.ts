@@ -173,78 +173,81 @@ export class DiscordService {
       // Log initial state for debugging
       logChannelPermissions(channel, "Before Archive");
 
-      // Step 1: Move to archive category if configured
-      if (settings?.archiveCategoryId) {
-        // Verify archive category exists before moving
-        const archiveCategory = await channel.guild.channels.fetch(
-          settings.archiveCategoryId
+      // CRITICAL SECURITY STEP 1: ALWAYS remove @everyone view permission FIRST
+      // This must succeed before anything else to prevent ticket content leaks
+      logger.info(`[SECURITY] Removing @everyone view permission for channel ${channel.id}`);
+      const everyoneSuccess = await safeEditPermissionOverwrite(
+        channel,
+        channel.guild.roles.everyone.id,
+        "@everyone",
+        { ViewChannel: false }
+      );
+
+      if (!everyoneSuccess) {
+        logger.error(
+          `[SECURITY CRITICAL] Failed to remove @everyone view permission for channel ${channel.id}`
         );
-        if (!archiveCategory) {
-          logger.error(
-            `Archive category ${settings.archiveCategoryId} not found for guild ${channel.guild.id}`
-          );
-          throw new Error("Archive category not found");
-        }
+        throw new Error("Failed to secure channel - @everyone permission removal failed");
+      }
+      logger.info(`[SECURITY] Successfully secured channel ${channel.id} from @everyone`);
 
-        // Move channel and lock permissions to inherit from archive category
-        // This will automatically apply the archive category's permission settings
-        await channel.setParent(settings.archiveCategoryId, {
-          lockPermissions: true,
-        });
-        logger.info(
-          `Moved channel ${channel.id} to archive category ${settings.archiveCategoryId} with locked permissions`
-        );
+      // Step 2: Remove owner's access
+      await safeDeletePermissionOverwrite(
+        channel,
+        owner.id,
+        `Owner ${owner.username}`
+      );
 
-        // Small delay to ensure Discord API processes the move
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Step 2: Only remove the owner's specific permission overwrite
-        // This ensures the owner can't see the archived ticket
-        await safeDeletePermissionOverwrite(
-          channel,
-          owner.id,
-          `Owner ${owner.username}`
-        );
-
-        logger.info(`Successfully archived channel ${channel.id}`);
-      } else {
-        // If no archive category, manually set permissions to lock the channel
-        logger.info(
-          `No archive category configured, manually locking channel ${channel.id}`
-        );
-
-        // Set @everyone to not view
+      // Step 3: Ensure staff can view (read-only)
+      if (settings?.staffRoleId) {
         await safeEditPermissionOverwrite(
           channel,
-          channel.guild.roles.everyone.id,
-          "@everyone",
-          { ViewChannel: false }
+          settings.staffRoleId,
+          "Staff Role",
+          {
+            ViewChannel: true,
+            SendMessages: false,
+            ReadMessageHistory: true,
+          }
         );
+      }
 
-        // Remove owner's access
-        await safeDeletePermissionOverwrite(
-          channel,
-          owner.id,
-          `Owner ${owner.username}`
-        );
-
-        // Ensure staff can still view (read-only)
-        if (settings?.staffRoleId) {
-          await safeEditPermissionOverwrite(
-            channel,
-            settings.staffRoleId,
-            "Staff Role",
-            {
-              ViewChannel: true,
-              SendMessages: false,
-              ReadMessageHistory: true,
-            }
+      // Step 4: Try to move to archive category (optional, can fail)
+      if (settings?.archiveCategoryId) {
+        try {
+          // Verify archive category exists
+          const archiveCategory = await channel.guild.channels.fetch(
+            settings.archiveCategoryId
           );
+          
+          if (!archiveCategory) {
+            logger.warn(
+              `Archive category ${settings.archiveCategoryId} not found for guild ${channel.guild.id}, skipping move`
+            );
+          } else {
+            // Move channel WITHOUT locking permissions (we already set them)
+            await channel.setParent(settings.archiveCategoryId, {
+              lockPermissions: false,
+            });
+            logger.info(
+              `Successfully moved channel ${channel.id} to archive category ${settings.archiveCategoryId}`
+            );
+          }
+        } catch (moveError: any) {
+          // Moving to archive category failed, but channel is already secured
+          logger.warn(
+            `Failed to move channel ${channel.id} to archive category (possibly full - 50 channel limit), but channel is secured:`,
+            moveError.message || moveError
+          );
+          // Don't throw - the important part (securing permissions) already succeeded
         }
+      } else {
+        logger.info(`No archive category configured for guild ${channel.guild.id}`);
       }
 
       // Log final state for debugging
       logChannelPermissions(channel, "After Archive");
+      logger.info(`Successfully archived and secured channel ${channel.id}`);
     } catch (error) {
       logger.error(`Critical error archiving channel ${channel.id}:`, error);
       logChannelPermissions(channel, "After Archive Error");
