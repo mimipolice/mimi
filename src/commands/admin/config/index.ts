@@ -295,21 +295,12 @@ export const command: Command = {
     }
 
     if (subcommand === "set") {
-      const staffRoleId = interaction.options.getRole(
-        t.subcommands.set.options.staff_role.name
-      )?.id;
-      const ticketCategoryId = interaction.options.getChannel(
-        t.subcommands.set.options.ticket_category.name
-      )?.id;
-      const logChannelId = interaction.options.getChannel(
-        t.subcommands.set.options.log_channel.name
-      )?.id;
-      const panelChannelId = interaction.options.getChannel(
-        t.subcommands.set.options.panel_channel.name
-      )?.id;
-      const archiveCategoryId = interaction.options.getChannel(
-        t.subcommands.set.options.archive_category.name
-      )?.id;
+      // Use English option names (as defined in SlashCommandBuilder)
+      const staffRoleId = interaction.options.getRole("staff_role")?.id;
+      const ticketCategoryId = interaction.options.getChannel("ticket_category")?.id;
+      const logChannelId = interaction.options.getChannel("log_channel")?.id;
+      const panelChannelId = interaction.options.getChannel("panel_channel")?.id;
+      const archiveCategoryId = interaction.options.getChannel("archive_category")?.id;
 
       // This is not ideal, as it requires all settings at once.
       // A better implementation would update settings individually.

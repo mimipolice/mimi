@@ -333,20 +333,11 @@ export const command: Command = {
         );
       } else if (subcommand === "add") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        const typeId = interaction.options.getString(
-          t.subcommands.add.options.type_id.name,
-          true
-        );
-        const label = interaction.options.getString(
-          t.subcommands.add.options.label.name,
-          true
-        );
-        const style =
-          interaction.options.getString(t.subcommands.add.options.style.name) ||
-          "Secondary";
-        const emoji = interaction.options.getString(
-          t.subcommands.add.options.emoji.name
-        );
+        // Use English option names (as defined in SlashCommandBuilder)
+        const typeId = interaction.options.getString("type_id", true);
+        const label = interaction.options.getString("label", true);
+        const style = interaction.options.getString("style") || "Secondary";
+        const emoji = interaction.options.getString("emoji");
 
         await mimiDLCDb
           .insertInto("ticket_types")
@@ -363,10 +354,8 @@ export const command: Command = {
         );
       } else if (subcommand === "remove") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        const typeId = interaction.options.getString(
-          t.subcommands.remove.options.type_id.name,
-          true
-        );
+        // Use English option name
+        const typeId = interaction.options.getString("type_id", true);
         const result = await mimiDLCDb
           .deleteFrom("ticket_types")
           .where("guild_id", "=", interaction.guildId)
@@ -415,21 +404,12 @@ export const command: Command = {
         await interaction.editReply({ embeds: [embed] });
       } else if (subcommand === "customize") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        const panelTitle = interaction.options.getString(
-          t.subcommands.customize.options.title.name
-        );
-        const panelAuthorIconUrl = interaction.options.getString(
-          t.subcommands.customize.options.author_icon_url.name
-        );
-        const panelThumbnailUrl = interaction.options.getString(
-          t.subcommands.customize.options.thumbnail_url.name
-        );
-        const panelFooterIconUrl = interaction.options.getString(
-          t.subcommands.customize.options.footer_icon_url.name
-        );
-        const messageId = interaction.options.getString(
-          t.subcommands.customize.options.message_id.name
-        );
+        // Use English option names
+        const panelTitle = interaction.options.getString("title");
+        const panelAuthorIconUrl = interaction.options.getString("author_icon_url");
+        const panelThumbnailUrl = interaction.options.getString("thumbnail_url");
+        const panelFooterIconUrl = interaction.options.getString("footer_icon_url");
+        const messageId = interaction.options.getString("message_id");
 
         if (
           !panelTitle &&

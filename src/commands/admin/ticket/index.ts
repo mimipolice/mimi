@@ -120,9 +120,8 @@ export const command: Command = {
       return;
     }
 
-    const user = interaction.options.getUser(
-      t.subcommands.add.options.user.name
-    );
+    // Use English option name
+    const user = interaction.options.getUser("user");
     const channel = interaction.channel;
 
     if (!user) {

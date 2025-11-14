@@ -159,18 +159,10 @@ export default {
       }
 
       if (subcommand === "add") {
-        const type = interaction.options.getString(
-          t.subcommands.add.options.type.name,
-          true
-        ) as "exact" | "contains";
-        const keyword = interaction.options.getString(
-          t.subcommands.add.options.keyword.name,
-          true
-        );
-        const reply = interaction.options.getString(
-          t.subcommands.add.options.reply.name,
-          true
-        );
+        // Use English option names (as defined in SlashCommandBuilder), not localized names
+        const type = interaction.options.getString("type", true) as "exact" | "contains";
+        const keyword = interaction.options.getString("keyword", true);
+        const reply = interaction.options.getString("reply", true);
 
         await addKeyword(mimiDLCDb, interaction.guildId, keyword, reply, type);
         flushKeywordsCacheForGuild(interaction.guildId);
@@ -178,10 +170,8 @@ export default {
           t.subcommands.add.responses.success.replace("{{keyword}}", keyword)
         );
       } else if (subcommand === "remove") {
-        const keyword = interaction.options.getString(
-          t.subcommands.remove.options.keyword.name,
-          true
-        );
+        // Use English option name
+        const keyword = interaction.options.getString("keyword", true);
         await removeKeyword(mimiDLCDb, interaction.guildId, keyword);
         flushKeywordsCacheForGuild(interaction.guildId);
         await interaction.editReply(
