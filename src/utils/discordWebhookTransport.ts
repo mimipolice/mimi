@@ -90,19 +90,29 @@ export class DiscordWebhookTransport extends Transport {
     else if (level === "warn") color = 0xffa500; // Orange
     else if (level === "debug") color = 0x00ffff; // Cyan
 
+    // Build description with message and stack trace (max 4096 chars)
+    let description = message.length > 2000 ? message.substring(0, 1997) + "..." : message;
+    
+    if (meta.stack) {
+      const stackPrefix = "\n\n**Stack Trace:**\n```";
+      const stackSuffix = "```";
+      const availableSpace = 4096 - description.length - stackPrefix.length - stackSuffix.length;
+      
+      if (availableSpace > 100) { // Only add if we have reasonable space
+        const stackTrace = meta.stack.length > availableSpace
+          ? meta.stack.substring(0, availableSpace - 3) + "..."
+          : meta.stack;
+        description += `${stackPrefix}${stackTrace}${stackSuffix}`;
+      }
+    }
+
     const embed = new EmbedBuilder()
       .setColor(color)
       .setTitle(`🚨 ${level.toUpperCase()} Log`)
-      .setDescription(message.length > 4096 ? message.substring(0, 4093) + "..." : message)
+      .setDescription(description)
       .setTimestamp(new Date(timestamp));
 
-    // Add stack trace if available
-    if (meta.stack) {
-      const stackTrace = meta.stack.length > 1024 ? meta.stack.substring(0, 1021) + "..." : meta.stack;
-      embed.addFields({ name: "Stack Trace", value: `\`\`\`${stackTrace}\`\`\`` });
-    }
-
-    // Add additional metadata
+    // Add additional metadata as a field (if any)
     const metaKeys = Object.keys(meta).filter(
       (key) => !["level", "message", "timestamp", "stack"].includes(key)
     );
@@ -116,7 +126,11 @@ export class DiscordWebhookTransport extends Transport {
         2
       );
       if (metaStr.length > 0 && metaStr !== "{}") {
-        const truncatedMeta = metaStr.length > 1024 ? metaStr.substring(0, 1021) + "..." : metaStr;
+        // Reserve space for code block markers (```json\n...\n```) = 11 chars, plus "..." = 3 chars
+        const maxMetaLength = 1024 - 14;
+        const truncatedMeta = metaStr.length > maxMetaLength
+          ? metaStr.substring(0, maxMetaLength) + "..."
+          : metaStr;
         embed.addFields({ name: "Metadata", value: `\`\`\`json\n${truncatedMeta}\n\`\`\`` });
       }
     }
