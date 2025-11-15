@@ -16,6 +16,7 @@ import { MessageFlags } from "discord-api-types/v10";
 import { getLocalizations } from "../../../utils/localization";
 import logger from "../../../utils/logger";
 import { Command, Databases, Services } from "../../../interfaces/Command";
+import { isValidEmoji } from "../../../utils/emojiValidator";
 
 export default {
   data: new SlashCommandBuilder()
@@ -118,6 +119,15 @@ export default {
       if (subcommand === "set") {
         const emoji = interaction.options.getString("emoji", true);
         const channel = interaction.options.getChannel("channel", true);
+
+        // Validate emoji before saving
+        if (!isValidEmoji(emoji)) {
+          await interaction.editReply(
+            `❌ Invalid emoji: "${emoji}". Please use a valid Unicode emoji (like ✅ 👍 ❤️) or a custom server emoji.`
+          );
+          return;
+        }
+
         await setAutoreact(mimiDLCDb, interaction.guildId, channel.id, emoji);
         flushAutoreactsForGuild(interaction.guildId);
         await interaction.editReply(

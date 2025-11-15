@@ -6,7 +6,8 @@
     "build": "rm -rf dist && tsc && copyfiles -u 1 \"src/**/*.sql\" \"src/**/*.json\" \"src/**/*.md\" \"src/**/*.yml\" \"src/**/*.css\" dist",
     "start": "npm run build && node dist/index.js",
     "dev": "cross-env NODE_ENV=development tsc && node dist/index.js",
-    "deploy": "npm run build && node dist/deploy-commands.js"
+    "deploy": "npm run build && node dist/deploy-commands.js",
+    "clean-emojis": "npm run build && node dist/scripts/clean-invalid-emojis.js"
   },
   "dependencies": {
     "@types/js-yaml": "^4.0.9",

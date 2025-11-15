@@ -107,7 +107,18 @@ module.exports = {
     const autoreacts = await getAutoreactsForGuild(message.guild.id);
     for (const autoreact of autoreacts) {
       if (message.channel.id === autoreact.channel_id) {
-        await message.react(autoreact.emoji);
+        try {
+          await message.react(autoreact.emoji);
+        } catch (error: any) {
+          if (error.code === 10014) {
+            // Unknown Emoji error
+            logger.warn(
+              `Invalid emoji in autoreact for guild ${message.guild.id}, channel ${autoreact.channel_id}: "${autoreact.emoji}"`
+            );
+          } else {
+            logger.error("Error adding autoreact:", error);
+          }
+        }
       }
     }
 
