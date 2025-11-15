@@ -29,15 +29,30 @@ export async function handleEntry(
   }
 
   // Create entry
-  const success = await storyForumService.createSubscriptionEntry(
+  const created = await storyForumService.createSubscriptionEntry(
     interaction.channel!.id
   );
 
-  if (success) {
-    await interaction.editReply({
-      content:
-        "✅ 已成功創建訂閱入口！\n\n用戶現在可以使用 `/sf 訂閱` 來訂閱你的更新。\n你可以使用 `/sf 推送更新` 來通知所有訂閱者。",
-    });
+  if (created) {
+    // Send subscription entry message
+    const sent = await storyForumService.sendSubscriptionEntryMessage(
+      interaction.channel!.id
+    );
+
+    if (sent) {
+      await interaction.editReply({
+        content:
+          "✅ 已成功創建訂閱入口！\n\n" +
+          "訂閱入口訊息已發送到討論串中。\n" +
+          "讀者現在可以點擊按鈕訂閱你的更新。\n" +
+          "當你發布新內容後，使用 `/sf notify` 來通知所有訂閱者。\n\n" +
+          "**提示：** 建議將訂閱入口訊息釘選到討論串頂部，方便讀者找到。",
+      });
+    } else {
+      await interaction.editReply({
+        content: "❌ 發送訂閱入口訊息失敗，但資料庫記錄已創建。請稍後再試。",
+      });
+    }
   } else {
     await interaction.editReply({
       content: "❌ 創建訂閱入口失敗，請稍後再試。",

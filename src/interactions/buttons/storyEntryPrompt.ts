@@ -27,23 +27,35 @@ export const button: Button = {
 
       if (action === "story_entry_yes") {
         // Create subscription entry
-        const success = await services.storyForumService.createSubscriptionEntry(
+        const created = await services.storyForumService.createSubscriptionEntry(
           threadId
         );
 
-        if (success) {
-          await interaction.editReply({
-            content:
-              "✅ 已成功創建訂閱入口！\n\n" +
-              "讀者現在可以使用 `/sf subscribe` 來訂閱你的更新。\n" +
-              "當你發布新內容後，使用 `/sf notify` 來通知所有訂閱者。\n\n" +
-              "**提示：**\n" +
-              "• 使用 `/sf entry` 可以重新查看訂閱入口\n" +
-              "• 使用 `/sf permissions` 可以授權其他人推送更新（最多5人）",
-          });
+        if (created) {
+          // Send subscription entry message
+          const sent = await services.storyForumService.sendSubscriptionEntryMessage(
+            threadId
+          );
 
-          // Delete the prompt message
-          await interaction.message.delete().catch(() => {});
+          if (sent) {
+            await interaction.editReply({
+              content:
+                "✅ 已成功創建訂閱入口！\n\n" +
+                "訂閱入口訊息已發送到討論串中。\n" +
+                "讀者現在可以點擊按鈕訂閱你的更新。\n" +
+                "當你發布新內容後，使用 `/sf notify` 來通知所有訂閱者。\n\n" +
+                "**提示：**\n" +
+                "• 使用 `/sf permissions` 可以授權其他人推送更新（最多5人）\n" +
+                "• 建議將訂閱入口訊息釘選到討論串頂部，方便讀者找到",
+            });
+
+            // Delete the prompt message
+            await interaction.message.delete().catch(() => {});
+          } else {
+            await interaction.editReply({
+              content: "❌ 發送訂閱入口訊息失敗，但資料庫記錄已創建。請稍後使用 `/sf entry` 重試。",
+            });
+          }
         } else {
           await interaction.editReply({
             content: "❌ 創建訂閱入口失敗，請稍後再試或使用 `/sf entry` 手動創建。",

@@ -297,6 +297,96 @@ export class StoryForumService {
     }
   }
 
+  public async sendSubscriptionEntryMessage(threadId: string): Promise<boolean> {
+    try {
+      const thread = await this.client.channels.fetch(threadId);
+      if (!thread?.isThread()) {
+        logger.error(`[StoryForum] Channel ${threadId} is not a thread`);
+        return false;
+      }
+
+      // Get current statistics
+      const entry = await this.getSubscriptionEntry(threadId);
+      const releaseCount = await this.getSubscriberCount(threadId, "release");
+      const testCount = await this.getSubscriberCount(threadId, "test");
+
+      // Build embed
+      const embed = new EmbedBuilder()
+        .setTitle("📚 故事訂閱入口")
+        .setDescription(
+          "點擊下方按鈕訂閱此故事的更新通知！\n\n" +
+          "**訂閱類型說明：**\n" +
+          "• **Release（正式版）**: 只接收正式發布的更新\n" +
+          "• **Test（測試版）**: 只接收測試版本的更新\n" +
+          "• **關注作者**: 接收作者的所有更新（包含 Release 和 Test）"
+        )
+        .setColor(0x5865f2)
+        .addFields(
+          {
+            name: "📊 訂閱統計",
+            value: `• Release: **${releaseCount}** 人\n• Test: **${testCount}** 人`,
+            inline: false,
+          }
+        );
+
+      // Add last update info if available
+      if (entry?.last_release_update || entry?.last_test_update) {
+        let lastUpdateText = "";
+        if (entry.last_release_update) {
+          lastUpdateText += `• Release: ${entry.last_release_update}\n`;
+        }
+        if (entry.last_test_update) {
+          lastUpdateText += `• Test: ${entry.last_test_update}`;
+        }
+        embed.addFields({
+          name: "📍 最後更新",
+          value: lastUpdateText,
+          inline: false,
+        });
+      }
+
+      // Build buttons
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`story_subscribe:${threadId}:release`)
+          .setLabel("訂閱 Release")
+          .setEmoji("🎉")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`story_subscribe:${threadId}:test`)
+          .setLabel("訂閱 Test")
+          .setEmoji("🧪")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`story_subscribe:${threadId}:author_all`)
+          .setLabel("關注作者")
+          .setEmoji("⭐")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`story_unsubscribe:${threadId}`)
+          .setLabel("取消訂閱")
+          .setEmoji("🔕")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await thread.send({
+        embeds: [embed],
+        components: [buttons],
+      });
+
+      logger.info(
+        `[StoryForum] Sent subscription entry message for thread ${threadId}`
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error sending subscription entry message for thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
   public async hasSubscriptionEntry(threadId: string): Promise<boolean> {
     try {
       const entry = await this.db
