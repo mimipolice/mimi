@@ -1,28 +1,17 @@
 import {
   ThreadChannel,
-  Message,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  AttachmentBuilder,
   Client,
+  EmbedBuilder,
 } from "discord.js";
 import { Kysely } from "kysely";
 import { MimiDLCDB } from "../shared/database/types";
 import config from "../config";
 import logger from "../utils/logger";
 
-const VALIDATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 分鐘
-const REQUIRED_SECTIONS = [
-  "# 你的故事標題",
-  "# 故事的開場白",
-  "# 你的第一個行動（你的第一段話）",
-];
-
 export class StoryForumService {
-  private validationTimers: Map<string, NodeJS.Timeout> = new Map();
-  private hintCooldowns: Map<string, number> = new Map();
-
   constructor(private db: Kysely<MimiDLCDB>, private client: Client) {}
 
   public async registerThread(thread: ThreadChannel): Promise<void> {
@@ -35,310 +24,10 @@ export class StoryForumService {
         thread_id: thread.id,
         guild_id: thread.guild.id,
         author_id: thread.ownerId!,
-        status: "pending",
+        status: "validated",
       })
       .onConflict((oc) => oc.doNothing())
       .execute();
-
-    // Set a timeout for the thread
-    if (this.validationTimers.has(thread.id)) {
-      clearTimeout(this.validationTimers.get(thread.id)!);
-    }
-    const timer = setTimeout(() => {
-      this.timeoutValidation(thread.id);
-    }, VALIDATION_TIMEOUT_MS);
-    this.validationTimers.set(thread.id, timer);
-
-    // Check the format shortly after creation to ensure the starter message is available
-    // and to avoid race conditions with the messageCreate event.
-    setTimeout(() => {
-      if (thread.ownerId) {
-        this.checkThreadFormat(thread, thread.ownerId).catch((err) => {
-          logger.error(
-            `[StoryForum] Error during initial format check for thread ${thread.id}`,
-            err
-          );
-        });
-      }
-    }, 2000); // 2-second delay
-  }
-
-  private async timeoutValidation(threadId: string): Promise<void> {
-    this.validationTimers.delete(threadId);
-    const threadInfo = await this.db
-      .selectFrom("story_forum_threads")
-      .selectAll()
-      .where("thread_id", "=", threadId)
-      .executeTakeFirst();
-
-    if (threadInfo && threadInfo.status === "pending") {
-      logger.info(`[StoryForum] Thread ${threadId} timed out. Deleting.`);
-      const thread = (await this.client.channels
-        .fetch(threadId)
-        .catch(() => null)) as ThreadChannel | null;
-      if (thread) {
-        const messages = await thread.messages.fetch({ limit: 100 });
-        const authorMessages = messages.filter(
-          (m) => m.author.id === threadInfo.author_id
-        );
-        const starterMessage = await thread
-          .fetchStarterMessage()
-          .catch(() => null);
-        if (starterMessage && !authorMessages.has(starterMessage.id)) {
-          authorMessages.set(starterMessage.id, starterMessage);
-        }
-        const fullContent = [...authorMessages.values()]
-          .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-          .map((m) => m.content)
-          .join("\n\n");
-
-        const contentTrimmed = fullContent.trim();
-        const missingSections = REQUIRED_SECTIONS.filter(
-          (section) => !contentTrimmed.includes(section)
-        );
-
-        let reason = "您的投稿在時間內未完成格式，已被自動移除。";
-        if (missingSections.length > 0) {
-          reason = `您的投稿缺少以下部分，已被自動移除：\n- ${missingSections.join(
-            "\n- "
-          )}`;
-        }
-
-        await this.rejectPost(
-          thread,
-          threadInfo.author_id,
-          fullContent,
-          reason
-        );
-      } else {
-        await this.db
-          .deleteFrom("story_forum_threads")
-          .where("thread_id", "=", threadId)
-          .execute();
-      }
-    }
-  }
-
-  public async validateMessage(message: Message): Promise<void> {
-    if (
-      !message.guild ||
-      !message.channel.isThread() ||
-      message.guild.id !== config.discord.guildId
-    )
-      return;
-
-    const threadInfo = await this.db
-      .selectFrom("story_forum_threads")
-      .selectAll()
-      .where("thread_id", "=", message.channel.id)
-      .executeTakeFirst();
-
-    if (
-      !threadInfo ||
-      threadInfo.status !== "pending" ||
-      message.author.id !== threadInfo.author_id
-    ) {
-      return;
-    }
-
-    logger.info(
-      `[StoryForum] Validating message in thread: ${message.channel.id}`
-    );
-    await this.checkThreadFormat(
-      message.channel as ThreadChannel,
-      threadInfo.author_id
-    );
-  }
-
-  private async checkThreadFormat(
-    thread: ThreadChannel,
-    authorId: string
-  ): Promise<void> {
-    const threadInfo = await this.getThreadInfo(thread.id);
-    if (!threadInfo || threadInfo.status !== "pending") {
-      return;
-    }
-
-    const messages = await thread.messages.fetch({ limit: 100 });
-    const authorMessages = messages.filter((m) => m.author.id === authorId);
-    const starterMessage = await thread.fetchStarterMessage().catch(() => null);
-    if (starterMessage && !authorMessages.has(starterMessage.id)) {
-      authorMessages.set(starterMessage.id, starterMessage);
-    }
-
-    const fullContent = [...authorMessages.values()]
-      .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-      .map((m) => m.content)
-      .join("\n\n");
-
-    const contentTrimmed = fullContent.trim();
-    const missingSections = REQUIRED_SECTIONS.filter(
-      (section) => !contentTrimmed.includes(section)
-    );
-
-    if (missingSections.length > 0) {
-      logger.debug(
-        `[StoryForum] Thread ${
-          thread.id
-        } is still missing sections: ${missingSections.join(", ")}`
-      );
-      await this.sendFormatHint(thread, missingSections);
-      return;
-    }
-
-    logger.info(
-      `[StoryForum] Thread ${thread.id} format is correct. Approving post.`
-    );
-    await this.approvePost(thread, authorId);
-  }
-
-  private async sendFormatHint(
-    thread: ThreadChannel,
-    missingSections: string[]
-  ): Promise<void> {
-    const now = Date.now();
-    const lastHint = this.hintCooldowns.get(thread.id);
-    const cooldown = 30 * 1000; // 30 秒冷卻
-
-    if (lastHint && now - lastHint < cooldown) {
-      logger.debug(`[StoryForum] Hint for thread ${thread.id} is on cooldown.`);
-      return;
-    }
-
-    const hintMessage = `你的故事似乎還缺少以下部分，請繼續完成：\n- ${missingSections.join(
-      "\n- "
-    )}`;
-
-    await thread.send(hintMessage);
-    this.hintCooldowns.set(thread.id, now);
-  }
-
-  private async approvePost(
-    thread: ThreadChannel,
-    authorId: string
-  ): Promise<void> {
-    logger.info(
-      `[StoryForum] Post approved (pending user confirmation) for thread: ${thread.id}`
-    );
-
-    if (this.validationTimers.has(thread.id)) {
-      clearTimeout(this.validationTimers.get(thread.id)!);
-      this.validationTimers.delete(thread.id);
-    }
-
-    await this.db
-      .updateTable("story_forum_threads")
-      .set({ status: "validated" })
-      .where("thread_id", "=", thread.id)
-      .execute();
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`story_confirm:${thread.id}:${authorId}`)
-        .setLabel("確認投稿")
-        .setStyle(ButtonStyle.Success)
-    );
-    await thread.send({
-      content: `<@${authorId}>, 你的故事格式正確！請確認這是否為你的完整投稿內容，確認後將鎖定格式檢查，開放自由討論。`,
-      components: [row],
-    });
-  }
-
-  private async rejectPost(
-    thread: ThreadChannel,
-    authorId: string,
-    content: string,
-    reason: string
-  ): Promise<void> {
-    logger.warn(
-      `[StoryForum] Post rejected for thread ${thread.id}. Reason: ${reason}`
-    );
-    const author = await this.client.users.fetch(authorId).catch(() => null);
-    if (author) {
-      const formatTemplate = `
-請依照以下格式發布你的故事：
-\`\`\`
-# 你的故事標題
-(你的標題內容)
-
-# 世界觀與角色設定（選填）
-(你的設定內容)
-
-# 故事的開場白
-(你的開場白內容)
-
-# 你的第一個行動（你的第一段話）
-(你的第一段行動)
-\`\`\`
-`;
-      const rejectionMessage = `你的故事 **${
-        thread.name
-      }** 因以下原因被退回：\n- ${reason}\n\n${formatTemplate}${
-        content ? "\n**你原本的投稿內容如下：**" : ""
-      }`;
-
-      try {
-        if (content && rejectionMessage.length + content.length > 1990) {
-          const attachment = new AttachmentBuilder(
-            Buffer.from(content, "utf-8"),
-            { name: "your_story_submission.txt" }
-          );
-          await author.send({ content: rejectionMessage, files: [attachment] });
-        } else {
-          await author.send(
-            `${rejectionMessage}${
-              content ? `\n\`\`\`\n${content}\n\`\`\`` : ""
-            }`
-          );
-        }
-      } catch (error) {
-        logger.error(
-          `[StoryForum] Failed to DM user ${authorId}. Sending public notice.`
-        );
-        await thread.send(
-          `<@${authorId}>, 你的投稿格式不符或已逾時，但我無法私訊你。請檢查你的隱私設定後重新投稿。`
-        );
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-      }
-    }
-
-    await thread
-      .delete("不符合故事論壇格式或已逾時")
-      .catch((err) =>
-        logger.error(`Failed to delete thread ${thread.id}`, err)
-      );
-    await this.db
-      .deleteFrom("story_forum_threads")
-      .where("thread_id", "=", thread.id)
-      .execute();
-  }
-
-  public async confirmSubmission(threadId: string): Promise<void> {
-    logger.info(
-      `[StoryForum] User confirmed submission for thread: ${threadId}`
-    );
-
-    const thread = (await this.client.channels
-      .fetch(threadId)
-      .catch(() => null)) as ThreadChannel | null;
-
-    if (thread) {
-      const messages = await thread.messages.fetch({ limit: 100 });
-      const hintMessages = messages.filter(
-        (m) =>
-          m.author.id === this.client.user?.id &&
-          m.content.includes("你的故事似乎還缺少以下部分")
-      );
-
-      for (const message of hintMessages.values()) {
-        await message.delete().catch((err) => {
-          logger.error(
-            `[StoryForum] Failed to delete hint message ${message.id} in thread ${threadId}`,
-            err
-          );
-        });
-      }
-    }
   }
 
   public async getThreadInfo(threadId: string) {
@@ -347,5 +36,549 @@ export class StoryForumService {
       .selectAll()
       .where("thread_id", "=", threadId)
       .executeTakeFirst();
+  }
+
+  public async subscribeToThread(
+    threadId: string,
+    userId: string,
+    subscriptionType: "release" | "test" | "author_all" = "release"
+  ): Promise<boolean> {
+    try {
+      const threadInfo = await this.getThreadInfo(threadId);
+      if (!threadInfo || threadInfo.status !== "validated") {
+        return false;
+      }
+
+      await this.db
+        .insertInto("story_forum_subscriptions")
+        .values({
+          thread_id: threadId,
+          user_id: userId,
+          subscription_type: subscriptionType,
+        })
+        .onConflict((oc) => oc.doNothing())
+        .execute();
+
+      logger.info(
+        `[StoryForum] User ${userId} subscribed to thread ${threadId} with type ${subscriptionType}`
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error subscribing user ${userId} to thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async unsubscribeFromThread(
+    threadId: string,
+    userId: string,
+    subscriptionType?: "release" | "test" | "author_all"
+  ): Promise<boolean> {
+    try {
+      let query = this.db
+        .deleteFrom("story_forum_subscriptions")
+        .where("thread_id", "=", threadId)
+        .where("user_id", "=", userId);
+
+      if (subscriptionType) {
+        query = query.where("subscription_type", "=", subscriptionType);
+      }
+
+      const result = await query.executeTakeFirst();
+
+      logger.info(
+        `[StoryForum] User ${userId} unsubscribed from thread ${threadId}${
+          subscriptionType ? ` (type: ${subscriptionType})` : ""
+        }`
+      );
+      return result.numDeletedRows > 0n;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error unsubscribing user ${userId} from thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async getThreadSubscribers(
+    threadId: string,
+    subscriptionType?: "release" | "test" | "author_all"
+  ): Promise<string[]> {
+    try {
+      let query = this.db
+        .selectFrom("story_forum_subscriptions")
+        .select("user_id")
+        .where("thread_id", "=", threadId);
+
+      if (subscriptionType) {
+        query = query.where("subscription_type", "=", subscriptionType);
+      }
+
+      const subscribers = await query.execute();
+      return [...new Set(subscribers.map((s) => s.user_id))];
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting subscribers for thread ${threadId}`,
+        error
+      );
+      return [];
+    }
+  }
+
+  public async isUserSubscribed(
+    threadId: string,
+    userId: string,
+    subscriptionType?: "release" | "test" | "author_all"
+  ): Promise<boolean> {
+    try {
+      let query = this.db
+        .selectFrom("story_forum_subscriptions")
+        .selectAll()
+        .where("thread_id", "=", threadId)
+        .where("user_id", "=", userId);
+
+      if (subscriptionType) {
+        query = query.where("subscription_type", "=", subscriptionType);
+      }
+
+      const subscription = await query.executeTakeFirst();
+      return !!subscription;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error checking subscription for user ${userId} in thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async getUserSubscriptions(
+    threadId: string,
+    userId: string
+  ): Promise<Array<"release" | "test" | "author_all">> {
+    try {
+      const subscriptions = await this.db
+        .selectFrom("story_forum_subscriptions")
+        .select("subscription_type")
+        .where("thread_id", "=", threadId)
+        .where("user_id", "=", userId)
+        .execute();
+
+      return subscriptions.map((s) => s.subscription_type);
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting user subscriptions for user ${userId} in thread ${threadId}`,
+        error
+      );
+      return [];
+    }
+  }
+
+  public async getAllUserSubscriptions(userId: string) {
+    try {
+      const subscriptions = await this.db
+        .selectFrom("story_forum_subscriptions")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .execute();
+
+      return subscriptions;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting all subscriptions for user ${userId}`,
+        error
+      );
+      return [];
+    }
+  }
+
+  public async notifySubscribers(
+    thread: ThreadChannel,
+    authorId: string,
+    updateType: "release" | "test",
+    messageLink: string,
+    description?: string
+  ): Promise<number> {
+    try {
+      const subscribers = await this.getThreadSubscribers(thread.id, updateType);
+      const authorAllSubscribers = await this.getThreadSubscribers(
+        thread.id,
+        "author_all"
+      );
+      const allSubscribers = [
+        ...new Set([...subscribers, ...authorAllSubscribers]),
+      ];
+      const subscribersToNotify = allSubscribers.filter((id) => id !== authorId);
+
+      if (subscribersToNotify.length === 0) {
+        return 0;
+      }
+
+      const mentions = subscribersToNotify.map((id) => `<@${id}>`).join(" ");
+      const typeEmoji = updateType === "release" ? "🎉" : "🧪";
+      const typeName = updateType === "release" ? "正式版" : "測試版";
+      
+      let notificationMessage = `${mentions}\n\n${typeEmoji} **${typeName}更新通知**\n`;
+      notificationMessage += `📍 [查看更新內容](${messageLink})`;
+      
+      if (description) {
+        notificationMessage += `\n\n${description}`;
+      }
+
+      await thread.send(notificationMessage);
+
+      // 更新最後更新連結
+      await this.updateLastUpdate(thread.id, updateType, messageLink);
+
+      logger.info(
+        `[StoryForum] Notified ${subscribersToNotify.length} subscribers in thread ${thread.id} for ${updateType} update`
+      );
+      return subscribersToNotify.length;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error notifying subscribers in thread ${thread.id}`,
+        error
+      );
+      return 0;
+    }
+  }
+
+  public async getSubscriberCount(
+    threadId: string,
+    subscriptionType?: "release" | "test" | "author_all"
+  ): Promise<number> {
+    try {
+      let query = this.db
+        .selectFrom("story_forum_subscriptions")
+        .select((eb) => eb.fn.countAll().as("count"))
+        .where("thread_id", "=", threadId);
+
+      if (subscriptionType) {
+        query = query.where("subscription_type", "=", subscriptionType);
+      }
+
+      const result = await query.executeTakeFirst();
+      return Number(result?.count || 0);
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting subscriber count for thread ${threadId}`,
+        error
+      );
+      return 0;
+    }
+  }
+
+  // 訂閱入口管理
+  public async createSubscriptionEntry(threadId: string): Promise<boolean> {
+    try {
+      await this.db
+        .insertInto("story_forum_subscription_entries")
+        .values({
+          thread_id: threadId,
+          enabled: true,
+        })
+        .onConflict((oc) => oc.doNothing())
+        .execute();
+
+      logger.info(
+        `[StoryForum] Created subscription entry for thread ${threadId}`
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error creating subscription entry for thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async hasSubscriptionEntry(threadId: string): Promise<boolean> {
+    try {
+      const entry = await this.db
+        .selectFrom("story_forum_subscription_entries")
+        .selectAll()
+        .where("thread_id", "=", threadId)
+        .executeTakeFirst();
+
+      return !!entry && entry.enabled;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error checking subscription entry for thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async getSubscriptionEntry(threadId: string) {
+    try {
+      return await this.db
+        .selectFrom("story_forum_subscription_entries")
+        .selectAll()
+        .where("thread_id", "=", threadId)
+        .executeTakeFirst();
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting subscription entry for thread ${threadId}`,
+        error
+      );
+      return null;
+    }
+  }
+
+  private async updateLastUpdate(
+    threadId: string,
+    updateType: "release" | "test",
+    messageLink: string
+  ): Promise<void> {
+    try {
+      const column =
+        updateType === "release" ? "last_release_update" : "last_test_update";
+
+      await this.db
+        .updateTable("story_forum_subscription_entries")
+        .set({ [column]: messageLink })
+        .where("thread_id", "=", threadId)
+        .execute();
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error updating last update for thread ${threadId}`,
+        error
+      );
+    }
+  }
+
+  // 權限管理
+  public async addPermission(
+    threadId: string,
+    userId: string,
+    grantedBy: string
+  ): Promise<boolean> {
+    try {
+      // 檢查權限數量（包括作者）
+      const permissionCount = await this.getPermissionCount(threadId);
+      if (permissionCount >= 5) {
+        return false;
+      }
+
+      await this.db
+        .insertInto("story_forum_permissions")
+        .values({
+          thread_id: threadId,
+          user_id: userId,
+          granted_by: grantedBy,
+        })
+        .onConflict((oc) => oc.doNothing())
+        .execute();
+
+      logger.info(
+        `[StoryForum] Added permission for user ${userId} in thread ${threadId}`
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error adding permission for user ${userId} in thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async removePermission(
+    threadId: string,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      const result = await this.db
+        .deleteFrom("story_forum_permissions")
+        .where("thread_id", "=", threadId)
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+
+      logger.info(
+        `[StoryForum] Removed permission for user ${userId} in thread ${threadId}`
+      );
+      return result.numDeletedRows > 0n;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error removing permission for user ${userId} in thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async hasPermission(threadId: string, userId: string): Promise<boolean> {
+    try {
+      // 檢查是否為作者
+      const threadInfo = await this.getThreadInfo(threadId);
+      if (threadInfo?.author_id === userId) {
+        return true;
+      }
+
+      // 檢查是否有權限
+      const permission = await this.db
+        .selectFrom("story_forum_permissions")
+        .selectAll()
+        .where("thread_id", "=", threadId)
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+
+      return !!permission;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error checking permission for user ${userId} in thread ${threadId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  public async getPermissions(threadId: string): Promise<string[]> {
+    try {
+      const permissions = await this.db
+        .selectFrom("story_forum_permissions")
+        .select("user_id")
+        .where("thread_id", "=", threadId)
+        .execute();
+
+      return permissions.map((p) => p.user_id);
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting permissions for thread ${threadId}`,
+        error
+      );
+      return [];
+    }
+  }
+
+  public async getPermissionCount(threadId: string): Promise<number> {
+    try {
+      const threadInfo = await this.getThreadInfo(threadId);
+      const permissionResult = await this.db
+        .selectFrom("story_forum_permissions")
+        .select((eb) => eb.fn.countAll().as("count"))
+        .where("thread_id", "=", threadId)
+        .executeTakeFirst();
+
+      // 作者算一個 + 其他權限持有者
+      return 1 + Number(permissionResult?.count || 0);
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting permission count for thread ${threadId}`,
+        error
+      );
+      return 1; // 至少有作者
+    }
+  }
+
+  // 作者偏好管理
+  public async getAuthorPreference(userId: string): Promise<boolean> {
+    try {
+      const preference = await this.db
+        .selectFrom("story_forum_author_preferences")
+        .select("ask_on_post")
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+
+      return preference?.ask_on_post ?? true; // 默認為詢問
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error getting author preference for user ${userId}`,
+        error
+      );
+      return true;
+    }
+  }
+
+  public async setAuthorPreference(
+    userId: string,
+    askOnPost: boolean
+  ): Promise<boolean> {
+    try {
+      await this.db
+        .insertInto("story_forum_author_preferences")
+        .values({
+          user_id: userId,
+          ask_on_post: askOnPost,
+        })
+        .onConflict((oc) =>
+          oc.column("user_id").doUpdateSet({
+            ask_on_post: askOnPost,
+            updated_at: new Date().toISOString(),
+          })
+        )
+        .execute();
+
+      logger.info(
+        `[StoryForum] Updated author preference for user ${userId}: ${askOnPost}`
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error setting author preference for user ${userId}`,
+        error
+      );
+      return false;
+    }
+  }
+
+  // 詢問作者是否要創建訂閱入口
+  public async askAboutSubscriptionEntry(
+    thread: ThreadChannel,
+    authorId: string
+  ): Promise<void> {
+    try {
+      const embed = new EmbedBuilder()
+        .setTitle("📢 是否要創建「更新推流」功能？")
+        .setDescription(
+          "這個功能可以讓讀者訂閱你的故事更新通知，當你發布新內容時可以一鍵通知所有訂閱者。\n\n" +
+          "**功能說明：**\n" +
+          "• 讀者可以訂閱 Release（正式版）或 Test（測試版）\n" +
+          "• 你更新後使用 `/sf notify` 通知訂閱者\n" +
+          "• 可以附上更新樓層連結和簡短說明\n\n" +
+          "**選項說明：**\n" +
+          "• **是**：立即創建訂閱入口\n" +
+          "• **否**：這次不創建，但下次發帖還會詢問\n" +
+          "• **不再提醒**：以後都不問，但可以手動使用 `/sf entry`"
+        )
+        .setColor(0x5865f2)
+        .setFooter({ text: "提示：如果你不確定，可以選「否」，之後再決定" });
+
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`story_entry_yes:${thread.id}:${authorId}`)
+          .setLabel("是")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`story_entry_no:${thread.id}:${authorId}`)
+          .setLabel("否")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`story_entry_never:${thread.id}:${authorId}`)
+          .setLabel("不再提醒")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await thread.send({
+        content: `<@${authorId}>`,
+        embeds: [embed],
+        components: [buttons],
+      });
+
+      logger.info(
+        `[StoryForum] Asked author ${authorId} about subscription entry for thread ${thread.id}`
+      );
+    } catch (error) {
+      logger.error(
+        `[StoryForum] Error asking about subscription entry for thread ${thread.id}`,
+        error
+      );
+    }
   }
 }

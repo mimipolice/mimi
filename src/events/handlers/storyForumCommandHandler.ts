@@ -11,6 +11,8 @@ export async function handleStoryForumCommand(
   }
 
   const command = message.content.toLowerCase();
+  
+  // Only handle ?pin and ?unpin commands
   if (!command.startsWith("?pin") && !command.startsWith("?unpin")) {
     return false;
   }
@@ -24,14 +26,20 @@ export async function handleStoryForumCommand(
       return false;
     }
 
-    if (message.author.id !== threadInfo.author_id) {
-      await message.reply("只有貼文作者才能使用此指令。");
-      return true; // Command was handled
+    // Check if user has permission (author or authorized user)
+    const hasPermission = await services.storyForumService.hasPermission(
+      message.channel.id,
+      message.author.id
+    );
+
+    if (!hasPermission) {
+      await message.reply("❌ 只有貼文作者或授權使用者才能使用此指令。");
+      return true;
     }
 
     if (!message.reference || !message.reference.messageId) {
-      await message.reply("請回覆您想操作的訊息來使用此指令。");
-      return true; // Command was handled
+      await message.reply("❌ 請回覆您想操作的訊息來使用此指令。");
+      return true;
     }
 
     const targetMessage = await message.channel.messages.fetch(
@@ -46,13 +54,13 @@ export async function handleStoryForumCommand(
       await message.reply("✅ 已取消釘選訊息。");
     }
 
-    return true; // Command was handled
+    return true;
   } catch (error) {
     logger.error(
       `[StoryForumCommandHandler] Failed to handle command in thread ${message.channel.id}`,
       error
     );
-    await message.reply("處理指令時發生錯誤。");
-    return true; // Command was handled, even with an error
+    await message.reply("❌ 處理指令時發生錯誤。");
+    return true;
   }
 }

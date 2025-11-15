@@ -265,4 +265,30 @@ export interface MimiDLCDB {
     status: "pending" | "validated";
     created_at: ColumnType<Date, string | undefined, string>;
   };
+  story_forum_subscriptions: {
+    id: ColumnType<number, never, never>;
+    thread_id: string;
+    user_id: string;
+    subscription_type: "release" | "test" | "author_all";
+    subscribed_at: ColumnType<Date, string | undefined, string>;
+  };
+  story_forum_subscription_entries: {
+    thread_id: string;
+    enabled: boolean;
+    created_at: ColumnType<Date, string | undefined, string>;
+    last_release_update: string | null;
+    last_test_update: string | null;
+  };
+  story_forum_permissions: {
+    id: ColumnType<number, never, never>;
+    thread_id: string;
+    user_id: string;
+    granted_at: ColumnType<Date, string | undefined, string>;
+    granted_by: string;
+  };
+  story_forum_author_preferences: {
+    user_id: string;
+    ask_on_post: boolean;
+    updated_at: ColumnType<Date, string | undefined, string>;
+  };
 }

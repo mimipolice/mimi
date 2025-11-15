@@ -23,24 +23,46 @@ module.exports = {
       return;
     }
 
-    // Story Forum Logic - DISABLED
-    // const storyForumSettings = await services.settingsManager.getSettings(
-    //   thread.guild.id
-    // );
-    // const isStoryForum = storyForumSettings?.story_forum_channels?.includes(
-    //   thread.parentId!
-    // );
+    // Story Forum Logic
+    const storyForumSettings = await services.settingsManager.getSettings(
+      thread.guild.id
+    );
+    const isStoryForum = storyForumSettings?.story_forum_channels?.includes(
+      thread.parentId!
+    );
 
-    // if (isStoryForum && thread.ownerId) {
-    //   try {
-    //     await services.storyForumService.registerThread(thread);
-    //   } catch (error) {
-    //     logger.error(
-    //       `[StoryForum] Failed to register thread ${thread.id}`,
-    //       error
-    //     );
-    //   }
-    // }
+    if (isStoryForum && thread.ownerId) {
+      try {
+        await services.storyForumService.registerThread(thread);
+        
+        // Check if author wants to be asked about subscription entry
+        const askOnPost = await services.storyForumService.getAuthorPreference(
+          thread.ownerId
+        );
+        
+        if (askOnPost) {
+          // Wait a bit for the thread to be fully created
+          setTimeout(async () => {
+            try {
+              await services.storyForumService.askAboutSubscriptionEntry(
+                thread,
+                thread.ownerId!
+              );
+            } catch (error) {
+              logger.error(
+                `[StoryForum] Failed to ask about subscription entry for thread ${thread.id}`,
+                error
+              );
+            }
+          }, 3000);
+        }
+      } catch (error) {
+        logger.error(
+          `[StoryForum] Failed to register thread ${thread.id}`,
+          error
+        );
+      }
+    }
 
     // Autotag logic
     if (thread.parentId) {

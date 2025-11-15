@@ -71,41 +71,6 @@ export async function execute(
         interaction,
         interaction.customId
       );
-    } else if (
-      interaction.isButton() &&
-      interaction.customId.startsWith("story_confirm:")
-    ) {
-      const [, threadId, authorId] = interaction.customId.split(":");
-      if (interaction.user.id !== authorId) {
-        await interaction.reply({
-          content: "這不是給您用的按鈕！",
-          ephemeral: true,
-        });
-        return;
-      }
-
-      try {
-        await services.storyForumService.confirmSubmission(threadId);
-        await interaction.update({
-          content:
-            "✅ 投稿已確認，感謝您的創作！\n\n身為作者，你現在可以使用 `?pin` 和 `?unpin` 指令來管理此貼文中的重要訊息。",
-          components: [],
-        });
-      } catch (error) {
-        logger.error(
-          `[StoryForum] Failed to confirm submission for thread ${threadId}`,
-          error
-        );
-        await interaction.reply({
-          content: "確認時發生錯誤，請聯絡管理員。",
-          ephemeral: true,
-        });
-      }
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.customId
-      );
     } else if (interaction.isButton()) {
       const button = client.buttons.find((b) => {
         if (typeof b.name === "string") {
