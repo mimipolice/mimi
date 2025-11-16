@@ -51,14 +51,8 @@ export default {
     modal.addComponents(firstActionRow);
 
     await interaction.showModal(modal);
-
-    // Disable the button after confirmation
-    try {
-      await interaction.message.edit({
-        components: [],
-      });
-    } catch (error) {
-      // Ignore if message is already deleted
-    }
+    
+    // Note: The button will be disabled after the modal is submitted
+    // in the closeTicketModal handler
   },
 };
