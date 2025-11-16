@@ -9,6 +9,7 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  EmbedBuilder,
 } from "discord.js";
 import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
@@ -84,6 +85,17 @@ export const command: Command = {
     )
     .addSubcommand((subcommand) =>
       subcommand
+        .setName("request-close")
+        .setDescription("Request to close the ticket.")
+        .setNameLocalizations({
+          [Locale.ChineseTW]: "請求關閉",
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: "請求關閉此服務單。",
+        })
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
         .setName("purge")
         .setDescription("Purge all tickets.")
         .setNameLocalizations({
@@ -145,6 +157,65 @@ export const command: Command = {
       modal.addComponents(firstActionRow);
 
       await interaction.showModal(modal);
+      return;
+    }
+
+    if (subcommand === "request-close") {
+      const channel = interaction.channel;
+      
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        await interaction.editReply({
+          content: t.subcommands.add.responses.not_ticket,
+        });
+        return;
+      }
+
+      const ticket = await ticketManager.findTicketByChannel(channel.id);
+
+      if (!ticket) {
+        await interaction.editReply({
+          content: t.subcommands.add.responses.not_ticket,
+        });
+        return;
+      }
+
+      // Determine who should be notified
+      const isOwner = interaction.user.id === ticket.ownerId;
+      const targetUserId = isOwner ? ticket.claimedById : ticket.ownerId;
+
+      if (!targetUserId && isOwner) {
+        await interaction.editReply({
+          content: "❌ No staff member has claimed this ticket yet. You can use `/ticket close` to close it directly.",
+        });
+        return;
+      }
+
+      const targetUser = await client.users.fetch(targetUserId || ticket.ownerId);
+      
+      const embed = new EmbedBuilder()
+        .setTitle("🔔 Close Request")
+        .setDescription(
+          `${interaction.user} has requested to close this ticket.\n\nClick the button below to confirm closing.`
+        )
+        .setColor(0xFFA500)
+        .setTimestamp();
+
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`confirm_close_request:${interaction.user.id}`)
+        .setLabel("Confirm Close")
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton);
+
+      await channel.send({
+        content: `${targetUser}`,
+        embeds: [embed],
+        components: [row],
+      });
+
+      await interaction.editReply({
+        content: "✅ Close request has been sent. Waiting for confirmation...",
+      });
       return;
     }
     

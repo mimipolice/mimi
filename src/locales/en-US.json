@@ -346,6 +346,15 @@
             "success": "Ticket closed successfully."
           }
         },
+        "request-close": {
+          "name": "request-close",
+          "description": "Request to close the ticket.",
+          "responses": {
+            "not_ticket": "This command can only be used in a ticket channel.",
+            "no_staff": "No staff member has claimed this ticket yet. You can use `/ticket close` to close it directly.",
+            "request_sent": "Close request has been sent. Waiting for confirmation..."
+          }
+        },
         "purge": {
           "name": "purge",
           "description": "Permanently delete all tickets and reset the ID counter.",

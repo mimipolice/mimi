@@ -346,6 +346,15 @@
             "success": "✅ 客服單已成功關閉。"
           }
         },
+        "request-close": {
+          "name": "請求關閉",
+          "description": "請求關閉此服務單。",
+          "responses": {
+            "not_ticket": "❌ 此指令只能在客服單頻道中使用。",
+            "no_staff": "❌ 尚無職員接手此客服單。您可以直接使用 `/ticket close` 關閉它。",
+            "request_sent": "✅ 關閉請求已發送。等待確認中..."
+          }
+        },
         "purge": {
           "name": "清除",
           "description": "永久刪除所有客服單並重設 ID 計數器。",
