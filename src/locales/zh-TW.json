@@ -338,6 +338,14 @@
             "user_not_found": "❌ 找不到該使用者。"
           }
         },
+        "close": {
+          "name": "關閉",
+          "description": "關閉目前的客服單。",
+          "responses": {
+            "not_ticket": "❌ 此指令只能在客服單頻道中使用。",
+            "success": "✅ 客服單已成功關閉。"
+          }
+        },
         "purge": {
           "name": "清除",
           "description": "永久刪除所有客服單並重設 ID 計數器。",

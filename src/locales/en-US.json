@@ -338,6 +338,14 @@
             "user_not_found": "User not found."
           }
         },
+        "close": {
+          "name": "close",
+          "description": "Close the current ticket.",
+          "responses": {
+            "not_ticket": "This command can only be used in a ticket channel.",
+            "success": "Ticket closed successfully."
+          }
+        },
         "purge": {
           "name": "purge",
           "description": "Permanently delete all tickets and reset the ID counter.",

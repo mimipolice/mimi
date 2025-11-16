@@ -6,6 +6,9 @@ import {
   ButtonBuilder,
   ButtonStyle,
   Locale,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } from "discord.js";
 import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
@@ -70,6 +73,17 @@ export const command: Command = {
     )
     .addSubcommand((subcommand) =>
       subcommand
+        .setName("close")
+        .setDescription("Close the current ticket.")
+        .setNameLocalizations({
+          [Locale.ChineseTW]: "關閉",
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: "關閉目前的服務單。",
+        })
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
         .setName("purge")
         .setDescription("Purge all tickets.")
         .setNameLocalizations({
@@ -96,6 +110,44 @@ export const command: Command = {
     }
 
     const subcommand = interaction.options.getSubcommand();
+    
+    if (subcommand === "close") {
+      const channel = interaction.channel;
+      
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        await interaction.editReply({
+          content: t.subcommands.add.responses.not_ticket,
+        });
+        return;
+      }
+
+      const ticket = await ticketManager.findTicketByChannel(channel.id);
+
+      if (!ticket) {
+        await interaction.editReply({
+          content: t.subcommands.add.responses.not_ticket,
+        });
+        return;
+      }
+
+      // Show modal for close reason
+      const modal = new ModalBuilder()
+        .setCustomId('close_ticket_modal')
+        .setTitle('Close Ticket');
+
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('close_reason')
+        .setLabel("Reason for closing (optional)")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
+
+      const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput);
+      modal.addComponents(firstActionRow);
+
+      await interaction.showModal(modal);
+      return;
+    }
+    
     if (subcommand === "purge") {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)
