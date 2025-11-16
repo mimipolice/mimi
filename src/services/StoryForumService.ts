@@ -309,6 +309,7 @@ export class StoryForumService {
       const entry = await this.getSubscriptionEntry(threadId);
       const releaseCount = await this.getSubscriberCount(threadId, "release");
       const testCount = await this.getSubscriberCount(threadId, "test");
+      const authorAllCount = await this.getSubscriberCount(threadId, "author_all");
 
       // Build embed
       const embed = new EmbedBuilder()
@@ -324,7 +325,7 @@ export class StoryForumService {
         .addFields(
           {
             name: "📊 訂閱統計",
-            value: `• Release: **${releaseCount}** 人\n• Test: **${testCount}** 人`,
+            value: `• Release: **${releaseCount}** 人\n• Test: **${testCount}** 人\n• 關注作者: **${authorAllCount}** 人`,
             inline: false,
           }
         );
@@ -663,7 +664,8 @@ export class StoryForumService {
           "**選項說明：**\n" +
           "• **是**：立即創建訂閱入口\n" +
           "• **否**：這次不創建，但下次發帖還會詢問\n" +
-          "• **不再提醒**：以後都不問，但可以手動使用 `/sf entry`"
+          "• **不再提醒**：以後都不問，但可以手動使用 `/sf entry`"+
+          "詳細說明：https://discord.com/channels/812574421465956373/1375057486721060904/1439558143540465725"
         )
         .setColor(0x5865f2)
         .setFooter({ text: "提示：如果你不確定，可以選「否」，之後再決定" });

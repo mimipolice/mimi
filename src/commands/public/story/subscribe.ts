@@ -53,8 +53,17 @@ export async function handleSubscribe(
   );
 
   if (success) {
-    const count = await storyForumService.getSubscriberCount(
-      interaction.channel!.id
+    const releaseCount = await storyForumService.getSubscriberCount(
+      interaction.channel!.id,
+      "release"
+    );
+    const testCount = await storyForumService.getSubscriberCount(
+      interaction.channel!.id,
+      "test"
+    );
+    const authorAllCount = await storyForumService.getSubscriberCount(
+      interaction.channel!.id,
+      "author_all"
     );
     const typeName =
       type === "release"
@@ -64,7 +73,7 @@ export async function handleSubscribe(
         : "關注作者（所有更新）";
 
     await interaction.editReply({
-      content: `✅ 已成功訂閱 **${typeName}**！\n當有對應更新時，你會收到提醒。\n\n目前總訂閱數：${count}`,
+      content: `✅ 已成功訂閱 **${typeName}**！\n當有對應更新時，你會收到提醒。\n\n📊 **目前訂閱統計**\n• Release: **${releaseCount}** 人\n• Test: **${testCount}** 人\n• 關注作者: **${authorAllCount}** 人`,
     });
   } else {
     await interaction.editReply({

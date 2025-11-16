@@ -41,13 +41,30 @@ export const button: Button = {
             author_all: "關注作者（所有更新）",
           };
 
+          const releaseCount = await services.storyForumService.getSubscriberCount(
+            threadId,
+            "release"
+          );
+          const testCount = await services.storyForumService.getSubscriberCount(
+            threadId,
+            "test"
+          );
+          const authorAllCount = await services.storyForumService.getSubscriberCount(
+            threadId,
+            "author_all"
+          );
+
           await interaction.editReply({
             content:
               `✅ 已成功訂閱 **${typeNames[subscriptionType]}** 更新！\n\n` +
               "當作者發布相應類型的更新時，bot 會在此討論串 @ 你。\n\n" +
               "**提示：**\n" +
               "• 你可以點擊「取消訂閱」按鈕來取消訂閱\n" +
-              "• 你可以同時訂閱多種類型的更新",
+              "• 你可以同時訂閱多種類型的更新\n\n" +
+              `📊 **目前訂閱統計**\n` +
+              `• Release: **${releaseCount}** 人\n` +
+              `• Test: **${testCount}** 人\n` +
+              `• 關注作者: **${authorAllCount}** 人`,
           });
         } else {
           await interaction.editReply({
