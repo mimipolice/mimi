@@ -114,7 +114,10 @@ export default {
     const subcommand = interaction.options.getSubcommand();
 
     try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      // Only defer if not already deferred or replied
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      }
 
       if (subcommand === "set") {
         const emoji = interaction.options.getString("emoji", true);

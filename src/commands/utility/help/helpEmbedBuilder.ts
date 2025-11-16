@@ -25,6 +25,34 @@ export interface HelpState {
   command?: string;
 }
 
+// Category metadata with emojis and descriptions
+const CATEGORY_INFO: Record<
+  string,
+  { emoji: string; nameZh: string; nameEn: string; descZh: string; descEn: string }
+> = {
+  admin: {
+    emoji: "🛡️",
+    nameZh: "管理員",
+    nameEn: "Admin",
+    descZh: "伺服器管理與設定功能",
+    descEn: "Server management and configuration",
+  },
+  public: {
+    emoji: "🌐",
+    nameZh: "公開",
+    nameEn: "Public",
+    descZh: "所有使用者皆可使用的功能",
+    descEn: "Features available to all users",
+  },
+  utility: {
+    emoji: "🔧",
+    nameZh: "實用工具",
+    nameEn: "Utility",
+    descZh: "實用的輔助工具",
+    descEn: "Helpful utility tools",
+  },
+};
+
 export async function buildHelpEmbed(
   state: HelpState,
   helpService: HelpService,
@@ -42,16 +70,44 @@ export async function buildHelpEmbed(
 
   // View: Home (Default)
   if (!state.view || state.view === "home") {
+    const isZh = state.lang === "zh-TW";
     container.components.push(
-      new TextDisplayBuilder().setContent("# Help Center"),
       new TextDisplayBuilder().setContent(
-        "Welcome! Please select a category to see available commands."
-      )
+        isZh ? "# 📚 幫助中心" : "# 📚 Help Center"
+      ),
+      new TextDisplayBuilder().setContent(
+        isZh
+          ? "歡迎使用幫助系統！請選擇一個類別來查看可用的指令。"
+          : "Welcome to the help system! Please select a category to see available commands."
+      ),
+      new SeparatorBuilder()
     );
+
+    // Show available categories with descriptions
+    const categoriesText = accessibleCategories
+      .filter((cat) => cat !== "message")
+      .map((cat) => {
+        const info = CATEGORY_INFO[cat];
+        if (!info) return `• **${cat}**`;
+        const name = isZh ? info.nameZh : info.nameEn;
+        const desc = isZh ? info.descZh : info.descEn;
+        return `${info.emoji} **${name}**\n└ ${desc}`;
+      })
+      .join("\n\n");
+
+    if (categoriesText) {
+      container.components.push(
+        new TextDisplayBuilder().setContent(
+          (isZh ? "## 可用類別\n\n" : "## Available Categories\n\n") +
+            categoriesText
+        )
+      );
+    }
   }
 
   // View: Category
   if (state.view === "category" && state.category) {
+    const isZh = state.lang === "zh-TW";
     let commands = helpService.getAccessibleCommandsInCategory(
       state.category,
       member
@@ -59,13 +115,33 @@ export async function buildHelpEmbed(
     if (state.category === "admin") {
       commands = commands.filter((c) => c.data.name !== "user-info");
     }
+    
+    const categoryInfo = CATEGORY_INFO[state.category];
+    const categoryName = categoryInfo
+      ? `${categoryInfo.emoji} ${isZh ? categoryInfo.nameZh : categoryInfo.nameEn}`
+      : state.category;
+
     container.components.push(
-      new TextDisplayBuilder().setContent(`# Category: ${state.category}`)
+      new TextDisplayBuilder().setContent(
+        `# ${isZh ? "類別" : "Category"}: ${categoryName}`
+      )
     );
+
+    if (categoryInfo) {
+      container.components.push(
+        new TextDisplayBuilder().setContent(
+          isZh ? categoryInfo.descZh : categoryInfo.descEn
+        ),
+        new SeparatorBuilder()
+      );
+    }
+
     if (commands.length > 0) {
       container.components.push(
         new TextDisplayBuilder().setContent(
-          "Select a command below to see its details."
+          isZh
+            ? "選擇下方的指令來查看詳細資訊。"
+            : "Select a command below to see its details."
         ),
         new SeparatorBuilder(),
         new TextDisplayBuilder().setContent(
@@ -77,7 +153,9 @@ export async function buildHelpEmbed(
     } else {
       container.components.push(
         new TextDisplayBuilder().setContent(
-          "You do not have the required permissions to view any commands in this category."
+          isZh
+            ? "您沒有權限查看此類別中的任何指令。"
+            : "You do not have the required permissions to view any commands in this category."
         )
       );
     }
@@ -165,19 +243,33 @@ export async function buildHelpEmbed(
   // --- Components ---
 
   // 1. Category Select Menu
+  const isZh = state.lang === "zh-TW";
   const categoryOptions: APISelectMenuOption[] = accessibleCategories
     .filter((cat) => cat !== "message")
-    .map((cat) => ({
-      label: cat.charAt(0).toUpperCase() + cat.slice(1),
-      value: cat,
-      description: `Commands in the ${cat} category`,
-      default: state.category === cat,
-    }));
+    .map((cat) => {
+      const info = CATEGORY_INFO[cat];
+      if (info) {
+        return {
+          label: `${info.emoji} ${isZh ? info.nameZh : info.nameEn}`,
+          value: cat,
+          description: isZh ? info.descZh : info.descEn,
+          default: state.category === cat,
+        };
+      }
+      return {
+        label: cat.charAt(0).toUpperCase() + cat.slice(1),
+        value: cat,
+        description: `Commands in the ${cat} category`,
+        default: state.category === cat,
+      };
+    });
 
   if (categoryOptions.length > 0) {
     const categorySelect = new StringSelectMenuBuilder()
       .setCustomId(`help:category_select:${userId}`)
-      .setPlaceholder("Select a category...")
+      .setPlaceholder(
+        isZh ? "選擇一個類別..." : "Select a category..."
+      )
       .setOptions(categoryOptions);
     components.push(new ActionRowBuilder().addComponents(categorySelect));
   }
@@ -204,7 +296,9 @@ export async function buildHelpEmbed(
     if (commandOptions.length > 0) {
       const commandSelect = new StringSelectMenuBuilder()
         .setCustomId(`help:command_select:${state.category}:${userId}`)
-        .setPlaceholder("Select a command for details...")
+        .setPlaceholder(
+          isZh ? "選擇一個指令查看詳細資訊..." : "Select a command for details..."
+        )
         .setOptions(commandOptions);
       components.push(new ActionRowBuilder().addComponents(commandSelect));
     }
@@ -213,7 +307,7 @@ export async function buildHelpEmbed(
   // 3. Action Buttons
   const homeButton = new ButtonBuilder()
     .setCustomId(`help:home:${userId}`)
-    .setLabel("Home")
+    .setLabel(isZh ? "🏠 首頁" : "🏠 Home")
     .setStyle(ButtonStyle.Primary)
     .setDisabled(!state.view || state.view === "home");
 
@@ -225,11 +319,13 @@ export async function buildHelpEmbed(
         state.command || ""
       }:${userId}`
     )
-    .setLabel(`Switch to ${otherLang === "en-US" ? "English" : "繁體中文"}`)
+    .setLabel(
+      `🌐 ${otherLang === "en-US" ? "Switch to English" : "切換到繁體中文"}`
+    )
     .setStyle(ButtonStyle.Secondary);
 
   const supportServer = new ButtonBuilder()
-    .setLabel("Support Server")
+    .setLabel(isZh ? "💬 支援伺服器" : "💬 Support Server")
     .setURL(Config.resources.links.supportServer)
     .setStyle(ButtonStyle.Link);
 

@@ -8,7 +8,10 @@ export default {
     .setName("help")
     .setDescription("Shows a list of available commands."),
   execute: async (interaction, client, services) => {
-    await interaction.deferReply();
+    // Only defer if not already deferred or replied
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
     const { helpService } = services;
     const member =
       interaction.member instanceof GuildMember ? interaction.member : null;

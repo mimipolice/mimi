@@ -32,20 +32,41 @@ Views the current configuration for the ticket bot on the server.
 
 ## Anti-Spam Settings (`/config anti-spam`)
 
-### `set` Subcommand
-Sets the anti-spam parameters.
+The Anti-Spam system automatically detects and handles spam behavior to protect your server.
 
-| Parameter | Type | Description | Required |
-| :--- | :--- | :--- | :--- |
-| `threshold` | Integer | The number of messages a user can send within the time window to trigger detection. | Yes |
-| `timeout` | Integer | How long to time out the user for (in seconds) after spam is detected. | Yes |
-| `time_window` | Integer | The time window in seconds for spam detection. | Yes |
+### How It Works
+- **Single-Channel Detection**: Triggers when a user sends too many messages in one channel
+- **Multi-Channel Detection**: Triggers when a user rapidly posts across multiple channels
+- **Automatic Timeout**: Violators are automatically timed out
+- **Appeal System**: Users can appeal false positives via DM
+- **Admin Notifications**: Detailed logs sent to configured channel
+
+### `set` Subcommand
+Configure anti-spam detection parameters.
+
+| Parameter | Type | Description | Required | Default |
+| :--- | :--- | :--- | :--- | :--- |
+| `threshold` | Integer | Messages in one channel to trigger detection | Yes | 7 |
+| `timeout` | Integer | Timeout duration in seconds (e.g., 86400 = 24 hours) | Yes | 86400 |
+| `time_window` | Integer | Time window in seconds for single-channel detection | Yes | 8 |
+| `multi_channel_threshold` | Integer | Number of different channels to trigger detection | No | 6 |
+| `multi_channel_window` | Integer | Time window in seconds for multi-channel detection | No | 12 |
+
+**Note**: The system only stores message metadata (timestamps, channel IDs), never message content.
 
 ### `show` Subcommand
-Shows the current anti-spam settings.
+Shows the current anti-spam settings and detection rules.
 
 ### `reset` Subcommand
 Resets the anti-spam settings to their default values.
+
+### Setting Log Channel
+Configure where anti-spam notifications are sent:
+```
+/config set anti_spam_log_channel: #spam-logs
+```
+
+For detailed documentation, see: [Anti-Spam System Guide](https://github.com/956zs/mimi/blob/main/docs/features/anti-spam.md)
 
 ## Examples
 **To set up the ticket system:**

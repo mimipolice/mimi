@@ -75,9 +75,12 @@ export const button: Button = {
         }
       }
 
-      // Update the subscription entry message statistics
-      await services.storyForumService.sendSubscriptionEntryMessage(threadId).catch(() => {
-        // Silently fail - the message might not exist or we might not have permission
+      // Update the subscription entry message statistics (edit existing message)
+      await services.storyForumService.sendSubscriptionEntryMessage(threadId).catch((error) => {
+        logger.warn(
+          `[StorySubscribe] Failed to update subscription entry message for thread ${threadId}`,
+          error
+        );
       });
     } catch (error) {
       logger.error("[StorySubscribe] Error handling button:", error);

@@ -37,13 +37,14 @@ export async function handleHelpInteraction(
   if (action === "lang") {
     lang = parts[2] as "zh-TW" | "en-US";
   } else if (interaction.isMessageComponent()) {
-    // Try to find the lang from the *other* button to preserve state
+    // Try to preserve language from existing message
     const langButton = interaction.message.components
       .flatMap((row: any) => row.components)
       .find((c: any) => c.customId?.startsWith("help:lang:"));
     if (langButton?.customId) {
-      // The button shows the lang to switch TO, so we take the opposite
-      lang = langButton.customId.split(":")[2] === "en-US" ? "zh-TW" : "en-US";
+      // The button's customId contains the lang to switch TO, so current lang is the opposite
+      const targetLang = langButton.customId.split(":")[2];
+      lang = targetLang === "en-US" ? "zh-TW" : "en-US";
     }
   }
 

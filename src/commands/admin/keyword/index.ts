@@ -152,10 +152,13 @@ export default {
     const subcommand = interaction.options.getSubcommand();
 
     try {
-      if (subcommand === "list") {
-        await interaction.deferReply();
-      } else {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      // Only defer if not already deferred or replied
+      if (!interaction.deferred && !interaction.replied) {
+        if (subcommand === "list") {
+          await interaction.deferReply();
+        } else {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
       }
 
       if (subcommand === "add") {

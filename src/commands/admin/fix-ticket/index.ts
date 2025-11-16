@@ -37,7 +37,10 @@ async function execute(
   { ticketManager, settingsManager }: Services,
   _databases: Databases
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  // Only defer if not already deferred or replied
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ ephemeral: true });
+  }
 
   const channel = interaction.options.getChannel("channel", true) as TextChannel;
   const action = interaction.options.getString("action", true);

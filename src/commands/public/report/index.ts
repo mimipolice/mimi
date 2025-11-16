@@ -303,7 +303,10 @@ export default {
     const t = translations[interaction.locale] || translations["en-US"];
 
     try {
-      await interaction.deferReply();
+      // Only defer if not already deferred or replied
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {

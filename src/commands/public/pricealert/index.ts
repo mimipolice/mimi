@@ -219,7 +219,10 @@ export default {
     const t = translations[interaction.locale] || translations["en-US"];
 
     try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      // Only defer if not already deferred or replied
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      }
 
       const subcommand = interaction.options.getSubcommand();
       const userId = interaction.user.id;

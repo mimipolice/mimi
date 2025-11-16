@@ -89,7 +89,11 @@ export const command: Command = {
 
     const translations = getLocalizations(localizationManager, "ticket");
     const t = translations[interaction.locale] || translations["en-US"];
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
+    // Only defer if not already deferred or replied
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    }
 
     const subcommand = interaction.options.getSubcommand();
     if (subcommand === "purge") {

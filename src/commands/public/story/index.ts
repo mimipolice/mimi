@@ -200,7 +200,10 @@ export const command: Command = {
     client: Client,
     services: Services
   ) {
-    await interaction.deferReply({ ephemeral: true });
+    // Only defer if not already deferred or replied
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
+    }
 
     try {
       const subcommandGroup = interaction.options.getSubcommandGroup(false);

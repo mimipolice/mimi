@@ -72,7 +72,10 @@ export default {
     const translations = getLocalizations(localizationManager, "odog");
     const t = translations[interaction.locale] || translations["en-US"];
 
-    await interaction.deferReply();
+    // Only defer if not already deferred or replied
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
 
     try {
       const gachaId = interaction.options.getString(

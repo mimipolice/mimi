@@ -40,7 +40,7 @@ function checkSpam(
   // 1. Single-channel spam check
   const singleChannelMessages = timestamps.filter(
     (ts) =>
-      ts.channelId === message.channel.id && now - ts.ts < settings.timeWindow
+      ts.channelId === message.channel.id && now - ts.ts <= settings.timeWindow
   );
   if (singleChannelMessages.length >= settings.spamThreshold) {
     return "Fast single-channel spam";
@@ -48,15 +48,15 @@ function checkSpam(
 
   // 2. Multi-channel spam check
   const multiChannelMessages = timestamps.filter(
-    (ts) => now - ts.ts < settings.multiChannelTimeWindow
+    (ts) => now - ts.ts <= settings.multiChannelTimeWindow
   );
   const uniqueChannels = new Set(
     multiChannelMessages.map((ts) => ts.channelId)
   );
-  if (
-    uniqueChannels.size >= settings.multiChannelSpamThreshold &&
-    multiChannelMessages.length >= settings.multiChannelSpamThreshold
-  ) {
+  
+  // Check if user is spamming across multiple channels
+  // Need at least multiChannelSpamThreshold unique channels
+  if (uniqueChannels.size >= settings.multiChannelSpamThreshold) {
     return `Multi-channel spam (${uniqueChannels.size} channels)`;
   }
 
@@ -254,6 +254,8 @@ export async function handleAntiSpam(message: Message) {
   userData.timestamps = userData.timestamps.filter(
     (ts) => now - ts.ts < maxTimeWindow
   );
+  
+  // Add current message BEFORE checking spam to include it in the count
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
   const reason = checkSpam(userData, message, settings);

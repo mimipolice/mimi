@@ -126,7 +126,10 @@ export default {
     const userId = interaction.user.id;
 
     try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      // Only defer if not already deferred or replied
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      }
 
       if (subcommand === "add") {
         const item = interaction.options.getString(

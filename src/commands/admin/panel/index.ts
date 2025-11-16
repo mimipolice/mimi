@@ -242,7 +242,9 @@ export const command: Command = {
 
     try {
       if (subcommand === "setup") {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
         const settings = await settingsManager.getSettings(interaction.guildId);
         if (!settings || !settings.panelChannelId) {
           await interaction.editReply(t.subcommands.setup.responses.no_channel);
@@ -332,7 +334,9 @@ export const command: Command = {
           )
         );
       } else if (subcommand === "add") {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
         // Use English option names (as defined in SlashCommandBuilder)
         const typeId = interaction.options.getString("type_id", true);
         const label = interaction.options.getString("label", true);
@@ -353,7 +357,9 @@ export const command: Command = {
           t.subcommands.add.responses.success.replace("{{typeId}}", typeId)
         );
       } else if (subcommand === "remove") {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
         // Use English option name
         const typeId = interaction.options.getString("type_id", true);
         const result = await mimiDLCDb
@@ -375,7 +381,9 @@ export const command: Command = {
           );
         }
       } else if (subcommand === "list") {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
         const ticketTypes = await mimiDLCDb
           .selectFrom("ticket_types")
           .selectAll()
@@ -403,7 +411,9 @@ export const command: Command = {
 
         await interaction.editReply({ embeds: [embed] });
       } else if (subcommand === "customize") {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
         // Use English option names
         const panelTitle = interaction.options.getString("title");
         const panelAuthorIconUrl = interaction.options.getString("author_icon_url");

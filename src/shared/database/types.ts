@@ -274,6 +274,7 @@ export interface MimiDLCDB {
   };
   story_forum_subscription_entries: {
     thread_id: string;
+    message_id: string | null;
     enabled: boolean;
     created_at: ColumnType<Date, string | undefined, string>;
     last_release_update: string | null;

@@ -305,7 +305,7 @@ export class StoryForumService {
         return false;
       }
 
-      // Get current statistics
+      // Get current statistics and entry info
       const entry = await this.getSubscriptionEntry(threadId);
       const releaseCount = await this.getSubscriberCount(threadId, "release");
       const testCount = await this.getSubscriberCount(threadId, "test");
@@ -369,10 +369,38 @@ export class StoryForumService {
           .setStyle(ButtonStyle.Danger)
       );
 
-      await thread.send({
+      const messagePayload = {
         embeds: [embed],
         components: [buttons],
-      });
+      };
+
+      // Check if we should edit existing message or send new one
+      if (entry?.message_id) {
+        try {
+          const message = await thread.messages.fetch(entry.message_id);
+          await message.edit(messagePayload);
+          logger.info(
+            `[StoryForum] Updated subscription entry message for thread ${threadId}`
+          );
+          return true;
+        } catch (error) {
+          logger.warn(
+            `[StoryForum] Could not edit message ${entry.message_id}, will send new one`,
+            error
+          );
+          // Fall through to send new message
+        }
+      }
+
+      // Send new message and save its ID
+      const message = await thread.send(messagePayload);
+      
+      // Update database with message ID
+      await this.db
+        .updateTable("story_forum_subscription_entries")
+        .set({ message_id: message.id })
+        .where("thread_id", "=", threadId)
+        .execute();
 
       logger.info(
         `[StoryForum] Sent subscription entry message for thread ${threadId}`
