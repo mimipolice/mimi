@@ -12,6 +12,7 @@ import { handleNotify } from "./notify";
 import { handleEntry } from "./entry";
 import { handleView } from "./view";
 import { handlePermissions } from "./permissions";
+import { handleFind } from "./find";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -138,6 +139,14 @@ export const command: Command = {
           [Locale.ChineseTW]: "查看你的訂閱列表",
         })
     )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("find")
+        .setDescription("Find the subscription entry message in current thread")
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: "尋找當前討論串的訂閱入口",
+        })
+    )
     .addSubcommandGroup((group) =>
       group
         .setName("permissions")
@@ -244,6 +253,8 @@ export const command: Command = {
         await handleNotify(interaction, client, services);
       } else if (subcommand === "entry") {
         await handleEntry(interaction, client, services, threadInfo);
+      } else if (subcommand === "find") {
+        await handleFind(interaction, client, services);
       } else if (subcommandGroup === "permissions") {
         await handlePermissions(interaction, client, services, threadInfo);
       }
