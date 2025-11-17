@@ -72,34 +72,46 @@ async function handleSpamAction(
   userData: UserMessageData,
   timeoutDuration: number
 ) {
-  const botMember = message.guild.members.me;
-  if (
-    !botMember?.permissions.has(PermissionsBitField.Flags.ModerateMembers) ||
-    !member.moderatable
-  ) {
-    logger.error(
-      `[Anti-Spam] Insufficient permissions or cannot moderate user ${member.id}.`
-    );
-    // 即使無法操作，也標記為已懲罰，避免在權限修復前反覆觸發
-    userData.punishedUntil = Date.now() + timeoutDuration;
-    return;
-  }
-
   const timeoutDurationString = formatDistanceStrict(0, timeoutDuration);
 
   try {
+    // Try to timeout the member directly
     await member.timeout(timeoutDuration, reason);
+    
     logger.info(
-      `[Anti-Spam] Timed out user ${member.user.tag} (${member.id}). Reason: ${reason}`
+      `[Anti-Spam] ✓ Successfully timed out user ${member.user.tag} (${member.id}) for ${timeoutDurationString}. Reason: ${reason}`
     );
+    
     await message.channel.send(
       `User ${member.toString()} has been timed out for ${timeoutDurationString} due to suspected spamming (${reason}).`
     );
 
-    // [優化] 懲罰後清空其訊息記錄，使其從「乾淨」的狀態重新開始
+    // Clear message history after successful timeout
     userData.timestamps = [];
-  } catch (err) {
-    logger.error(`[Anti-Spam] Failed to time out user ${member.id}:`, err);
+  } catch (err: any) {
+    // Log detailed error information
+    logger.error(`[Anti-Spam] Failed to timeout user ${member.user.tag} (${member.id}):`, {
+      error: err.message,
+      code: err.code,
+      httpStatus: err.status,
+    });
+    
+    // Notify in channel about the failure
+    try {
+      if (err.code === 50013) {
+        // Missing Permissions
+        await message.channel.send(
+          `⚠️ Spam detected from ${member.toString()}, but I lack permissions to timeout this user. ` +
+          `Please ensure my role is higher than theirs in Server Settings → Roles.`
+        );
+      } else {
+        await message.channel.send(
+          `⚠️ Spam detected from ${member.toString()}, but I cannot timeout this user (Error: ${err.code || 'Unknown'}).`
+        );
+      }
+    } catch (notifyErr) {
+      logger.error(`[Anti-Spam] Could not send failure notification:`, notifyErr);
+    }
     return;
   }
 
