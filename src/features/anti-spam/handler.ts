@@ -276,19 +276,14 @@ export async function handleAntiSpam(message: Message) {
   // Add current message BEFORE checking spam to include it in the count
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
-  // Debug logging
-  logger.debug(`[Anti-Spam] User ${message.author.tag} (${message.author.id}):`, {
-    totalMessages: userData.timestamps.length,
-    messagesInChannel: userData.timestamps.filter(ts => ts.channelId === message.channel.id).length,
-    threshold: settings.spamThreshold,
-    timeWindow: settings.timeWindow,
-    isPunished: userData.punishedUntil ? true : false,
-  });
+  // Debug logging - use INFO to ensure it shows up
+  const messagesInChannel = userData.timestamps.filter(ts => ts.channelId === message.channel.id).length;
+  logger.info(`[Anti-Spam] User ${message.author.tag}: ${messagesInChannel}/${settings.spamThreshold} messages in ${settings.timeWindow}ms window`);
 
   const reason = checkSpam(userData, message, settings);
   
   if (reason) {
-    logger.info(`[Anti-Spam] SPAM DETECTED for ${message.author.tag}: ${reason}`);
+    logger.info(`[Anti-Spam] ⚠️ SPAM DETECTED for ${message.author.tag}: ${reason}`);
   }
 
   if (reason) {
@@ -296,7 +291,7 @@ export async function handleAntiSpam(message: Message) {
     userData.punishedUntil = Date.now() + settings.timeoutDuration;
     await cacheService.set(
       cacheKey,
-      JSON.stringify(userData),
+      userData,
       config.antiSpam.inactiveUserThreshold
     );
 
@@ -309,12 +304,11 @@ export async function handleAntiSpam(message: Message) {
     );
   } else {
     // If no punishment, just update the timestamps
-    logger.debug(`[Anti-Spam] No spam detected, updating cache for ${message.author.tag}`);
     await cacheService.set(
       cacheKey,
-      JSON.stringify(userData),
+      userData,
       config.antiSpam.inactiveUserThreshold
     );
-    logger.debug(`[Anti-Spam] Cache updated successfully for ${message.author.tag}`);
+    logger.info(`[Anti-Spam] Cache updated: ${userData.timestamps.length} total messages tracked`);
   }
 }
