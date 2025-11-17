@@ -126,12 +126,30 @@ export class DiscordWebhookTransport extends Transport {
         2
       );
       if (metaStr.length > 0 && metaStr !== "{}") {
-        // Reserve space for code block markers (```json\n...\n```) = 11 chars, plus "..." = 3 chars
-        const maxMetaLength = 1024 - 14;
+        // Discord field value limit is 1024 characters
+        // Code block markers: ```json\n and \n``` = 11 chars
+        // Truncation indicator: ... = 3 chars
+        // Safe limit: 1024 - 11 - 3 = 1010 chars
+        const codeBlockOverhead = 11;
+        const truncationIndicator = 3;
+        const maxMetaLength = 1024 - codeBlockOverhead - truncationIndicator;
+        
         const truncatedMeta = metaStr.length > maxMetaLength
           ? metaStr.substring(0, maxMetaLength) + "..."
           : metaStr;
-        embed.addFields({ name: "Metadata", value: `\`\`\`json\n${truncatedMeta}\n\`\`\`` });
+        
+        const fieldValue = `\`\`\`json\n${truncatedMeta}\n\`\`\``;
+        
+        // Double-check the final length doesn't exceed 1024
+        if (fieldValue.length <= 1024) {
+          embed.addFields({ name: "Metadata", value: fieldValue });
+        } else {
+          // If still too long, use an even simpler format
+          embed.addFields({
+            name: "Metadata",
+            value: `Metadata too large (${metaStr.length} chars). Check logs for details.`
+          });
+        }
       }
     }
 
