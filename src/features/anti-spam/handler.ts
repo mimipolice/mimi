@@ -207,7 +207,7 @@ export async function handleAntiSpam(message: Message) {
     return;
   }
   
-  logger.info(`[Anti-Spam] Processing message from ${message.author.tag} (${message.author.id}) in guild ${message.guild.id}`);
+  logger.debug(`[Anti-Spam] Processing message from ${message.author.tag} (${message.author.id}) in guild ${message.guild.id}`);
 
   const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
 
@@ -235,7 +235,7 @@ export async function handleAntiSpam(message: Message) {
       settings.ignoredRoles.includes(role.id)
     )
   ) {
-    logger.info(`[Anti-Spam] User ${message.author.tag} is in ignored list, skipping`);
+    logger.debug(`[Anti-Spam] User ${message.author.tag} is in ignored list, skipping`);
     return;
   }
 
@@ -260,7 +260,7 @@ export async function handleAntiSpam(message: Message) {
     userData.punishedUntil && userData.punishedUntil > now;
 
   if (isPunishedInCache && !isTimedOutInDiscord) {
-    logger.info(
+    logger.debug(
       `[Anti-Spam] User ${message.member.id} timeout was manually removed. Resetting cache state.`
     );
     userData.punishedUntil = null;
@@ -288,14 +288,14 @@ export async function handleAntiSpam(message: Message) {
   // Add current message BEFORE checking spam to include it in the count
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
-  // Debug logging - use INFO to ensure it shows up
+  // Debug logging
   const messagesInChannel = userData.timestamps.filter(ts => ts.channelId === message.channel.id).length;
-  logger.info(`[Anti-Spam] User ${message.author.tag}: ${messagesInChannel}/${settings.spamThreshold} messages in ${settings.timeWindow}ms window`);
+  logger.debug(`[Anti-Spam] User ${message.author.tag}: ${messagesInChannel}/${settings.spamThreshold} messages in ${settings.timeWindow}ms window`);
 
   const reason = checkSpam(userData, message, settings);
   
   if (reason) {
-    logger.info(`[Anti-Spam] ⚠️ SPAM DETECTED for ${message.author.tag}: ${reason}`);
+    logger.warn(`[Anti-Spam] ⚠️ SPAM DETECTED for ${message.author.tag}: ${reason}`);
   }
 
   if (reason) {
@@ -321,6 +321,6 @@ export async function handleAntiSpam(message: Message) {
       userData,
       config.antiSpam.inactiveUserThreshold
     );
-    logger.info(`[Anti-Spam] Cache updated: ${userData.timestamps.length} total messages tracked`);
+    logger.debug(`[Anti-Spam] Cache updated: ${userData.timestamps.length} total messages tracked`);
   }
 }
