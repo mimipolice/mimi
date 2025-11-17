@@ -79,7 +79,7 @@ async function handleSpamAction(
     await member.timeout(timeoutDuration, reason);
     
     logger.info(
-      `[Anti-Spam] ✓ Successfully timed out user ${member.user.tag} (${member.id}) for ${timeoutDurationString}. Reason: ${reason}`
+      `[Anti-Spam] ✓ Successfully timed out user ${member.user.tag} (${member.id}) in guild "${message.guild.name}" (${message.guild.id}) for ${timeoutDurationString}. Reason: ${reason}`
     );
     
     await message.channel.send(
@@ -89,12 +89,20 @@ async function handleSpamAction(
     // Clear message history after successful timeout
     userData.timestamps = [];
   } catch (err: any) {
-    // Log detailed error information
-    logger.error(`[Anti-Spam] Failed to timeout user ${member.user.tag} (${member.id}):`, {
-      error: err.message,
-      code: err.code,
-      httpStatus: err.status,
-    });
+    // Log detailed error information with guild context
+    logger.error(
+      `[Anti-Spam] Failed to timeout user ${member.user.tag} (${member.id}) in guild "${message.guild.name}" (${message.guild.id}):`,
+      {
+        error: err.message,
+        code: err.code,
+        httpStatus: err.status,
+        guildId: message.guild.id,
+        guildName: message.guild.name,
+        channelId: message.channel.id,
+        userId: member.id,
+        userTag: member.user.tag,
+      }
+    );
     
     // Notify in channel about the failure
     try {
@@ -110,7 +118,10 @@ async function handleSpamAction(
         );
       }
     } catch (notifyErr) {
-      logger.error(`[Anti-Spam] Could not send failure notification:`, notifyErr);
+      logger.error(
+        `[Anti-Spam] Could not send failure notification in guild "${message.guild.name}" (${message.guild.id}):`,
+        notifyErr
+      );
     }
     return;
   }
@@ -132,7 +143,9 @@ async function handleSpamAction(
       components: [row],
     });
   } catch (dmError) {
-    logger.warn(`[Anti-Spam] Could not DM user ${member.id}.`);
+    logger.warn(
+      `[Anti-Spam] Could not DM user ${member.user.tag} (${member.id}) in guild "${message.guild.name}" (${message.guild.id}).`
+    );
   }
 
   // --- Admin Notification ---
@@ -145,7 +158,7 @@ async function handleSpamAction(
         allowedMentions: { users: [] },
       });
       logger.warn(
-        `[Anti-Spam] No log channel configured for guild ${message.guild.id}.`
+        `[Anti-Spam] No log channel configured for guild "${message.guild.name}" (${message.guild.id}).`
       );
       return;
     }
@@ -181,7 +194,7 @@ async function handleSpamAction(
     }
   } catch (adminNotifyError) {
     logger.error(
-      `[Anti-Spam] Error during admin notification process:`,
+      `[Anti-Spam] Error during admin notification process in guild "${message.guild.name}" (${message.guild.id}):`,
       adminNotifyError
     );
   }
@@ -295,7 +308,9 @@ export async function handleAntiSpam(message: Message) {
   const reason = checkSpam(userData, message, settings);
   
   if (reason) {
-    logger.warn(`[Anti-Spam] ⚠️ SPAM DETECTED for ${message.author.tag}: ${reason}`);
+    logger.warn(
+      `[Anti-Spam] ⚠️ SPAM DETECTED for ${message.author.tag} in guild "${message.guild.name}" (${message.guild.id}): ${reason}`
+    );
   }
 
   if (reason) {
