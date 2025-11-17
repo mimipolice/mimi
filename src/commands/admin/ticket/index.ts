@@ -195,7 +195,7 @@ export const command: Command = {
       const embed = new EmbedBuilder()
         .setTitle("🔔 Close Request")
         .setDescription(
-          `${interaction.user} has requested to close this ticket.\n\nClick the button below to confirm closing.`
+          `${interaction.user} has requested to close this ticket.\n\nClick a button below to respond.`
         )
         .setColor(0xFFA500)
         .setTimestamp();
@@ -205,7 +205,15 @@ export const command: Command = {
         .setLabel("Confirm Close")
         .setStyle(ButtonStyle.Danger);
 
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton);
+      const cancelButton = new ButtonBuilder()
+        .setCustomId(`cancel_close_request:${interaction.user.id}`)
+        .setLabel("Cancel - Still Need Help")
+        .setStyle(ButtonStyle.Secondary);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        confirmButton,
+        cancelButton
+      );
 
       await channel.send({
         content: `${targetUser}`,
