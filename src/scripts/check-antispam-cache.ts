@@ -1,7 +1,8 @@
 import { CacheService } from "../services/CacheService";
 
 // 替換成你的 Discord User ID
-const YOUR_USER_ID = "YOUR_USER_ID_HERE";
+// 執行時可以用命令列參數: node dist/scripts/check-antispam-cache.js YOUR_USER_ID
+const YOUR_USER_ID = process.argv[2] || "YOUR_USER_ID_HERE";
 
 async function checkUserCache() {
   console.log("=== Checking Anti-Spam User Cache ===\n");

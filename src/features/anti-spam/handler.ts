@@ -258,7 +258,20 @@ export async function handleAntiSpam(message: Message) {
   // Add current message BEFORE checking spam to include it in the count
   userData.timestamps.push({ ts: now, channelId: message.channel.id });
 
+  // Debug logging
+  logger.debug(`[Anti-Spam] User ${message.author.tag} (${message.author.id}):`, {
+    totalMessages: userData.timestamps.length,
+    messagesInChannel: userData.timestamps.filter(ts => ts.channelId === message.channel.id).length,
+    threshold: settings.spamThreshold,
+    timeWindow: settings.timeWindow,
+    isPunished: userData.punishedUntil ? true : false,
+  });
+
   const reason = checkSpam(userData, message, settings);
+  
+  if (reason) {
+    logger.info(`[Anti-Spam] SPAM DETECTED for ${message.author.tag}: ${reason}`);
+  }
 
   if (reason) {
     // Immediately mark as punished and update cache to prevent race conditions
