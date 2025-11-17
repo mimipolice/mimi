@@ -180,7 +180,22 @@ async function handleSpamAction(
 // --- 4. Main Exported Function ---
 export async function handleAntiSpam(message: Message) {
   const cacheService = new CacheService();
-  if (message.author.bot || !message.inGuild() || !message.member) return;
+  
+  // Early return checks with logging
+  if (message.author.bot) {
+    logger.debug(`[Anti-Spam] Skipping bot message from ${message.author.tag}`);
+    return;
+  }
+  if (!message.inGuild()) {
+    logger.debug(`[Anti-Spam] Skipping DM from ${message.author.tag}`);
+    return;
+  }
+  if (!message.member) {
+    logger.debug(`[Anti-Spam] No member object for ${message.author.tag}`);
+    return;
+  }
+  
+  logger.info(`[Anti-Spam] Processing message from ${message.author.tag} (${message.author.id}) in guild ${message.guild.id}`);
 
   const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
 
@@ -200,12 +215,15 @@ export async function handleAntiSpam(message: Message) {
     ignoredRoles: config.antiSpam.ignoredRoles,
   };
 
+  logger.debug(`[Anti-Spam] Settings for guild ${message.guild.id}:`, settings);
+
   if (
     settings.ignoredUsers.includes(message.author.id) ||
     message.member.roles.cache.some((role) =>
       settings.ignoredRoles.includes(role.id)
     )
   ) {
+    logger.info(`[Anti-Spam] User ${message.author.tag} is in ignored list, skipping`);
     return;
   }
 
@@ -291,10 +309,12 @@ export async function handleAntiSpam(message: Message) {
     );
   } else {
     // If no punishment, just update the timestamps
+    logger.debug(`[Anti-Spam] No spam detected, updating cache for ${message.author.tag}`);
     await cacheService.set(
       cacheKey,
       JSON.stringify(userData),
       config.antiSpam.inactiveUserThreshold
     );
+    logger.debug(`[Anti-Spam] Cache updated successfully for ${message.author.tag}`);
   }
 }

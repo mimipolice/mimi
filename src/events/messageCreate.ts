@@ -101,7 +101,11 @@ module.exports = {
     await services.forumService.handleSolveCommand(message);
 
     // Anti-spam check
-    await handleAntiSpam(message);
+    try {
+      await handleAntiSpam(message);
+    } catch (error) {
+      logger.error("[messageCreate] Error in handleAntiSpam:", error);
+    }
 
     // Autoreact logic
     const autoreacts = await getAutoreactsForGuild(message.guild.id);
