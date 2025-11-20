@@ -116,12 +116,12 @@ export const command: Command = {
     const translations = getLocalizations(localizationManager, "ticket");
     const t = translations[interaction.locale] || translations["en-US"];
     
-    // Only defer if not already deferred or replied
-    if (!interaction.deferred && !interaction.replied) {
+    const subcommand = interaction.options.getSubcommand();
+    
+    // Don't defer for "close" subcommand since we need to show a modal
+    if (subcommand !== "close" && !interaction.deferred && !interaction.replied) {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
-
-    const subcommand = interaction.options.getSubcommand();
     
     if (subcommand === "close") {
       const channel = interaction.channel;
