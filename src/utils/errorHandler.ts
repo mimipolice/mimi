@@ -6,6 +6,7 @@ import {
   EmbedBuilder,
   DiscordAPIError,
   CommandInteraction,
+  MessageFlags,
 } from "discord.js";
 import logger from "./logger";
 import {
@@ -32,13 +33,14 @@ const DISCORD_API_ERROR_CODES = {
   MISSING_ACCESS: 50001,
   AUTO_MODERATION_BLOCKED: 200000, // Example, actual code may vary
   UNKNOWN_INTERACTION: 10062,
+  INTERACTION_ALREADY_ACKNOWLEDGED: 40060,
 };
 
 /**
  * Safely sends an error message to a Discord interaction.
  * Handles cases where the interaction has already been replied to or deferred.
  * @param interaction - The Discord interaction object.
- * @param message - The error message to display.
+ * @param payload - The error payload to display (can contain embeds or components).
  * @param ephemeral - Whether the error message should be ephemeral.
  */
 export async function sendErrorResponse(
@@ -47,25 +49,52 @@ export async function sendErrorResponse(
   ephemeral: boolean = true
 ): Promise<void> {
   try {
-    if (interaction.isRepliable()) {
-      const options = { ...payload, ephemeral };
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(options);
-      } else {
-        await interaction.reply(options);
-      }
+    if (!interaction.isRepliable()) {
+      logger.debug(`[ErrorHandler] Interaction is not repliable, skipping error response.`);
+      return;
+    }
+
+    // Merge flags properly - preserve existing flags and add ephemeral if needed
+    const existingFlags = payload.flags || [];
+    const flags = ephemeral 
+      ? [...existingFlags, MessageFlags.Ephemeral]
+      : existingFlags;
+    
+    const options = { 
+      ...payload, 
+      flags: flags.length > 0 ? flags : undefined
+    };
+
+    // Check interaction state before attempting to send
+    if (interaction.replied) {
+      // Already replied, use followUp
+      await interaction.followUp(options);
+    } else if (interaction.deferred) {
+      // Deferred but not replied, use editReply
+      await interaction.editReply(options);
+    } else {
+      // Not yet replied or deferred, use reply
+      await interaction.reply(options);
     }
   } catch (e: any) {
-    // If sending the error fails (e.g., interaction expired), log it.
+    // If sending the error fails (e.g., interaction expired), log it appropriately
     if (e.code === DISCORD_API_ERROR_CODES.UNKNOWN_INTERACTION) {
       const errorMessage =
-        payload.embeds?.[0]?.description || "An unknown error occurred.";
+        payload.embeds?.[0]?.description || 
+        payload.components?.[0]?.data?.components?.[0]?.content ||
+        "An unknown error occurred.";
       logger.warn(
         `[ErrorHandler] Failed to send error response: Interaction expired or was deleted. Original error: ${errorMessage}`
       );
+    } else if (e.code === DISCORD_API_ERROR_CODES.INTERACTION_ALREADY_ACKNOWLEDGED) {
+      // Interaction was already acknowledged, silently ignore to avoid cascading errors
+      logger.debug(
+        `[ErrorHandler] Interaction already acknowledged, attempted to send error but skipped to prevent cascade.`
+      );
     } else {
+      // Log other errors but don't throw to prevent error handler from causing more errors
       logger.error(
-        `[ErrorHandler] Failed to send error response: ${e.message}`,
+        `[ErrorHandler] Failed to send error response: ${e.message}. Code: ${e.code || 'N/A'}`,
         e
       );
     }

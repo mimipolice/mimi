@@ -6,6 +6,13 @@
 import { gachaDB } from "../../../shared/database";
 import { sql } from "kysely";
 
+export interface TransactionSource {
+  from_user_id: string;
+  to_user_id: string;
+  amount: number;
+  count: number;
+}
+
 export interface UserRelationship {
   user_id: string;
   related_user_id: string;
@@ -15,6 +22,11 @@ export interface UserRelationship {
   first_transaction: Date;
   last_transaction: Date;
   relationship_strength: number; // 0-100 的關係強度分數
+  sent_amount?: number; // 目標用戶轉給對方的總金額
+  received_amount?: number; // 目標用戶從對方收到的總金額
+  sent_count?: number; // 轉出次數
+  received_count?: number; // 轉入次數
+  income_sources?: TransactionSource[]; // 收入來源明細
 }
 
 export interface RelationshipNetwork {
@@ -55,7 +67,22 @@ export async function analyzeUserRelationships(
   topGuilds?: Array<{ guild_id: string; usage_count: number }>
 ): Promise<RelationshipNetwork> {
   // 1. 獲取直接關係（一度關係）
-  const directConnections = await getDirectConnections(userId);
+  let directConnections = await getDirectConnections(userId);
+
+  // 1.5. 獲取詳細的雙向交易數據
+  const detailedConnections = await analyzeDetailedTransactions(userId, directConnections);
+  
+  // 1.6. 獲取收入來源明細（批量查詢）
+  const incomeSources = await batchGetIncomeSources(
+    userId,
+    directConnections.map(c => c.related_user_id)
+  );
+  
+  // 合併收入來源到連接數據
+  directConnections = detailedConnections.map(conn => ({
+    ...conn,
+    income_sources: incomeSources.get(conn.related_user_id) || [],
+  }));
 
   // 2. 獲取間接關係（二度關係）
   const indirectConnections = await getIndirectConnections(
@@ -243,6 +270,81 @@ interface DetailedConnection extends UserRelationship {
   received_amount: number; // 目標用戶從對方收到的總金額
   sent_count: number; // 轉出次數
   received_count: number; // 轉入次數
+}
+
+/**
+ * 獲取收入來源明細（誰轉給目標用戶）
+ */
+async function getIncomeSourcesForUser(
+  targetUserId: string,
+  relatedUserId: string
+): Promise<TransactionSource[]> {
+  const query = sql<{
+    from_user_id: string;
+    amount: number;
+    count: number;
+  }>`
+    SELECT 
+      sender_id::text as from_user_id,
+      SUM(gross_amount)::int as amount,
+      COUNT(*)::int as count
+    FROM user_transaction_history
+    WHERE receiver_id::text = ${targetUserId}
+      AND sender_id::text = ${relatedUserId}
+    GROUP BY sender_id
+  `;
+
+  const result = await query.execute(gachaDB);
+  
+  return result.rows.map((row: any) => ({
+    from_user_id: row.from_user_id,
+    to_user_id: targetUserId,
+    amount: row.amount,
+    count: row.count,
+  }));
+}
+
+/**
+ * 批量獲取所有關係的收入來源
+ */
+async function batchGetIncomeSources(
+  userId: string,
+  relatedUserIds: string[]
+): Promise<Map<string, TransactionSource[]>> {
+  if (relatedUserIds.length === 0) return new Map();
+
+  const query = sql<{
+    sender_id: string;
+    receiver_id: string;
+    amount: number;
+    count: number;
+  }>`
+    SELECT 
+      sender_id::text,
+      receiver_id::text,
+      SUM(gross_amount)::int as amount,
+      COUNT(*)::int as count
+    FROM user_transaction_history
+    WHERE receiver_id::text = ${userId}
+      AND sender_id::text = ANY(${relatedUserIds}::text[])
+    GROUP BY sender_id, receiver_id
+  `;
+
+  const result = await query.execute(gachaDB);
+  const sourcesMap = new Map<string, TransactionSource[]>();
+
+  result.rows.forEach((row: any) => {
+    const sources = sourcesMap.get(row.sender_id) || [];
+    sources.push({
+      from_user_id: row.sender_id,
+      to_user_id: row.receiver_id,
+      amount: row.amount,
+      count: row.count,
+    });
+    sourcesMap.set(row.sender_id, sources);
+  });
+
+  return sourcesMap;
 }
 
 /**

@@ -5,6 +5,10 @@ import {
   EmbedBuilder,
   InteractionReplyOptions,
   MessageFlags,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } from "discord.js";
 import { LocalizationManager } from "../services/LocalizationManager";
 import config from "../config";
@@ -31,49 +35,63 @@ export function createReply(
     | undefined;
   const typeLocale = (localizations?.[type] || {}) as LocaleStrings;
 
-  const embed = new EmbedBuilder()
-    .setAuthor({
-      name: typeLocale.author || "Error",
-      iconURL: config.resources.images.close,
-    })
-    .setColor(0xed4245); // Red color as a default
-
-  if (typeLocale.description) {
-    let description = typeLocale.description;
-    if (replacements) {
-      for (const key in replacements) {
-        description = description.replace(
-          `{${key}}`,
-          String(replacements[key])
-        );
-      }
-    }
-    embed.setDescription(description);
-    embed.setTimestamp();
-  }
-
-  if (typeLocale.footer) {
-    embed.setFooter({ text: typeLocale.footer });
-  }
-
+  // Determine color based on error type
+  let accentColor = 0xed4245; // Red as default
   if (type === "cooldown") {
-    embed.setAuthor({
-      name: typeLocale.author || "Cooldown",
-      iconURL: config.resources.images.sandClock,
-    });
-    embed.setThumbnail(config.resources.images.thumbnail);
-    embed.setColor(0x5865f2); // Blurple
-    embed.setTimestamp();
-  } else if (type === "internalError" || type === "discordError") {
-    embed.setThumbnail(config.resources.images.thumbnail);
-    embed.setTimestamp();
-  } else if (type === "unauthorized" || type === "missingPermissions") {
-    embed.setThumbnail(config.resources.images.thumbnail);
+    accentColor = 0x5865f2; // Blurple
   } else if (type === "businessError") {
-    embed.setColor(0xfaa61a); // Yellow-ish
+    accentColor = 0xfaa61a; // Yellow-ish
   }
 
-  const components = [];
+  // Build content with replacements
+  let description = typeLocale.description || "An error occurred.";
+  if (replacements) {
+    for (const key in replacements) {
+      description = description.replace(
+        `{${key}}`,
+        String(replacements[key])
+      );
+    }
+  }
+
+  // Determine icon emoji based on type
+  let iconEmoji = "❌"; // Default error icon
+  if (type === "cooldown") {
+    iconEmoji = "⏳";
+  } else if (type === "businessError") {
+    iconEmoji = "⚠️";
+  } else if (type === "unauthorized" || type === "missingPermissions") {
+    iconEmoji = "🔒";
+  } else if (type === "internalError" || type === "discordError") {
+    iconEmoji = "🔧";
+  } else if (type === "autoModBlocked") {
+    iconEmoji = "🛡️";
+  }
+
+  // Build Components v2 Container
+  const container = new ContainerBuilder()
+    .setAccentColor(accentColor)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder()
+        .setContent(`${iconEmoji} **${typeLocale.author || "Error"}**\n\n${description}`)
+    );
+
+  // Add footer if present
+  if (typeLocale.footer) {
+    container
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setSpacing(SeparatorSpacingSize.Small)
+          .setDivider(false)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder()
+          .setContent(`*${typeLocale.footer}*`)
+      );
+  }
+
+  // Add support button for internal/discord errors
+  const actionRows = [];
   if ((type === "internalError" || type === "discordError") && localizations) {
     const supportButton = new ButtonBuilder()
       .setLabel(localizations.supportServer || "Support Server")
@@ -82,8 +100,15 @@ export function createReply(
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       supportButton
     );
-    components.push(row);
+    actionRows.push(row);
   }
 
-  return { embeds: [embed], components, flags: MessageFlags.Ephemeral };
+  if (actionRows.length > 0) {
+    container.addActionRowComponents(...actionRows);
+  }
+
+  return { 
+    components: [container], 
+    flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] 
+  };
 }

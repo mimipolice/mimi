@@ -536,43 +536,105 @@ function createConnectionsView(
   const { direct_connections, indirect_connections } = relationshipNetwork;
   
   let content = `# 🔗 關係連接詳情\n\n`;
-  content += `> 查看與目標帳號的直接和間接交易關係。\n\n`;
+  content += `> 查看與目標帳號的直接交易關係，包含詳細的淨流量分析。\n\n`;
 
-  // 直接關係
-  content += `## 🔗 直接關係 (${direct_connections.length})\n\n`;
+  // 按淨收入排序（收入 - 支出）
+  const sortedByNetIncome = [...direct_connections]
+    .filter(conn => conn.sent_amount !== undefined && conn.received_amount !== undefined)
+    .sort((a, b) => {
+      const netA = (a.received_amount || 0) - (a.sent_amount || 0);
+      const netB = (b.received_amount || 0) - (b.sent_amount || 0);
+      return netB - netA;
+    });
+
+  // 可疑收款帳號（淨收入 > 100,000）
+  const suspiciousIncome = sortedByNetIncome.filter(conn => {
+    const netIncome = (conn.received_amount || 0) - (conn.sent_amount || 0);
+    return netIncome > 100000;
+  });
+
+  if (suspiciousIncome.length > 0) {
+    content += `## 📥 可疑收款帳號 (淨收入 > 10萬)\n`;
+    content += `> 按淨收入排序\n\n`;
+    
+    suspiciousIncome.slice(0, 10).forEach((conn, i) => {
+      const netIncome = (conn.received_amount || 0) - (conn.sent_amount || 0);
+      const incomeEmoji = netIncome > 1000000 ? "🚨" : netIncome > 500000 ? "⚠️" : "💰";
+      
+      content += `**${i + 1}. ${incomeEmoji} <@${conn.related_user_id}>**\n`;
+      content += `💰 **淨收入: +${netIncome.toLocaleString()} 油幣**\n`;
+      content += `📥 收款: ${(conn.received_amount || 0).toLocaleString()} (${conn.received_count || 0} 筆) | `;
+      content += `📤 付款: ${(conn.sent_amount || 0).toLocaleString()} (${conn.sent_count || 0} 筆)\n`;
+      
+      // 顯示收入來源明細
+      if (conn.income_sources && conn.income_sources.length > 0) {
+        content += `來源 (前10):\n`;
+        conn.income_sources.slice(0, 10).forEach(source => {
+          content += `  • <@${source.from_user_id}> (${source.amount.toLocaleString()}/${source.count}筆)\n`;
+        });
+        if (conn.income_sources.length > 10) {
+          content += `  ... 還有 ${conn.income_sources.length - 10} 個來源\n`;
+        }
+      }
+      
+      content += `\n`;
+    });
+  }
+
+  // 可疑付款帳號（淨支出 > 100,000）
+  const suspiciousOutflow = sortedByNetIncome.filter(conn => {
+    const netIncome = (conn.received_amount || 0) - (conn.sent_amount || 0);
+    return netIncome < -100000;
+  }).reverse();
+
+  if (suspiciousOutflow.length > 0) {
+    content += `## 📤 可疑付款帳號 (淨支出 > 10萬)\n\n`;
+    suspiciousOutflow.slice(0, 10).forEach((conn, i) => {
+      const netOutflow = (conn.sent_amount || 0) - (conn.received_amount || 0);
+      const outflowEmoji = netOutflow > 1000000 ? "🚨" : netOutflow > 500000 ? "⚠️" : "💸";
+      
+      content += `${i + 1}. ${outflowEmoji} <@${conn.related_user_id}>\n`;
+      content += `   💸 **淨支出: -${netOutflow.toLocaleString()} 元**\n`;
+      content += `   📤 付款: ${(conn.sent_amount || 0).toLocaleString()} (${conn.sent_count || 0} 筆)\n`;
+      content += `   📥 收款: ${(conn.received_amount || 0).toLocaleString()} (${conn.received_count || 0} 筆)\n`;
+      content += `   📊 交易次數: ${conn.transaction_count} 次\n\n`;
+    });
+  }
+
+  // 所有直接關係（按交易次數排序）
+  content += `## 🔗 所有直接關係 (${direct_connections.length})\n`;
+  content += `> 按交易次數排序\n\n`;
+  
   if (direct_connections.length > 0) {
-    direct_connections.slice(0, 20).forEach((conn, i) => {
+    const sortedByCount = [...direct_connections].sort((a, b) => b.transaction_count - a.transaction_count);
+    
+    sortedByCount.slice(0, 15).forEach((conn, i) => {
+      const netFlow = (conn.received_amount || 0) - (conn.sent_amount || 0);
+      const flowEmoji = netFlow > 0 ? "📥" : netFlow < 0 ? "📤" : "↔️";
       const strengthEmoji = conn.relationship_strength >= 70 ? "🔴" : conn.relationship_strength >= 40 ? "🟡" : "🟢";
       
-      content += `${i + 1}. <@${conn.related_user_id}> ${strengthEmoji} 強度: ${conn.relationship_strength}\n`;
-      content += `   • 交易次數: ${conn.transaction_count} 次\n`;
-      content += `   • 總金額: ${conn.total_amount.toLocaleString()} 元\n`;
-      content += `   • 平均金額: ${conn.avg_amount.toLocaleString()} 元\n`;
-      content += `   • 首次交易: <t:${Math.floor(new Date(conn.first_transaction).getTime() / 1000)}:R>\n`;
-      content += `   • 最後交易: <t:${Math.floor(new Date(conn.last_transaction).getTime() / 1000)}:R>\n\n`;
+      content += `${i + 1}. <@${conn.related_user_id}> ${strengthEmoji}\n`;
+      content += `   ${flowEmoji} 淨流量: ${netFlow >= 0 ? "+" : ""}${netFlow.toLocaleString()} 元\n`;
+      content += `   📊 交易: ${conn.transaction_count} 次 | 總額: ${conn.total_amount.toLocaleString()} 元\n\n`;
     });
     
-    if (direct_connections.length > 20) {
-      content += `... 還有 ${direct_connections.length - 20} 個直接關係\n\n`;
+    if (direct_connections.length > 15) {
+      content += `... 還有 ${direct_connections.length - 15} 個直接關係\n\n`;
     }
   } else {
     content += `無直接關係。\n\n`;
   }
 
   // 間接關係
-  content += `## 🔗🔗 間接關係 (${indirect_connections.length})\n\n`;
   if (indirect_connections.length > 0) {
-    indirect_connections.slice(0, 15).forEach((conn, i) => {
-      content += `${i + 1}. <@${conn.related_user_id}>\n`;
-      content += `   • 交易次數: ${conn.transaction_count} 次\n`;
-      content += `   • 總金額: ${conn.total_amount.toLocaleString()} 元\n\n`;
+    content += `## 🔗🔗 間接關係 (${indirect_connections.length})\n\n`;
+    indirect_connections.slice(0, 10).forEach((conn, i) => {
+      content += `${i + 1}. <@${conn.related_user_id}> - ${conn.transaction_count} 次\n`;
     });
     
-    if (indirect_connections.length > 15) {
-      content += `... 還有 ${indirect_connections.length - 15} 個間接關係\n`;
+    if (indirect_connections.length > 10) {
+      content += `... 還有 ${indirect_connections.length - 10} 個間接關係\n`;
     }
-  } else {
-    content += `無間接關係。\n`;
   }
 
   return content;

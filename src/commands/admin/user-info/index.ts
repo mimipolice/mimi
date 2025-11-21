@@ -247,7 +247,6 @@ export const command: Command = {
                 .setCustomId(`expand_community_${i}`)
                 .setLabel(`${isExpanded ? "收起" : "展開"}社群 ${i + 1}`)
                 .setStyle(ButtonStyle.Secondary)
-                .setEmoji(isExpanded ? "▲" : "▼")
             );
           }
         });
