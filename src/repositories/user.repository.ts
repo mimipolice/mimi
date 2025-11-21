@@ -10,6 +10,7 @@ import {
   UserTopCommand,
   UserTopGuild,
   UserTransaction,
+  CommandUsagePattern,
 } from "../shared/database/types";
 
 const cacheService = new CacheService();
@@ -320,4 +321,93 @@ export async function updateUserBalancesForTrade(
     cacheService.del(`user-info:${senderId}`),
     cacheService.del(`user-info:${receiverId}`),
   ]);
+}
+
+/**
+ * 取得使用者的指令使用模式分析
+ * 基於使用時間間隔來分析異常模式（無需 execution_time_ms）
+ */
+export async function getCommandUsagePatterns(
+  userId: string
+): Promise<CommandUsagePattern[]> {
+  // 使用 CTE 來計算每個指令的時間間隔
+  const result = await gachaDB
+    .with("intervals", (db) =>
+      db
+        .selectFrom("command_usage_stats")
+        .select([
+          "command_name",
+          "used_at",
+          sql<number>`EXTRACT(EPOCH FROM (used_at - LAG(used_at) OVER (PARTITION BY command_name ORDER BY used_at)))`.as(
+            "interval_seconds"
+          ),
+        ])
+        .where("user_id", "=", userId)
+        .where("success", "=", true)
+    )
+    .selectFrom("intervals")
+    .select([
+      "command_name",
+      sql<number>`COUNT(*)::int`.as("usage_count"),
+      sql<number>`COALESCE(ROUND(AVG(interval_seconds)::numeric, 2), 0)`.as(
+        "avg_interval_seconds"
+      ),
+      sql<number>`COALESCE(ROUND(STDDEV(interval_seconds)::numeric, 2), 0)`.as(
+        "interval_stddev_seconds"
+      ),
+      sql<number>`COALESCE(MIN(interval_seconds), 0)`.as("min_interval_seconds"),
+      sql<number>`COALESCE(MAX(interval_seconds), 0)`.as("max_interval_seconds"),
+      sql<Date>`MAX(used_at)`.as("last_used_at"),
+      sql<Date>`MIN(used_at)`.as("first_used_at"),
+    ])
+    .groupBy("command_name")
+    .orderBy("usage_count", "desc")
+    .execute();
+
+  return result.map((row) => ({
+    command_name: row.command_name,
+    usage_count: row.usage_count,
+    avg_execution_time: 0, // 不可用
+    execution_time_stddev: 0, // 不可用
+    min_execution_time: 0, // 不可用
+    max_execution_time: 0, // 不可用
+    avg_interval_seconds: row.avg_interval_seconds || 0,
+    interval_stddev_seconds: row.interval_stddev_seconds || 0,
+    last_used_at: row.last_used_at,
+    first_used_at: row.first_used_at,
+  }));
+}
+
+/**
+ * 取得使用者在特定時間範圍內的指令使用頻率
+ * 用於檢測異常使用模式（如小帳刷指令）
+ */
+export async function getCommandUsageFrequency(
+  userId: string,
+  timeWindowMinutes: number = 60
+): Promise<{
+  command_name: string;
+  usage_count: number;
+  time_window_minutes: number;
+}[]> {
+  const cutoffTime = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
+  
+  const result = await gachaDB
+    .selectFrom("command_usage_stats")
+    .select([
+      "command_name",
+      sql<number>`COUNT(*)::int`.as("usage_count"),
+    ])
+    .where("user_id", "=", userId)
+    .where("success", "=", true)
+    .where("used_at", ">", cutoffTime)
+    .groupBy("command_name")
+    .orderBy("usage_count", "desc")
+    .execute();
+
+  return result.map((row) => ({
+    command_name: row.command_name,
+    usage_count: row.usage_count,
+    time_window_minutes: timeWindowMinutes,
+  }));
 }

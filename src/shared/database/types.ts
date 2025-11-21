@@ -40,6 +40,19 @@ export interface TopReceiver {
   total_amount: number;
 }
 
+export interface CommandUsagePattern {
+  command_name: string;
+  usage_count: number;
+  avg_execution_time: number;
+  execution_time_stddev: number;
+  min_execution_time: number;
+  max_execution_time: number;
+  avg_interval_seconds: number;
+  interval_stddev_seconds: number;
+  last_used_at: Date;
+  first_used_at: Date;
+}
+
 export interface UserInfoData {
   top_guilds: UserTopGuild[];
   top_commands: UserTopCommand[];
@@ -144,8 +157,13 @@ export interface GachaDB {
   command_usage_stats: {
     id: ColumnType<number, never, never>;
     user_id: string;
-    guild_id: string;
+    guild_id: string | null;
+    channel_id: string | null;
     command_name: string;
+    used_at: ColumnType<Date, Date | string | undefined, Date | string>;
+    command_type: string | null;
+    success: boolean | null;
+    error_message: string | null;
   };
   gacha_user_collections: {
     id: ColumnType<number, never, never>;

@@ -31,6 +31,7 @@ export async function execute(
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
+      const startTime = Date.now();
       await retry(
         async () => {
           await command.execute(interaction, client, services, databases);
@@ -47,19 +48,24 @@ export async function execute(
           },
         }
       );
+      const executionTime = Date.now() - startTime;
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
-        interaction.commandName
+        interaction.commandName,
+        executionTime
       );
     } else if (interaction.isContextMenuCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
+      const startTime = Date.now();
       await command.execute(interaction, client, services, databases);
+      const executionTime = Date.now() - startTime;
       errorHandler.recordSuccessfulCommand(
         client,
         interaction,
-        interaction.commandName
+        interaction.commandName,
+        executionTime
       );
     } else if (
       interaction.isButton() &&

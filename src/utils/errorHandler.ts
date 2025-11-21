@@ -268,11 +268,36 @@ export function handleClientWarning(client: Client, warning: string): void {
 export async function recordSuccessfulCommand(
   client: Client,
   interaction: Interaction,
-  commandName: string
+  commandName: string,
+  executionTimeMs?: number
 ): Promise<void> {
   logger.debug(
-    `[ErrorHandler] Statistics: Successful command recorded: ${commandName} by ${interaction.user.tag}`
+    `[ErrorHandler] Statistics: Successful command recorded: ${commandName} by ${interaction.user.tag}${executionTimeMs ? ` (${executionTimeMs}ms)` : ""}`
   );
+
+  // Record to database for usage pattern analysis
+  if (interaction.guildId) {
+    try {
+      const { gachaDB } = await import("../shared/database");
+      await gachaDB
+        .insertInto("command_usage_stats")
+        .values({
+          user_id: interaction.user.id,
+          guild_id: interaction.guildId,
+          channel_id: interaction.channelId,
+          command_name: commandName,
+          used_at: new Date(),
+          command_type: "slash",
+          success: true,
+          error_message: null,
+        })
+        .execute();
+    } catch (error) {
+      logger.warn(
+        `[ErrorHandler] Failed to record command usage to database: ${error}`
+      );
+    }
+  }
 }
 
 // Export all functions in a single object for easy importing

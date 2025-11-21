@@ -2,7 +2,6 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   Locale,
-  EmbedBuilder,
   PermissionsBitField,
   MessageFlags,
   ActionRowBuilder,
@@ -10,6 +9,8 @@ import {
   ButtonStyle,
   ComponentType,
   DiscordAPIError,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
@@ -18,17 +19,19 @@ import logger from "../../../utils/logger";
 import {
   getUserInfoData,
   getRecentTransactions,
+  getCommandUsagePatterns,
+  getCommandUsageFrequency,
 } from "../../../repositories/user.repository";
-import {
-  UserTopGuild,
-  UserTopCommand,
-  UserTransaction,
-  SpendingBreakdown,
-  PortfolioItem,
-  TopSender,
-  TopReceiver,
-} from "../../../shared/database/types";
 import { Services } from "../../../interfaces/Command";
+import {
+  createGeneralContent,
+  createFinancialContent,
+  createInteractionsContent,
+  createUsagePatternContent,
+  createRelationshipContent,
+  createDetailsContent,
+} from "./content-generators";
+import { analyzeUserRelationships } from "./relationship-analyzer";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -60,254 +63,134 @@ export const command: Command = {
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
 
-    const {
-      top_guilds,
-      top_commands,
-      total_cards,
-      total_transactions_count,
-      total_spent,
-      total_received,
-      spending_breakdown,
-      income_breakdown,
-      portfolio,
-      top_senders,
-      top_receivers,
-      oil_balance,
-      oil_ticket_balance,
-    } = await getUserInfoData(targetUser.id);
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    let recent_transactions = await getRecentTransactions(targetUser.id, 0, 15);
+    // 並行獲取所有資料
+    const [userInfo, usagePatterns, recentFrequency, recentTransactions] =
+      await Promise.all([
+        getUserInfoData(targetUser.id),
+        getCommandUsagePatterns(targetUser.id),
+        getCommandUsageFrequency(targetUser.id, 60),
+        getRecentTransactions(targetUser.id, 0, 15),
+      ]);
 
-    const topGuildsContent =
-      top_guilds.length > 0
-        ? top_guilds
-            .map((g: UserTopGuild, i: number) => {
-              const guild = interaction.client.guilds.cache.get(g.guild_id);
-              return `${i + 1}. ${guild ? `${guild.name}` : g.guild_id} (${
-                g.usage_count
-              } 次)`;
-            })
-            .join("\n")
-        : "無紀錄";
+    // 關係網路分析（延遲載入）
+    let relationshipNetwork: Awaited<
+      ReturnType<typeof analyzeUserRelationships>
+    > | undefined = undefined;
 
-    const topCommandsContent =
-      top_commands.length > 0
-        ? top_commands
-            .map(
-              (c: UserTopCommand, i: number) =>
-                `${i + 1}. ${c.command_name} (${c.usage_count} 次)`
-            )
-            .join("\n")
-        : "無紀錄";
+    // 狀態管理
+    let currentView = "general";
+    let interactionSortBy: "count" | "amount" = "amount";
 
-    const formatTransactions = (transactions: UserTransaction[]) =>
-      transactions.length > 0
-        ? transactions
-            .map((tx: UserTransaction) => {
-              const isSender = tx.sender_id === targetUser.id;
-              const otherPartyId = isSender ? tx.receiver_id : tx.sender_id;
-              const arrow = isSender ? "🢂" : "🢀";
-              const action = isSender ? "轉給" : "收到";
-              const timestamp = `<t:${Math.floor(
-                new Date(tx.created_at).getTime() / 1000
-              )}:R>`;
-              return `${arrow} ${action} <@${otherPartyId}> - ${tx.amount} 元 (${timestamp})`;
-            })
-            .join("\n")
-        : "無紀錄";
-
-    let recentTransactionsContent = formatTransactions(recent_transactions);
-    if (recentTransactionsContent.length > 1024) {
-      recentTransactionsContent =
-        recentTransactionsContent.substring(0, 1020) + "\n...";
-    }
-
-    const transactionTypeMap: { [key: string]: string } = {
-      OIL_TRANSFER: "油幣轉帳",
-      GACHA_PULL: "轉蛋",
-      ASSET_PURCHASE: "資產購買",
-      ASSET_SALE: "資產出售",
-      ADMIN_ADJUSTMENT: "管理員調整",
-      DAILY_REWARD: "每日簽到",
+    const contentOptions: any = {
+      targetUser,
+      userInfo,
+      usagePatterns,
+      recentFrequency,
+      recentTransactions,
+      relationshipNetwork,
+      client,
+      interactionSortBy,
     };
 
-    const formatBreakdown = (breakdown: SpendingBreakdown[]) => {
-      return breakdown.length > 0
-        ? breakdown
-            .map(
-              (item: SpendingBreakdown) =>
-                `${
-                  transactionTypeMap[item.transaction_type] ||
-                  item.transaction_type
-                }: ${item.total_amount} 元`
-            )
-            .join("\n")
-        : "無紀錄";
+    const contentMap: { [key: string]: () => string } = {
+      general: () => createGeneralContent(contentOptions),
+      financial: () => createFinancialContent(contentOptions),
+      interactions: () => createInteractionsContent(contentOptions),
+      usage_pattern: () => createUsagePatternContent(contentOptions),
+      relationship: () => createRelationshipContent(contentOptions),
+      details: () => createDetailsContent(contentOptions),
     };
 
-    const spendingBreakdownContent = formatBreakdown(spending_breakdown);
-    const incomeBreakdownContent = formatBreakdown(income_breakdown);
-
-    const portfolioContent =
-      portfolio.length > 0
-        ? portfolio
-            .map(
-              (item: PortfolioItem) =>
-                `${item.asset_name}: ${item.quantity} 股 (市值: ${item.total_value} 元)`
-            )
-            .join("\n")
-        : "無紀錄";
-
-    const topSendersContent =
-      top_senders.length > 0
-        ? top_senders
-            .map(
-              (sender: TopSender, i: number) =>
-                `${i + 1}. <@${sender.sender_id}> - ${sender.count} 次 (共 ${
-                  sender.total_amount
-                } 元)`
-            )
-            .join("\n")
-        : "無紀錄";
-
-    const topReceiversContent =
-      top_receivers.length > 0
-        ? top_receivers
-            .map(
-              (receiver: TopReceiver, i: number) =>
-                `${i + 1}. <@${receiver.receiver_id}> - ${
-                  receiver.count
-                } 次 (共 ${receiver.total_amount} 元)`
-            )
-            .join("\n")
-        : "無紀錄";
-
-    const embeds: { [key: string]: EmbedBuilder } = {
-      general: new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle(t.embed.title.replace("{username}", targetUser.username))
-        .setThumbnail(targetUser.displayAvatarURL())
-        .addFields(
-          { name: t.embed.fields.tag, value: targetUser.tag, inline: true },
-          { name: t.embed.fields.id, value: targetUser.id, inline: true },
-          {
-            name: t.embed.fields.createdAt,
-            value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:R>`,
-            inline: true,
-          },
-          { name: "📊 最活躍的伺服器", value: topGuildsContent, inline: false },
-          { name: "🚀 最常用指令", value: topCommandsContent, inline: false }
-        ),
-      financial: new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle(t.embed.title.replace("{username}", targetUser.username))
-        .setThumbnail(targetUser.displayAvatarURL())
-        .addFields(
-          {
-            name: "💰 帳戶餘額",
-            value: `油幣: ${oil_balance} 元\n油票: ${oil_ticket_balance} 張`,
-            inline: false,
-          },
-          {
-            name: "💸 總轉入/總轉出",
-            value: `總轉入: ${total_received} 元\n總轉出: ${total_spent} 元`,
-            inline: false,
-          },
-          {
-            name: "🧾 主要支出項目",
-            value: spendingBreakdownContent,
-            inline: false,
-          },
-          {
-            name: "📈 主要收入來源",
-            value: incomeBreakdownContent,
-            inline: false,
-          },
-          { name: "📊 股票投資組合", value: portfolioContent, inline: false }
-        ),
-      interactions: new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle(t.embed.title.replace("{username}", targetUser.username))
-        .setThumbnail(targetUser.displayAvatarURL())
-        .addFields(
-          {
-            name: "🎁 最常轉帳給您的人",
-            value: topSendersContent,
-            inline: false,
-          },
-          {
-            name: "💸 您最常轉帳的人",
-            value: topReceiversContent,
-            inline: false,
-          }
-        ),
-      details: new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle(t.embed.title.replace("{username}", targetUser.username))
-        .setThumbnail(targetUser.displayAvatarURL())
-        .addFields(
-          {
-            name: "💳 最近交易紀錄",
-            value: recentTransactionsContent,
-            inline: false,
-          },
-          {
-            name: "🃏 卡片收藏總覽",
-            value: `總持有卡片數量： ${total_cards} 張`,
-            inline: false,
-          }
-        ),
-    };
-
-    const createActionRow = (
-      activeCategory: string,
-      currentOffset = 0,
-      total = 0
-    ) => {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId("show_general")
-          .setLabel("綜合資訊")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(activeCategory === "general"),
-        new ButtonBuilder()
-          .setCustomId("show_financial")
-          .setLabel("財務總覽")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(activeCategory === "financial"),
-        new ButtonBuilder()
-          .setCustomId("show_interactions")
-          .setLabel("互動排行")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(activeCategory === "interactions"),
-        new ButtonBuilder()
-          .setCustomId("show_details")
-          .setLabel("詳細記錄")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(activeCategory === "details")
+    const createSelectMenu = () => {
+      return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("view_selector")
+          .setPlaceholder("選擇要查看的資訊類別")
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel("📊 綜合資訊")
+              .setDescription("查看使用者的基本資訊和活動統計")
+              .setValue("general")
+              .setEmoji("📊")
+              .setDefault(currentView === "general"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("💰 財務總覽")
+              .setDescription("查看帳戶餘額、交易統計和投資組合")
+              .setValue("financial")
+              .setEmoji("💰")
+              .setDefault(currentView === "financial"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("🤝 互動排行")
+              .setDescription("查看最常互動的使用者")
+              .setValue("interactions")
+              .setEmoji("🤝")
+              .setDefault(currentView === "interactions"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("🔍 使用模式分析")
+              .setDescription("分析指令使用模式，檢測異常行為")
+              .setValue("usage_pattern")
+              .setEmoji("🔍")
+              .setDefault(currentView === "usage_pattern"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("🕸️ 關係網路分析")
+              .setDescription("分析帳號關聯性，檢測小帳集團")
+              .setValue("relationship")
+              .setEmoji("🕸️")
+              .setDefault(currentView === "relationship"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("📝 詳細記錄")
+              .setDescription("查看交易記錄和卡片收藏")
+              .setValue("details")
+              .setEmoji("📝")
+              .setDefault(currentView === "details")
+          )
       );
+    };
 
-      if (activeCategory === "details") {
-        const moreButton = new ButtonBuilder()
-          .setCustomId(`details_more_${currentOffset + 15}`)
-          .setLabel("查看更多")
-          .setStyle(ButtonStyle.Success)
-          .setDisabled(currentOffset + 15 >= total);
-        row.addComponents(moreButton);
+    const createActionButtons = () => {
+      const buttons = [
+        new ButtonBuilder()
+          .setCustomId("refresh_data")
+          .setLabel("🔄 重新整理")
+          .setStyle(ButtonStyle.Secondary),
+      ];
+
+      // 互動排行頁面顯示排序按鈕
+      if (currentView === "interactions") {
+        buttons.push(
+          new ButtonBuilder()
+            .setCustomId("sort_by_amount")
+            .setLabel("💰 按金額排序")
+            .setStyle(
+              interactionSortBy === "amount"
+                ? ButtonStyle.Primary
+                : ButtonStyle.Secondary
+            )
+            .setDisabled(interactionSortBy === "amount"),
+          new ButtonBuilder()
+            .setCustomId("sort_by_count")
+            .setLabel("🔢 按次數排序")
+            .setStyle(
+              interactionSortBy === "count"
+                ? ButtonStyle.Primary
+                : ButtonStyle.Secondary
+            )
+            .setDisabled(interactionSortBy === "count")
+        );
       }
 
-      return row;
+      return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
     };
 
-    const message = await interaction.reply({
-      embeds: [embeds["general"]],
-      components: [createActionRow("general", 0, total_transactions_count)],
-      flags: MessageFlags.Ephemeral,
+    const message = await interaction.editReply({
+      content: contentMap[currentView](),
+      components: [createSelectMenu(), createActionButtons()],
     });
 
     const collector = message.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      // time: 60000, // 60 seconds
+      time: 600000, // 10 minutes
     });
 
     collector.on("collect", async (i) => {
@@ -320,43 +203,70 @@ export const command: Command = {
           return;
         }
 
-        const [action, category, value] = i.customId.split("_");
+        if (i.isStringSelectMenu() && i.customId === "view_selector") {
+          const newView = i.values[0];
+          currentView = newView;
 
-        if (action === "details" && category === "more") {
-          const offset = parseInt(value, 10);
-          const newTransactions = await getRecentTransactions(
-            targetUser.id,
-            offset,
-            15
-          );
-
-          if (newTransactions.length > 0) {
-            const newContent = formatTransactions(newTransactions);
-            if (embeds["details"].data.fields!.length < 25) {
-              embeds["details"].addFields({
-                name: `💳 最近交易紀錄 (續 ${offset / 15 + 1})`,
-                value: newContent,
-                inline: false,
-              });
-            }
+          // 如果切換到關係網路分析且尚未載入，則載入資料
+          if (newView === "relationship" && !relationshipNetwork) {
+            await i.deferUpdate();
+            relationshipNetwork = await analyzeUserRelationships(
+              targetUser.id
+            );
+            contentOptions.relationshipNetwork = relationshipNetwork;
+            await i.editReply({
+              content: contentMap[currentView](),
+              components: [createSelectMenu(), createActionButtons()],
+            });
+          } else {
+            await i.update({
+              content: contentMap[currentView](),
+              components: [createSelectMenu(), createActionButtons()],
+            });
           }
+        } else if (i.isButton()) {
+          if (i.customId === "refresh_data") {
+            await i.deferUpdate();
+            // 重新獲取資料
+            const [newUserInfo, newUsagePatterns, newRecentFrequency] =
+              await Promise.all([
+                getUserInfoData(targetUser.id),
+                getCommandUsagePatterns(targetUser.id),
+                getCommandUsageFrequency(targetUser.id, 60),
+              ]);
+            Object.assign(userInfo, newUserInfo);
+            usagePatterns.length = 0;
+            usagePatterns.push(...newUsagePatterns);
+            recentFrequency.length = 0;
+            recentFrequency.push(...newRecentFrequency);
 
-          await i.update({
-            embeds: [embeds["details"]],
-            components: [
-              createActionRow("details", offset, total_transactions_count),
-            ],
-          });
-          return;
-        }
+            // 如果在關係網路頁面，也重新載入
+            if (currentView === "relationship") {
+              relationshipNetwork = await analyzeUserRelationships(
+                targetUser.id
+              );
+              contentOptions.relationshipNetwork = relationshipNetwork;
+            }
 
-        if (action === "show") {
-          await i.update({
-            embeds: [embeds[category]],
-            components: [
-              createActionRow(category, 0, total_transactions_count),
-            ],
-          });
+            await i.editReply({
+              content: contentMap[currentView](),
+              components: [createSelectMenu(), createActionButtons()],
+            });
+          } else if (i.customId === "sort_by_amount") {
+            interactionSortBy = "amount";
+            contentOptions.interactionSortBy = "amount";
+            await i.update({
+              content: contentMap[currentView](),
+              components: [createSelectMenu(), createActionButtons()],
+            });
+          } else if (i.customId === "sort_by_count") {
+            interactionSortBy = "count" as const;
+            contentOptions.interactionSortBy = "count" as const;
+            await i.update({
+              content: contentMap[currentView](),
+              components: [createSelectMenu(), createActionButtons()],
+            });
+          }
         }
       } catch (error) {
         errorHandler.handleInteractionError(
@@ -370,25 +280,11 @@ export const command: Command = {
 
     collector.on("end", async () => {
       try {
-        const finalMessage = await interaction.fetchReply();
-        // Create a new disabled row
-        const disabledRow = new ActionRowBuilder<ButtonBuilder>();
-        for (const row of finalMessage.components) {
-          if (row.type === ComponentType.ActionRow) {
-            for (const component of row.components) {
-              if (component.type === ComponentType.Button) {
-                const newButton = new ButtonBuilder(component.data);
-                newButton.setDisabled(true);
-                disabledRow.addComponents(newButton);
-              }
-            }
-          }
-        }
-        await message.edit({ components: [disabledRow] });
+        await message.edit({
+          components: [],
+        });
       } catch (error) {
-        // Suppress errors on collector end, as the interaction may have expired
         if (error instanceof DiscordAPIError && error.code === 10062) {
-          // Unknown interaction
           return;
         }
         logger.warn(
