@@ -114,64 +114,48 @@ async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
     .with("TopSenders", (db) =>
       db
         .selectFrom(
-          sql`(
-            SELECT 
-              COALESCE(
-                jsonb_agg(
-                  jsonb_build_object(
-                    'sender_id', sender_id::text,
-                    'count', count,
-                    'total_amount', total_amount
-                  ) ORDER BY count DESC
-                ),
-                '[]'::jsonb
-              ) as data
-            FROM (
-              SELECT 
-                sender_id,
-                COUNT(*)::int as count,
-                SUM(gross_amount)::int as total_amount
-              FROM user_transaction_history
-              WHERE receiver_id = ${userId}
-                AND sender_id != ${userId}
-              GROUP BY sender_id
-              ORDER BY count DESC
-              LIMIT 10
-            ) sub
-          )`.as("TopSenders")
+          db
+            .selectFrom("user_transaction_history")
+            .select([
+              "sender_id",
+              sql<number>`COUNT(*)::int`.as("count"),
+              sql<number>`SUM(gross_amount)::int`.as("total_amount"),
+            ])
+            .where("receiver_id", "=", userId)
+            .where("sender_id", "!=", userId)
+            .groupBy("sender_id")
+            .orderBy("count", "desc")
+            .limit(10)
+            .as("sub")
         )
-        .select(sql.ref("data").as("data"))
+        .select(
+          sql<any>`COALESCE(jsonb_agg(jsonb_build_object('sender_id', sub.sender_id::text, 'count', sub.count, 'total_amount', sub.total_amount) ORDER BY sub.count DESC), '[]'::jsonb)`.as(
+            "data"
+          )
+        )
     )
     .with("TopReceivers", (db) =>
       db
         .selectFrom(
-          sql`(
-            SELECT 
-              COALESCE(
-                jsonb_agg(
-                  jsonb_build_object(
-                    'receiver_id', receiver_id::text,
-                    'count', count,
-                    'total_amount', total_amount
-                  ) ORDER BY count DESC
-                ),
-                '[]'::jsonb
-              ) as data
-            FROM (
-              SELECT 
-                receiver_id,
-                COUNT(*)::int as count,
-                SUM(gross_amount)::int as total_amount
-              FROM user_transaction_history
-              WHERE sender_id = ${userId}
-                AND receiver_id != ${userId}
-              GROUP BY receiver_id
-              ORDER BY count DESC
-              LIMIT 10
-            ) sub
-          )`.as("TopReceivers")
+          db
+            .selectFrom("user_transaction_history")
+            .select([
+              "receiver_id",
+              sql<number>`COUNT(*)::int`.as("count"),
+              sql<number>`SUM(gross_amount)::int`.as("total_amount"),
+            ])
+            .where("sender_id", "=", userId)
+            .where("receiver_id", "!=", userId)
+            .groupBy("receiver_id")
+            .orderBy("count", "desc")
+            .limit(10)
+            .as("sub")
         )
-        .select(sql.ref("data").as("data"))
+        .select(
+          sql<any>`COALESCE(jsonb_agg(jsonb_build_object('receiver_id', sub.receiver_id::text, 'count', sub.count, 'total_amount', sub.total_amount) ORDER BY sub.count DESC), '[]'::jsonb)`.as(
+            "data"
+          )
+        )
     )
     .with("TopGuilds", (db) =>
       db
