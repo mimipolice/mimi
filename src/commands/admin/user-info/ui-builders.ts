@@ -17,7 +17,7 @@ import type { RelationshipNetwork } from "./relationship-analyzer";
 export interface UIState {
   currentView: string;
   interactionSortBy: "count" | "amount";
-  relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections";
+  relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" | "guilds";
   expandedCommunities: Set<number>;
   transactionPage: number;
   relationshipNetwork?: RelationshipNetwork;
@@ -117,7 +117,13 @@ export function createRelationshipSubMenu(state: UIState) {
           .setDescription("查看詳細的關係列表")
           .setValue("connections")
           .setEmoji("🔗")
-          .setDefault(state.relationshipSubView === "connections")
+          .setDefault(state.relationshipSubView === "connections"),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("🏰 伺服器關聯分析")
+          .setDescription("分析用戶所在伺服器的異常行為")
+          .setValue("guilds")
+          .setEmoji("🏰")
+          .setDefault(state.relationshipSubView === "guilds")
       )
   );
 }

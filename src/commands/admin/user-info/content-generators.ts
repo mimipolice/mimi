@@ -31,7 +31,7 @@ export interface ContentGeneratorOptions {
   relationshipNetwork?: RelationshipNetwork;
   client: Client;
   interactionSortBy?: "count" | "amount";
-  relationshipSubView?: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections";
+  relationshipSubView?: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" | "guilds";
   expandedCommunities?: Set<number>;
   transactionPage?: number;
 }
@@ -219,6 +219,8 @@ export function createRelationshipContent(
       return createClustersView(targetUser, relationshipNetwork);
     case "connections":
       return createConnectionsView(targetUser, relationshipNetwork);
+    case "guilds":
+      return createGuildsView(targetUser, relationshipNetwork);
     default:
       return createRelationshipOverview(targetUser, relationshipNetwork);
   }
@@ -483,20 +485,34 @@ function createClustersView(
   relationshipNetwork: RelationshipNetwork
 ): string {
   let content = `# 🚨 可疑集群檢測\n\n`;
-  content += `> 基於規則檢測可疑的帳號集群，包括高頻交易、相似行為模式等。\n\n`;
+  content += `> 使用精確指標檢測可疑行為：資金循環、單向大額轉出、短期高頻等。\n\n`;
 
   if (relationshipNetwork.suspicious_clusters && relationshipNetwork.suspicious_clusters.length > 0) {
     content += `## 🔍 發現 ${relationshipNetwork.suspicious_clusters.length} 個可疑集群\n\n`;
 
     relationshipNetwork.suspicious_clusters.forEach((cluster, i) => {
       const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : cluster.suspicion_score >= 70 ? "⚠️" : "⚡";
-      content += `${scoreEmoji} **集群 ${i + 1}** - 可疑度: ${cluster.suspicion_score}/100\n`;
+      
+      // 根據 cluster_id 判斷類型
+      let clusterType = "未知類型";
+      if (cluster.cluster_id.includes("circular_flow")) {
+        clusterType = "💫 資金循環集群";
+      } else if (cluster.cluster_id.includes("large_outflow")) {
+        clusterType = "📤 大額單向轉出";
+      } else if (cluster.cluster_id.includes("short_term_high_freq")) {
+        clusterType = "⚡ 短期高頻互動";
+      }
+      
+      content += `${scoreEmoji} **${clusterType}** - 可疑度: ${cluster.suspicion_score}/100\n`;
       content += `- 涉及帳號: ${cluster.user_ids.length} 個\n`;
-      content += `- 可疑原因:\n`;
+      content += `- 交易統計:\n`;
+      content += `  • 總交易次數: ${cluster.transaction_pattern.total_transactions} 次\n`;
+      content += `  • 總交易金額: ${cluster.transaction_pattern.total_amount.toLocaleString()} 元\n`;
+      content += `- 可疑特徵:\n`;
       cluster.reasons.forEach(reason => {
         content += `  • ${reason}\n`;
       });
-      content += `- 成員: `;
+      content += `- 涉及成員: `;
       content += cluster.user_ids.slice(0, 10).map(uid => `<@${uid}>`).join(", ");
       if (cluster.user_ids.length > 10) {
         content += ` +${cluster.user_ids.length - 10} 人`;
@@ -504,7 +520,7 @@ function createClustersView(
       content += `\n\n`;
     });
   } else {
-    content += `未發現明顯的可疑集群。\n`;
+    content += `✅ 未發現明顯的可疑集群。\n`;
   }
 
   return content;
@@ -557,6 +573,67 @@ function createConnectionsView(
     }
   } else {
     content += `無間接關係。\n`;
+  }
+
+  return content;
+}
+
+/**
+ * 伺服器關聯分析視圖
+ */
+function createGuildsView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  let content = `# 🏰 伺服器關聯分析\n\n`;
+  content += `> 分析用戶所在伺服器的成員行為，檢測集體異常模式。\n\n`;
+
+  if (relationshipNetwork.guild_correlations && relationshipNetwork.guild_correlations.length > 0) {
+    content += `## 📊 分析 ${relationshipNetwork.guild_correlations.length} 個伺服器\n\n`;
+
+    relationshipNetwork.guild_correlations.forEach((guild, i) => {
+      const scoreEmoji = guild.suspicion_score >= 70 ? "🚨" : guild.suspicion_score >= 40 ? "⚠️" : "✅";
+      
+      content += `${scoreEmoji} **伺服器 ${i + 1}** - 可疑度: ${guild.suspicion_score}/100\n`;
+      content += `- 伺服器 ID: \`${guild.guild_id}\`\n`;
+      content += `- 活躍成員: ${guild.member_count} 人\n`;
+      content += `- 可疑成員: ${guild.suspicious_members.length} 人\n\n`;
+      
+      // 統計數據
+      content += `**交易統計:**\n`;
+      content += `- 總交易次數: ${guild.statistics.total_transactions} 次\n`;
+      content += `- 總交易金額: ${guild.statistics.total_amount.toLocaleString()} 元\n`;
+      content += `- 平均每人交易: ${guild.statistics.avg_transactions_per_member.toFixed(1)} 次\n`;
+      content += `- 高頻成員: ${guild.statistics.high_frequency_members} 人\n`;
+      content += `- 循環交易對: ${guild.statistics.circular_flow_pairs} 對\n\n`;
+      
+      // 異常模式
+      if (guild.patterns.length > 0) {
+        content += `**異常模式:**\n`;
+        guild.patterns.forEach((pattern: string) => {
+          content += `- ${pattern}\n`;
+        });
+        content += `\n`;
+      }
+      
+      // 可疑成員列表
+      if (guild.suspicious_members.length > 0) {
+        content += `**可疑成員 Top ${Math.min(5, guild.suspicious_members.length)}:**\n`;
+        guild.suspicious_members.slice(0, 5).forEach((member: any, idx: number) => {
+          const memberEmoji = member.suspicion_score >= 85 ? "🚨" : "⚠️";
+          content += `${idx + 1}. ${memberEmoji} <@${member.user_id}> (${member.suspicion_score}/100)\n`;
+          content += `   交易: ${member.transaction_count} 次 | 金額: ${member.total_amount.toLocaleString()} 元\n`;
+          if (member.reasons.length > 0) {
+            content += `   原因: ${member.reasons[0]}\n`;
+          }
+        });
+        content += `\n`;
+      }
+      
+      content += `---\n\n`;
+    });
+  } else {
+    content += `✅ 未發現伺服器層級的異常行為。\n`;
   }
 
   return content;

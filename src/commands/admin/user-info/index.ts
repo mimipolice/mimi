@@ -86,7 +86,7 @@ export const command: Command = {
     // 狀態管理
     let currentView = "general";
     let interactionSortBy: "count" | "amount" = "amount";
-    let relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" = "overview";
+    let relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" | "guilds" = "overview";
     let expandedCommunities = new Set<number>(); // 追蹤哪些社群被展開
     let transactionPage = 0; // 交易記錄頁碼
 
@@ -326,7 +326,8 @@ export const command: Command = {
           if (newView === "relationship" && !relationshipNetwork) {
             await i.deferUpdate();
             relationshipNetwork = await analyzeUserRelationships(
-              targetUser.id
+              targetUser.id,
+              userInfo.top_guilds
             );
             contentOptions.relationshipNetwork = relationshipNetwork;
             await i.editReply({
@@ -372,7 +373,8 @@ export const command: Command = {
             // 如果在關係網路頁面，也重新載入
             if (currentView === "relationship") {
               relationshipNetwork = await analyzeUserRelationships(
-                targetUser.id
+                targetUser.id,
+                userInfo.top_guilds
               );
               contentOptions.relationshipNetwork = relationshipNetwork;
             }
