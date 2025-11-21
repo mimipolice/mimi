@@ -38,6 +38,36 @@ export async function getRecentTransactions(
 }
 
 async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
+  // Fetch TopSenders and TopReceivers separately to avoid GROUP BY issues
+  const [topSendersResult, topReceiversResult] = await Promise.all([
+    gachaDB
+      .selectFrom("user_transaction_history")
+      .select([
+        "sender_id",
+        sql<number>`COUNT(*)::int`.as("count"),
+        sql<number>`SUM(gross_amount)::int`.as("total_amount"),
+      ])
+      .where("receiver_id", "=", userId)
+      .where("sender_id", "!=", userId)
+      .groupBy("sender_id")
+      .orderBy("count", "desc")
+      .limit(10)
+      .execute(),
+    gachaDB
+      .selectFrom("user_transaction_history")
+      .select([
+        "receiver_id",
+        sql<number>`COUNT(*)::int`.as("count"),
+        sql<number>`SUM(gross_amount)::int`.as("total_amount"),
+      ])
+      .where("sender_id", "=", userId)
+      .where("receiver_id", "!=", userId)
+      .groupBy("receiver_id")
+      .orderBy("count", "desc")
+      .limit(10)
+      .execute(),
+  ]);
+
   const result = await gachaDB
     .with("TransactionSummary", (db) =>
       db
@@ -111,52 +141,7 @@ async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
           )
         )
     )
-    .with("TopSenders", (db) =>
-      db
-        .selectFrom(
-          db
-            .selectFrom("user_transaction_history")
-            .select([
-              "sender_id",
-              sql<number>`COUNT(*)::int`.as("count"),
-              sql<number>`SUM(gross_amount)::int`.as("total_amount"),
-            ])
-            .where("receiver_id", "=", userId)
-            .where("sender_id", "!=", userId)
-            .groupBy("sender_id")
-            .orderBy("count", "desc")
-            .limit(10)
-            .as("sub")
-        )
-        .select(
-          sql<any>`COALESCE(jsonb_agg(jsonb_build_object('sender_id', sub.sender_id::text, 'count', sub.count, 'total_amount', sub.total_amount) ORDER BY sub.count DESC), '[]'::jsonb)`.as(
-            "data"
-          )
-        )
-    )
-    .with("TopReceivers", (db) =>
-      db
-        .selectFrom(
-          db
-            .selectFrom("user_transaction_history")
-            .select([
-              "receiver_id",
-              sql<number>`COUNT(*)::int`.as("count"),
-              sql<number>`SUM(gross_amount)::int`.as("total_amount"),
-            ])
-            .where("sender_id", "=", userId)
-            .where("receiver_id", "!=", userId)
-            .groupBy("receiver_id")
-            .orderBy("count", "desc")
-            .limit(10)
-            .as("sub")
-        )
-        .select(
-          sql<any>`COALESCE(jsonb_agg(jsonb_build_object('receiver_id', sub.receiver_id::text, 'count', sub.count, 'total_amount', sub.total_amount) ORDER BY sub.count DESC), '[]'::jsonb)`.as(
-            "data"
-          )
-        )
-    )
+
     .with("TopGuilds", (db) =>
       db
         .selectFrom(
@@ -233,8 +218,6 @@ async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
       (eb) =>
         eb.selectFrom("IncomeBreakdown").select("data").as("income_breakdown"),
       (eb) => eb.selectFrom("Portfolio").select("data").as("portfolio"),
-      (eb) => eb.selectFrom("TopSenders").select("data").as("top_senders"),
-      (eb) => eb.selectFrom("TopReceivers").select("data").as("top_receivers"),
       (eb) =>
         eb.selectFrom("UserBalances").select("oil_balance").as("oil_balance"),
       (eb) =>
@@ -258,8 +241,16 @@ async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
       (result.spending_breakdown as SpendingBreakdown[]) || [],
     income_breakdown: (result.income_breakdown as SpendingBreakdown[]) || [],
     portfolio: (result.portfolio as PortfolioItem[]) || [],
-    top_senders: (result.top_senders as TopSender[]) || [],
-    top_receivers: (result.top_receivers as TopReceiver[]) || [],
+    top_senders: topSendersResult.map((row) => ({
+      sender_id: row.sender_id.toString(),
+      count: row.count,
+      total_amount: row.total_amount,
+    })),
+    top_receivers: topReceiversResult.map((row) => ({
+      receiver_id: row.receiver_id.toString(),
+      count: row.count,
+      total_amount: row.total_amount,
+    })),
     oil_balance: parseInt(result.oil_balance as any, 10) || 0,
     oil_ticket_balance: parseInt(result.oil_ticket_balance as any, 10) || 0,
   };
