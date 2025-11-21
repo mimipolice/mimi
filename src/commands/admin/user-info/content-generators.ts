@@ -178,6 +178,14 @@ export function createUsagePatternContent(
 }
 
 /**
+ * 截斷內容以符合 Discord 2000 字元限制
+ */
+function truncateContent(content: string, maxLength: number = 1900): string {
+  if (content.length <= maxLength) return content;
+  return content.substring(0, maxLength) + "\n\n... (內容過長，已截斷)";
+}
+
+/**
  * 生成關係網路分析內容
  */
 export function createRelationshipContent(
@@ -204,124 +212,92 @@ export function createRelationshipContent(
 
   // PageRank 關鍵節點
   if (relationshipNetwork.key_nodes && relationshipNetwork.key_nodes.length > 0) {
-    content += `## 👑 關鍵節點分析 (PageRank)\n`;
-    content += `> 這些帳號在網路中具有重要地位，可能是主帳號或中心節點\n\n`;
+    content += `## 👑 關鍵節點 (PageRank)\n`;
 
-    relationshipNetwork.key_nodes.slice(0, 5).forEach((node) => {
+    relationshipNetwork.key_nodes.slice(0, 3).forEach((node) => {
       const isTarget = node.user_id === targetUser.id;
-      const emoji = node.rank === 1 ? "👑" : node.rank === 2 ? "🥈" : node.rank === 3 ? "🥉" : "⭐";
+      const emoji = node.rank === 1 ? "👑" : node.rank === 2 ? "🥈" : "🥉";
       const score = (node.pagerank * 100).toFixed(2);
       
-      content += `${emoji} **第 ${node.rank} 名** <@${node.user_id}>${isTarget ? " (目標帳號)" : ""}\n`;
-      content += `   重要度分數: ${score}%\n\n`;
+      content += `${emoji} <@${node.user_id}>${isTarget ? " (目標)" : ""} - ${score}%\n`;
     });
+    content += `\n`;
   }
 
   // Louvain 社群檢測
   if (relationshipNetwork.communities && relationshipNetwork.communities.length > 0) {
-    content += `## 🏘️ 社群檢測 (Louvain 演算法)\n`;
-    content += `> 自動發現的緊密連結群組，共 ${relationshipNetwork.communities.length} 個社群\n\n`;
+    content += `## 🏘️ 社群檢測\n`;
+    content += `發現 ${relationshipNetwork.communities.length} 個社群\n\n`;
 
-    relationshipNetwork.communities.slice(0, 3).forEach((community, i) => {
+    relationshipNetwork.communities.slice(0, 2).forEach((community, i) => {
       const scoreEmoji = community.suspicion_score >= 70 ? "🚨" : community.suspicion_score >= 50 ? "⚠️" : "✅";
-      content += `### ${scoreEmoji} 社群 ${i + 1} - 可疑度: ${community.suspicion_score}/100\n`;
-      content += `**成員**: ${community.members.length} 個帳號\n`;
-      community.members.slice(0, 8).forEach((uid) => {
-        content += `- <@${uid}>${uid === targetUser.id ? " (目標帳號)" : ""}\n`;
-      });
-      if (community.members.length > 8) {
-        content += `- ... 還有 ${community.members.length - 8} 個帳號\n`;
+      content += `${scoreEmoji} **社群 ${i + 1}** (${community.suspicion_score}/100)\n`;
+      content += `成員 ${community.members.length} 人: `;
+      content += community.members.slice(0, 5).map(uid => `<@${uid}>`).join(", ");
+      if (community.members.length > 5) {
+        content += ` +${community.members.length - 5}`;
       }
-      content += `\n**社群特徵**:\n`;
-      content += `- 內部連接: ${community.internal_edges} 條\n`;
-      content += `- 外部連接: ${community.external_edges} 條\n`;
-      content += `- 模組度: ${(community.modularity * 100).toFixed(1)}%\n`;
-      if (community.reasons.length > 0) {
-        content += `\n**可疑原因**:\n`;
-        community.reasons.forEach((reason) => {
-          content += `- ${reason}\n`;
-        });
-      }
-      content += `\n`;
+      content += `\n模組度: ${(community.modularity * 100).toFixed(0)}%\n\n`;
     });
   }
 
   // 循環交易檢測
   if (relationshipNetwork.cycle_patterns && relationshipNetwork.cycle_patterns.length > 0) {
-    content += `## 🔄 循環交易檢測\n`;
-    content += `> 發現 ${relationshipNetwork.cycle_patterns.length} 個循環交易模式\n\n`;
+    content += `## 🔄 循環交易\n`;
+    content += `發現 ${relationshipNetwork.cycle_patterns.length} 個循環\n\n`;
 
-    relationshipNetwork.cycle_patterns.slice(0, 5).forEach((cycle, i) => {
+    relationshipNetwork.cycle_patterns.slice(0, 3).forEach((cycle, i) => {
       const scoreEmoji = cycle.suspicion_score >= 80 ? "🚨" : "⚠️";
-      content += `### ${scoreEmoji} 循環 ${i + 1} - 可疑度: ${cycle.suspicion_score}/100\n`;
-      content += `**路徑**: `;
-      cycle.cycle.forEach((uid, idx) => {
+      content += `${scoreEmoji} **循環 ${i + 1}** (${cycle.suspicion_score}/100)\n`;
+      content += `路徑: `;
+      cycle.cycle.slice(0, 4).forEach((uid, idx) => {
         content += `<@${uid}>`;
-        if (idx < cycle.cycle.length - 1) content += ` → `;
+        if (idx < Math.min(cycle.cycle.length, 4) - 1) content += ` → `;
       });
-      content += ` → <@${cycle.cycle[0]}>\n`;
-      content += `**統計**:\n`;
-      content += `- 總金額: ${cycle.total_amount.toLocaleString()} 元\n`;
-      content += `- 平均金額: ${cycle.avg_amount.toLocaleString()} 元\n`;
-      if (cycle.reasons.length > 0) {
-        content += `**可疑原因**:\n`;
-        cycle.reasons.forEach((reason) => {
-          content += `- ${reason}\n`;
-        });
-      }
-      content += `\n`;
+      if (cycle.cycle.length > 4) content += ` ...`;
+      content += `\n金額: ${cycle.total_amount.toLocaleString()} 元\n\n`;
     });
   }
 
   // 可疑集群（基於規則）
   if (suspicious_clusters.length > 0) {
-    content += `## 🚨 規則式集群檢測\n`;
-    content += `> 基於預設規則發現 ${suspicious_clusters.length} 個可疑集群\n\n`;
+    content += `## 🚨 規則式集群\n`;
 
-    suspicious_clusters.forEach((cluster, i) => {
+    suspicious_clusters.slice(0, 2).forEach((cluster, i) => {
       const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : "⚠️";
-      content += `### ${scoreEmoji} 集群 ${i + 1} - 可疑度: ${cluster.suspicion_score}/100\n`;
-      content += `**涉及帳號**: ${cluster.user_ids.length} 個\n`;
-      cluster.user_ids.slice(0, 10).forEach((uid) => {
-        content += `- <@${uid}>${uid === targetUser.id ? " (目標帳號)" : ""}\n`;
-      });
-      if (cluster.user_ids.length > 10) {
-        content += `- ... 還有 ${cluster.user_ids.length - 10} 個帳號\n`;
+      content += `${scoreEmoji} **集群 ${i + 1}** (${cluster.suspicion_score}/100)\n`;
+      content += `涉及 ${cluster.user_ids.length} 人: `;
+      content += cluster.user_ids.slice(0, 5).map(uid => `<@${uid}>`).join(", ");
+      if (cluster.user_ids.length > 5) {
+        content += ` +${cluster.user_ids.length - 5}`;
       }
-      content += `\n**可疑原因**:\n`;
-      cluster.reasons.forEach((reason) => {
-        content += `- ${reason}\n`;
-      });
-      content += `\n**交易模式**:\n`;
-      content += `- 總交易: ${cluster.transaction_pattern.total_transactions} 次\n`;
-      content += `- 總金額: ${cluster.transaction_pattern.total_amount.toLocaleString()} 元\n`;
+      content += `\n`;
+      if (cluster.reasons.length > 0) {
+        content += `原因: ${cluster.reasons[0]}\n`;
+      }
       content += `\n`;
     });
   }
 
-  // 直接關係 Top 10
-  content += `## 🔗 直接關係 (Top 10)\n`;
+  // 直接關係 Top 5
+  content += `## 🔗 直接關係 Top 5\n`;
   if (direct_connections.length > 0) {
-    direct_connections.slice(0, 10).forEach((conn, i) => {
-      const strengthBar = "█".repeat(Math.floor(conn.relationship_strength / 10));
+    direct_connections.slice(0, 5).forEach((conn, i) => {
       const strengthEmoji = conn.relationship_strength >= 70 ? "🔴" : conn.relationship_strength >= 40 ? "🟡" : "🟢";
       
-      content += `${i + 1}. <@${conn.related_user_id}>\n`;
-      content += `   ${strengthEmoji} 關係強度: ${strengthBar} ${conn.relationship_strength}/100\n`;
-      content += `   💰 交易: ${conn.transaction_count} 次 | ${conn.total_amount.toLocaleString()} 元 | 平均 ${conn.avg_amount.toLocaleString()} 元\n`;
-      content += `   📅 時間: <t:${Math.floor(new Date(conn.first_transaction).getTime() / 1000)}:D> ~ <t:${Math.floor(new Date(conn.last_transaction).getTime() / 1000)}:D>\n\n`;
+      content += `${i + 1}. <@${conn.related_user_id}> ${strengthEmoji} ${conn.relationship_strength}\n`;
+      content += `   ${conn.transaction_count} 次 | ${conn.total_amount.toLocaleString()} 元\n`;
     });
+    content += `\n`;
   } else {
     content += `無直接關係。\n\n`;
   }
 
   // 間接關係
   if (indirect_connections.length > 0) {
-    content += `## 🔗🔗 間接關係 (二度關係 Top 5)\n`;
-    content += `> 這些帳號與目標帳號的直接關係帳號有交易往來\n\n`;
-    indirect_connections.slice(0, 5).forEach((conn, i) => {
-      content += `${i + 1}. <@${conn.related_user_id}>\n`;
-      content += `   💰 交易: ${conn.transaction_count} 次 | ${conn.total_amount.toLocaleString()} 元\n\n`;
+    content += `## 🔗🔗 間接關係 Top 3\n`;
+    indirect_connections.slice(0, 3).forEach((conn, i) => {
+      content += `${i + 1}. <@${conn.related_user_id}> - ${conn.transaction_count} 次\n`;
     });
   }
 

@@ -122,7 +122,7 @@ async function getDirectConnections(
   }>`
     SELECT 
       CASE 
-        WHEN sender_id = ${userId} THEN receiver_id::text 
+        WHEN sender_id::text = ${userId} THEN receiver_id::text 
         ELSE sender_id::text 
       END as related_user_id,
       COUNT(*)::int as transaction_count,
@@ -131,8 +131,8 @@ async function getDirectConnections(
       MIN(created_at) as first_transaction,
       MAX(created_at) as last_transaction
     FROM user_transaction_history
-    WHERE sender_id = ${userId} OR receiver_id = ${userId}
-    GROUP BY CASE WHEN sender_id = ${userId} THEN receiver_id ELSE sender_id END
+    WHERE sender_id::text = ${userId} OR receiver_id::text = ${userId}
+    GROUP BY (CASE WHEN sender_id::text = ${userId} THEN receiver_id::text ELSE sender_id::text END)
     HAVING COUNT(*) > 0
     ORDER BY transaction_count DESC
     LIMIT 50
@@ -176,7 +176,7 @@ async function getIndirectConnections(
   }>`
     SELECT 
       CASE 
-        WHEN sender_id = ANY(${sql.lit(directUserIds)}::bigint[]) THEN receiver_id::text 
+        WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text 
         ELSE sender_id::text 
       END as related_user_id,
       COUNT(*)::int as transaction_count,
@@ -185,9 +185,9 @@ async function getIndirectConnections(
       MIN(created_at) as first_transaction,
       MAX(created_at) as last_transaction
     FROM user_transaction_history
-    WHERE sender_id = ANY(${sql.lit(directUserIds)}::bigint[]) 
-       OR receiver_id = ANY(${sql.lit(directUserIds)}::bigint[])
-    GROUP BY CASE WHEN sender_id = ANY(${sql.lit(directUserIds)}::bigint[]) THEN receiver_id ELSE sender_id END
+    WHERE sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) 
+       OR receiver_id::text = ANY(${sql.lit(directUserIds)}::text[])
+    GROUP BY (CASE WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text ELSE sender_id::text END)
     HAVING COUNT(*) >= 3
     ORDER BY transaction_count DESC
     LIMIT 20

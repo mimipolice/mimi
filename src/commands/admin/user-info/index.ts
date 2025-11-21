@@ -187,6 +187,7 @@ export const command: Command = {
     const message = await interaction.editReply({
       content: contentMap[currentView](),
       components: [createSelectMenu(), createActionButtons()],
+      flags: [MessageFlags.IsComponentsV2],
     });
 
     const collector = message.createMessageComponentCollector({
@@ -217,11 +218,13 @@ export const command: Command = {
             await i.editReply({
               content: contentMap[currentView](),
               components: [createSelectMenu(), createActionButtons()],
+              flags: [MessageFlags.IsComponentsV2],
             });
           } else {
             await i.update({
               content: contentMap[currentView](),
               components: [createSelectMenu(), createActionButtons()],
+              flags: [MessageFlags.IsComponentsV2],
             });
           }
         } else if (i.isButton()) {
@@ -251,6 +254,7 @@ export const command: Command = {
             await i.editReply({
               content: contentMap[currentView](),
               components: [createSelectMenu(), createActionButtons()],
+              flags: [MessageFlags.IsComponentsV2],
             });
           } else if (i.customId === "sort_by_amount") {
             interactionSortBy = "amount";
@@ -258,6 +262,7 @@ export const command: Command = {
             await i.update({
               content: contentMap[currentView](),
               components: [createSelectMenu(), createActionButtons()],
+              flags: [MessageFlags.IsComponentsV2],
             });
           } else if (i.customId === "sort_by_count") {
             interactionSortBy = "count" as const;
@@ -265,6 +270,7 @@ export const command: Command = {
             await i.update({
               content: contentMap[currentView](),
               components: [createSelectMenu(), createActionButtons()],
+              flags: [MessageFlags.IsComponentsV2],
             });
           }
         }
