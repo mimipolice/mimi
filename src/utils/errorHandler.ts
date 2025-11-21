@@ -278,7 +278,7 @@ export async function recordSuccessfulCommand(
   // Record to database for usage pattern analysis
   if (interaction.guildId) {
     try {
-      const { gachaDB } = await import("../shared/database");
+      const { gachaDB } = await import("../shared/database/index.js");
       await gachaDB
         .insertInto("command_usage_stats")
         .values({
