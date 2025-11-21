@@ -121,18 +121,24 @@ async function getDirectConnections(
     last_transaction: Date;
   }>`
     SELECT 
-      CASE 
-        WHEN sender_id::text = ${userId} THEN receiver_id::text 
-        ELSE sender_id::text 
-      END as related_user_id,
+      related_user_id,
       COUNT(*)::int as transaction_count,
       SUM(gross_amount)::int as total_amount,
       ROUND(AVG(gross_amount)::numeric, 2) as avg_amount,
       MIN(created_at) as first_transaction,
       MAX(created_at) as last_transaction
-    FROM user_transaction_history
-    WHERE sender_id::text = ${userId} OR receiver_id::text = ${userId}
-    GROUP BY (CASE WHEN sender_id::text = ${userId} THEN receiver_id::text ELSE sender_id::text END)
+    FROM (
+      SELECT 
+        CASE 
+          WHEN sender_id::text = ${userId} THEN receiver_id::text 
+          ELSE sender_id::text 
+        END as related_user_id,
+        gross_amount,
+        created_at
+      FROM user_transaction_history
+      WHERE sender_id::text = ${userId} OR receiver_id::text = ${userId}
+    ) AS t
+    GROUP BY related_user_id
     HAVING COUNT(*) > 0
     ORDER BY transaction_count DESC
     LIMIT 50
@@ -175,19 +181,25 @@ async function getIndirectConnections(
     last_transaction: Date;
   }>`
     SELECT 
-      CASE 
-        WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text 
-        ELSE sender_id::text 
-      END as related_user_id,
+      related_user_id,
       COUNT(*)::int as transaction_count,
       SUM(gross_amount)::int as total_amount,
       ROUND(AVG(gross_amount)::numeric, 2) as avg_amount,
       MIN(created_at) as first_transaction,
       MAX(created_at) as last_transaction
-    FROM user_transaction_history
-    WHERE sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) 
-       OR receiver_id::text = ANY(${sql.lit(directUserIds)}::text[])
-    GROUP BY (CASE WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text ELSE sender_id::text END)
+    FROM (
+      SELECT 
+        CASE 
+          WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text 
+          ELSE sender_id::text 
+        END as related_user_id,
+        gross_amount,
+        created_at
+      FROM user_transaction_history
+      WHERE sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) 
+         OR receiver_id::text = ANY(${sql.lit(directUserIds)}::text[])
+    ) AS t
+    GROUP BY related_user_id
     HAVING COUNT(*) >= 3
     ORDER BY transaction_count DESC
     LIMIT 20
