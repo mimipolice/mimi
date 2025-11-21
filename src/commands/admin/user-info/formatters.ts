@@ -15,6 +15,153 @@ import {
 } from "../../../shared/database/types";
 import { Client } from "discord.js";
 
+// ============================================================================
+// Task 4.1: Formatting Utilities for Financial Analysis
+// ============================================================================
+
+/**
+ * 格式化大數字，使用 K/M 後綴
+ * @param num 要格式化的數字
+ * @returns 格式化後的字串（例如：1.2M、500K）
+ */
+export function formatLargeNumber(num: number): string {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toLocaleString();
+}
+
+/**
+ * 創建進度條視覺化
+ * @param percentage 百分比（0-100）
+ * @param length 進度條長度（預設 20）
+ * @returns 進度條字串
+ */
+export function createProgressBar(percentage: number, length: number = 20): string {
+  const filled = Math.round((percentage / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(Math.max(0, filled)) + '░'.repeat(Math.max(0, empty));
+}
+
+/**
+ * 格式化趨勢指標
+ * @param current 當前值
+ * @param previous 前一個值
+ * @returns 趨勢 emoji
+ */
+export function formatTrend(current: number, previous: number): string {
+  if (previous === 0) return '➖';
+  const change = ((current - previous) / previous) * 100;
+  if (change > 50) return '🔥';
+  if (change < -50) return '❄️';
+  if (change > 0) return '📈';
+  if (change < 0) return '📉';
+  return '➖';
+}
+
+/**
+ * 格式化風險等級
+ * @param score 風險分數（0-100）
+ * @returns 風險等級字串
+ */
+export function formatRiskLevel(score: number): string {
+  if (score >= 80) return '🚨 高風險';
+  if (score >= 50) return '⚠️ 中風險';
+  if (score >= 30) return '💡 低風險';
+  return '✅ 正常';
+}
+
+// ============================================================================
+// Task 4.2: Time Period Formatting Utilities
+// ============================================================================
+
+/**
+ * 時間段資料介面
+ */
+export interface PeriodData {
+  income: number;
+  expense: number;
+  netProfit: number;
+  transactionCount: number;
+}
+
+/**
+ * 時間段財務資料介面
+ */
+export interface TimePeriodFinancials {
+  today: PeriodData;
+  week: PeriodData;
+  month: PeriodData;
+  all: PeriodData;
+}
+
+/**
+ * 格式化淨利，帶趨勢 emoji
+ * @param netProfit 淨利金額
+ * @returns 格式化後的淨利字串
+ */
+export function formatNetProfit(netProfit: number): string {
+  let emoji = '➖';
+  if (netProfit > 0) {
+    emoji = '📈';
+  } else if (netProfit < 0) {
+    emoji = '📉';
+  }
+  
+  const formattedAmount = netProfit.toLocaleString();
+  return `${emoji} ${formattedAmount}`;
+}
+
+/**
+ * 計算並格式化淨利率
+ * @param netProfit 淨利
+ * @param totalIncome 總收入
+ * @returns 格式化後的淨利率字串
+ */
+export function formatProfitRate(netProfit: number, totalIncome: number): string {
+  if (totalIncome === 0) return 'N/A';
+  const rate = (netProfit / totalIncome) * 100;
+  return `${rate.toFixed(2)}%`;
+}
+
+/**
+ * 格式化時間段對比表格
+ * @param financials 時間段財務資料
+ * @returns 格式化後的表格字串
+ */
+export function formatTimePeriodTable(financials: TimePeriodFinancials): string {
+  const periods = [
+    { label: '今日', data: financials.today },
+    { label: '本週', data: financials.week },
+    { label: '本月', data: financials.month },
+    { label: '總計', data: financials.all },
+  ];
+
+  let table = '```\n';
+  table += '時間段 │ 收入        │ 支出        │ 淨利        │ 淨利率\n';
+  table += '──────┼─────────────┼─────────────┼─────────────┼────────\n';
+
+  periods.forEach(({ label, data }) => {
+    const income = data.income.toLocaleString().padStart(11);
+    const expense = data.expense.toLocaleString().padStart(11);
+    const netProfit = data.netProfit.toLocaleString().padStart(11);
+    const profitRate = formatProfitRate(data.netProfit, data.income).padStart(6);
+    
+    table += `${label.padEnd(6, ' ')}│ ${income} │ ${expense} │ ${netProfit} │ ${profitRate}\n`;
+  });
+
+  table += '```\n\n';
+
+  // 添加趨勢指標
+  periods.forEach(({ label, data }) => {
+    table += `**${label}**: ${formatNetProfit(data.netProfit)} 元\n`;
+  });
+
+  return table;
+}
+
 /**
  * 交易類型中文映射表
  * 從資料庫 balance_history.transaction_type 查詢得到
@@ -246,7 +393,8 @@ export function formatPortfolio(portfolio: PortfolioItem[]): string {
     .sort((a, b) => b.total_value - a.total_value)
     .slice(0, 15)
     .map((item, i) => {
-      const percentage = ((item.total_value / totalValue) * 100).toFixed(1);
+      // Task 11.3: 處理除以零的情況
+      const percentage = totalValue > 0 ? ((item.total_value / totalValue) * 100).toFixed(1) : '0.0';
       return `${i + 1}. **${item.asset_name}** - ${item.quantity} 股\n   市值: ${item.total_value.toLocaleString()} 元 (${percentage}%)`;
     })
     .join("\n");
@@ -284,8 +432,9 @@ export function formatInteractionList(
           ? (item as TopSender).sender_id
           : (item as TopReceiver).receiver_id;
       const medal = i < 3 ? medals[i] : `${i + 1}.`;
-      const avgAmount = (item.total_amount / item.count).toFixed(0);
-      const percentage = ((item.total_amount / totalAmount) * 100).toFixed(1);
+      // Task 11.3: 處理除以零的情況
+      const avgAmount = item.count > 0 ? (item.total_amount / item.count).toFixed(0) : '0';
+      const percentage = totalAmount > 0 ? ((item.total_amount / totalAmount) * 100).toFixed(1) : '0.0';
 
       return (
         `${medal} <@${userId}>\n` +
@@ -296,12 +445,15 @@ export function formatInteractionList(
     .join("\n\n");
 
   const sortLabel = sortBy === "count" ? "次數" : "金額";
+  // Task 11.3: 處理除以零的情況
+  const avgPerTransaction = totalCount > 0 ? (totalAmount / totalCount).toFixed(0) : 'N/A';
+  
   return (
     `**排序方式: ${sortLabel}**\n\n` +
     `**統計總計**\n` +
     `- 總金額: ${totalAmount.toLocaleString()} 元\n` +
     `- 總次數: ${totalCount} 次\n` +
-    `- 平均: ${(totalAmount / totalCount).toFixed(0)} 元/次\n\n` +
+    `- 平均: ${avgPerTransaction === 'N/A' ? avgPerTransaction : Number(avgPerTransaction).toLocaleString() + ' 元/次'}\n\n` +
     `---\n\n${listContent}`
   );
 }

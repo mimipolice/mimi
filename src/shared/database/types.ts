@@ -53,6 +53,63 @@ export interface CommandUsagePattern {
   first_used_at: Date;
 }
 
+export interface PeriodData {
+  income: number;
+  expense: number;
+  netProfit: number;
+  transactionCount: number;
+}
+
+export interface TimePeriodFinancials {
+  today: PeriodData;
+  week: PeriodData;
+  month: PeriodData;
+  all: PeriodData;
+}
+
+export interface AnomalyStatistics {
+  recentIncome: number;
+  recentExpense: number;
+  recentCount: number;
+  avgDailyIncome: number;
+  avgDailyExpense: number;
+  avgDailyCount: number;
+  largeTransactions: Array<{
+    direction: 'incoming' | 'outgoing';
+    amount: number;
+    partnerId: string;
+    createdAt: Date;
+  }>;
+  topIncomePartners: Array<{
+    partnerId: string;
+    amount: number;
+    count: number;
+  }>;
+  topExpensePartners: Array<{
+    partnerId: string;
+    amount: number;
+    count: number;
+  }>;
+}
+
+export interface AnomalyData {
+  riskScore: number;
+  riskLevel: 'high' | 'medium' | 'low' | 'normal';
+  statistics: AnomalyStatistics;
+}
+
+export interface ServerActivityTrend {
+  guildId: string;
+  recentCount: number;
+  previousCount: number;
+  changePercentage: number;
+}
+
+export interface CommandUsageByType {
+  commandName: string;
+  usageCount: number;
+}
+
 export interface UserInfoData {
   top_guilds: UserTopGuild[];
   top_commands: UserTopCommand[];

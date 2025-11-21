@@ -1,195 +1,24 @@
 /**
- * 內容生成器
- * 負責生成各個頁面的內容
+ * Relationship Content Generators
+ * 
+ * This module contains all content generation functions related to relationship
+ * network analysis, including PageRank, community detection, cycle patterns,
+ * suspicious clusters, and guild correlation analysis.
+ * 
+ * Requirements: 1.1, 1.3, 1.4, 2.1, 2.2, 4.2, 4.5, 5.2, 5.3
  */
 
-import { User, Client } from "discord.js";
-import {
-  UserInfoData,
-  CommandUsagePattern,
-} from "../../../shared/database/types";
-import {
-  formatTopGuilds,
-  formatTopCommands,
-  formatBreakdown,
-  formatPortfolio,
-  formatInteractionList,
-  formatTransactions,
-  formatInterval,
-  calculateCV,
-  formatExecutionTime,
-} from "./formatters";
-import { getSuspicionLevel } from "./analyzer";
-import { RelationshipNetwork } from "./relationship-analyzer";
-
-export interface ContentGeneratorOptions {
-  targetUser: User;
-  userInfo: UserInfoData;
-  usagePatterns: CommandUsagePattern[];
-  recentFrequency: { command_name: string; usage_count: number }[];
-  recentTransactions: any[];
-  relationshipNetwork?: RelationshipNetwork;
-  client: Client;
-  interactionSortBy?: "count" | "amount";
-  relationshipSubView?: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" | "guilds";
-  expandedCommunities?: Set<number>;
-  transactionPage?: number;
-}
+import { User } from "discord.js";
+import { RelationshipNetwork } from "../relationship-analyzer";
+import { ContentGeneratorOptions } from "./types";
 
 /**
- * 生成綜合資訊內容
- */
-export function createGeneralContent(
-  options: ContentGeneratorOptions
-): string {
-  const { targetUser, userInfo, client } = options;
-
-  const topGuildsContent = formatTopGuilds(userInfo.top_guilds, client);
-  const topCommandsContent = formatTopCommands(userInfo.top_commands);
-
-  return (
-    `# 👤 ${targetUser.username} 的使用者資訊\n\n` +
-    `## 📋 基本資訊\n` +
-    `- **使用者標籤**: ${targetUser.tag}\n` +
-    `- **使用者 ID**: \`${targetUser.id}\`\n` +
-    `- **帳號建立時間**: <t:${Math.floor(targetUser.createdTimestamp / 1000)}:R>\n\n` +
-    `## 📊 活動統計\n` +
-    `### 最活躍的伺服器\n${topGuildsContent}\n\n` +
-    `### 最常用指令 (Top 10)\n${topCommandsContent}`
-  );
-}
-
-/**
- * 生成財務總覽內容
- */
-export function createFinancialContent(
-  options: ContentGeneratorOptions
-): string {
-  const { targetUser, userInfo } = options;
-
-  const portfolioContent = formatPortfolio(userInfo.portfolio);
-  const netIncome = userInfo.total_received - userInfo.total_spent;
-  const netIncomeEmoji = netIncome > 0 ? "📈" : netIncome < 0 ? "📉" : "➖";
-
-  return (
-    `# 💰 ${targetUser.username} 的財務總覽\n\n` +
-    `## 💳 帳戶餘額\n` +
-    `- 💵 油幣: **${userInfo.oil_balance.toLocaleString()}** 元\n` +
-    `- 🎫 油票: **${userInfo.oil_ticket_balance.toLocaleString()}** 張\n\n` +
-    `## 💸 交易統計\n` +
-    `- 📥 總轉入: **${userInfo.total_received.toLocaleString()}** 元\n` +
-    `- 📤 總轉出: **${userInfo.total_spent.toLocaleString()}** 元\n` +
-    `- ${netIncomeEmoji} 淨收入: **${netIncome.toLocaleString()}** 元\n` +
-    `- 🔢 交易次數: **${userInfo.total_transactions_count.toLocaleString()}** 次\n\n` +
-    `## 🧾 主要支出項目\n${formatBreakdown(userInfo.spending_breakdown, "支出")}\n\n` +
-    `## 📈 主要收入來源\n${formatBreakdown(userInfo.income_breakdown, "收入")}\n\n` +
-    `## 📊 股票投資組合\n${portfolioContent}`
-  );
-}
-
-/**
- * 生成互動排行內容
- */
-export function createInteractionsContent(
-  options: ContentGeneratorOptions
-): string {
-  const { targetUser, userInfo, interactionSortBy = "amount" } = options;
-
-  const topSendersContent = formatInteractionList(
-    userInfo.top_senders,
-    "sender",
-    interactionSortBy
-  );
-  const topReceiversContent = formatInteractionList(
-    userInfo.top_receivers,
-    "receiver",
-    interactionSortBy
-  );
-
-  return (
-    `# 🤝 ${targetUser.username} 的互動排行\n\n` +
-    `> 💡 提示：使用下方按鈕切換排序方式（金額/次數）\n\n` +
-    `## 🎁 最常轉帳給您的人 (Top 10)\n${topSendersContent}\n\n` +
-    `## 💸 您最常轉帳的人 (Top 10)\n${topReceiversContent}`
-  );
-}
-
-/**
- * 生成使用模式分析內容
- */
-export function createUsagePatternContent(
-  options: ContentGeneratorOptions
-): string {
-  const { targetUser, usagePatterns, recentFrequency } = options;
-
-  if (usagePatterns.length === 0) {
-    return `# 🔍 ${targetUser.username} 的使用模式分析\n\n無足夠資料進行分析。`;
-  }
-
-  let content = `# 🔍 ${targetUser.username} 的使用模式分析\n\n`;
-  content += `> 此分析用於檢測異常使用模式，協助識別潛在的小帳或機器人行為。\n\n`;
-
-  if (recentFrequency.length > 0) {
-    content += `## ⚡ 最近 60 分鐘使用頻率\n`;
-    recentFrequency.forEach((freq) => {
-      content += `- \`${freq.command_name}\`: ${freq.usage_count} 次\n`;
-    });
-    content += `\n`;
-  }
-
-  content += `## 📊 指令使用模式詳細分析\n\n`;
-
-  usagePatterns.slice(0, 15).forEach((pattern) => {
-    const suspicion = getSuspicionLevel(pattern);
-    const statusEmoji =
-      suspicion.level === "高度可疑"
-        ? "🚨"
-        : suspicion.level === "可疑"
-          ? "⚠️"
-          : "✅";
-
-    content += `### ${statusEmoji} \`${pattern.command_name}\` - ${suspicion.level}\n`;
-    content += `- **使用次數**: ${pattern.usage_count} 次\n`;
-    if (pattern.avg_interval_seconds > 0) {
-      content += `- **平均使用間隔**: ${formatInterval(pattern.avg_interval_seconds)} ± ${formatInterval(pattern.interval_stddev_seconds)}\n`;
-      const intervalCV = calculateCV(
-        pattern.interval_stddev_seconds,
-        pattern.avg_interval_seconds
-      );
-      content += `- **間隔穩定度**: CV = ${intervalCV.toFixed(1)}% ${intervalCV < 10 ? "(極度規律 ⚠️)" : intervalCV < 30 ? "(規律)" : "(正常)"}\n`;
-    }
-    const timeSpanDays =
-      (new Date(pattern.last_used_at).getTime() -
-        new Date(pattern.first_used_at).getTime()) /
-      (1000 * 60 * 60 * 24);
-    if (timeSpanDays > 0) {
-      content += `- **使用頻率**: ${(pattern.usage_count / timeSpanDays).toFixed(1)} 次/天\n`;
-    }
-    content += `- **首次使用**: <t:${Math.floor(new Date(pattern.first_used_at).getTime() / 1000)}:R>\n`;
-    content += `- **最後使用**: <t:${Math.floor(new Date(pattern.last_used_at).getTime() / 1000)}:R>\n`;
-
-    if (suspicion.reasons.length > 0) {
-      content += `- **可疑原因**:\n`;
-      suspicion.reasons.forEach((reason) => {
-        content += `  - ${reason}\n`;
-      });
-    }
-    content += `\n`;
-  });
-
-  return content;
-}
-
-/**
- * 截斷內容以符合 Discord 2000 字元限制
- */
-function truncateContent(content: string, maxLength: number = 1900): string {
-  if (content.length <= maxLength) return content;
-  return content.substring(0, maxLength) + "\n\n... (內容過長，已截斷)";
-}
-
-/**
- * 生成關係網路分析內容
+ * Main relationship content router
+ * 
+ * Routes to the appropriate relationship sub-view based on the relationshipSubView option.
+ * 
+ * @param options - Content generator options including relationship network data
+ * @returns Formatted content string for the selected relationship view
  */
 export function createRelationshipContent(
   options: ContentGeneratorOptions
@@ -200,12 +29,7 @@ export function createRelationshipContent(
     return `# 🕸️ ${targetUser.username} 的關係網路分析\n\n正在載入資料...`;
   }
 
-  const { direct_connections, indirect_connections, suspicious_clusters, network_stats } =
-    relationshipNetwork;
-
-  let content = `# 🕸️ ${targetUser.username} 的關係網路分析\n\n`;
-  
-  // 根據子視圖顯示不同內容
+  // Route to appropriate sub-view
   switch (relationshipSubView) {
     case "overview":
       return createRelationshipOverview(targetUser, relationshipNetwork);
@@ -227,7 +51,14 @@ export function createRelationshipContent(
 }
 
 /**
- * 總覽視圖
+ * Create relationship overview content
+ * 
+ * Displays a comprehensive overview of the relationship network including
+ * network statistics, key nodes, communities, cycles, and suspicious clusters.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted overview content string
  */
 function createRelationshipOverview(
   targetUser: User,
@@ -238,14 +69,14 @@ function createRelationshipOverview(
   let content = `# 🕸️ ${targetUser.username} 的關係網路分析\n\n`;
   content += `> 分析帳號之間的交易關係，檢測可疑的小帳集團或關聯帳號。\n\n`;
 
-  // 網路統計
+  // Network statistics
   content += `## 📊 網路統計總覽\n`;
   content += `- 🔗 直接關係數: **${network_stats.total_connections}** 個帳號\n`;
   content += `- 🔢 總交易次數: **${network_stats.total_transactions.toLocaleString()}** 次\n`;
   content += `- 💰 總交易金額: **${network_stats.total_amount.toLocaleString()}** 元\n`;
   content += `- 📈 平均關係強度: **${network_stats.avg_relationship_strength.toFixed(1)}** / 100\n\n`;
 
-  // PageRank 關鍵節點
+  // PageRank key nodes
   if (relationshipNetwork.key_nodes && relationshipNetwork.key_nodes.length > 0) {
     content += `## 👑 關鍵節點 (PageRank)\n`;
 
@@ -259,7 +90,7 @@ function createRelationshipOverview(
     content += `\n`;
   }
 
-  // Louvain 社群檢測
+  // Louvain community detection
   if (relationshipNetwork.communities && relationshipNetwork.communities.length > 0) {
     content += `## 🏘️ 社群檢測\n`;
     content += `發現 ${relationshipNetwork.communities.length} 個社群\n\n`;
@@ -276,7 +107,7 @@ function createRelationshipOverview(
     });
   }
 
-  // 循環交易檢測
+  // Cycle detection
   if (relationshipNetwork.cycle_patterns && relationshipNetwork.cycle_patterns.length > 0) {
     content += `## 🔄 循環交易\n`;
     content += `發現 ${relationshipNetwork.cycle_patterns.length} 個循環\n\n`;
@@ -294,7 +125,7 @@ function createRelationshipOverview(
     });
   }
 
-  // 可疑集群（基於規則）
+  // Suspicious clusters (rule-based)
   if (relationshipNetwork.suspicious_clusters && relationshipNetwork.suspicious_clusters.length > 0) {
     content += `## 🚨 規則式集群\n`;
     content += `發現 ${relationshipNetwork.suspicious_clusters.length} 個可疑集群\n\n`;
@@ -315,7 +146,7 @@ function createRelationshipOverview(
     });
   }
 
-  // 直接關係 Top 5
+  // Direct relationships Top 5
   content += `## 🔗 直接關係 Top 5\n`;
   if (relationshipNetwork.direct_connections && relationshipNetwork.direct_connections.length > 0) {
     relationshipNetwork.direct_connections.slice(0, 5).forEach((conn, i) => {
@@ -329,7 +160,7 @@ function createRelationshipOverview(
     content += `無直接關係。\n\n`;
   }
 
-  // 間接關係
+  // Indirect relationships
   if (relationshipNetwork.indirect_connections && relationshipNetwork.indirect_connections.length > 0) {
     content += `## 🔗🔗 間接關係 Top 3\n`;
     relationshipNetwork.indirect_connections.slice(0, 3).forEach((conn, i) => {
@@ -341,35 +172,13 @@ function createRelationshipOverview(
 }
 
 /**
- * 生成詳細記錄內容
- */
-export function createDetailsContent(options: ContentGeneratorOptions): string {
-  const { targetUser, userInfo, recentTransactions, transactionPage = 0 } = options;
-
-  // 分頁處理
-  const pageSize = 5;
-  const totalPages = Math.ceil(recentTransactions.length / pageSize);
-  const startIndex = transactionPage * pageSize;
-  const endIndex = startIndex + pageSize;
-  const pagedTransactions = recentTransactions.slice(startIndex, endIndex);
-
-  const recentTransactionsContent = formatTransactions(
-    pagedTransactions,
-    targetUser.id
-  );
-
-  let content = `# 📝 ${targetUser.username} 的詳細記錄\n\n`;
-  content += `## 💳 最近交易紀錄 (第 ${transactionPage + 1}/${totalPages} 頁)\n`;
-  content += `> 💡 提示：使用下方按鈕翻頁查看更多交易記錄\n\n`;
-  content += recentTransactionsContent;
-  content += `\n\n## 🃏 卡片收藏總覽\n`;
-  content += `- 總持有卡片數量: **${userInfo.total_cards}** 張`;
-
-  return content;
-}
-
-/**
- * PageRank 關鍵節點視圖
+ * Create PageRank key nodes view
+ * 
+ * Displays the top 10 most influential nodes in the network based on PageRank algorithm.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted PageRank view content string
  */
 function createPageRankView(
   targetUser: User,
@@ -398,7 +207,15 @@ function createPageRankView(
 }
 
 /**
- * 社群檢測視圖
+ * Create communities view
+ * 
+ * Displays community detection results using Louvain algorithm, showing
+ * tightly-knit groups that may represent friend circles or suspicious clusters.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @param expandedCommunities - Set of community indices that should be fully expanded
+ * @returns Formatted communities view content string
  */
 function createCommunitiesView(
   targetUser: User,
@@ -422,15 +239,15 @@ function createCommunitiesView(
       content += `- 成員: `;
       
       if (isExpanded || community.members.length <= 10) {
-        // 顯示所有成員
+        // Show all members
         content += community.members.map((uid: string) => `<@${uid}>`).join(", ");
       } else {
-        // 只顯示前 10 個
+        // Show only first 10
         content += community.members.slice(0, 10).map((uid: string) => `<@${uid}>`).join(", ");
         content += ` +${community.members.length - 10} 人`;
       }
       
-      // 添加展開/收起提示（實際按鈕在 action buttons 中）
+      // Add expand/collapse hint (actual button is in action buttons)
       if (community.members.length > 10) {
         content += `\n  ${isExpanded ? "▲" : "▼"} 使用「展開社群 ${i + 1}」按鈕${isExpanded ? "收起" : "查看全部"}`;
       }
@@ -445,7 +262,14 @@ function createCommunitiesView(
 }
 
 /**
- * 循環交易視圖
+ * Create cycles view
+ * 
+ * Displays detected circular transaction patterns that may indicate
+ * money laundering or account farming behavior.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted cycles view content string
  */
 function createCyclesView(
   targetUser: User,
@@ -478,7 +302,14 @@ function createCyclesView(
 }
 
 /**
- * 可疑集群視圖
+ * Create suspicious clusters view
+ * 
+ * Displays rule-based suspicious cluster detection results, identifying
+ * groups with specific suspicious patterns like circular flows or high-frequency trading.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted clusters view content string
  */
 function createClustersView(
   targetUser: User,
@@ -493,7 +324,7 @@ function createClustersView(
     relationshipNetwork.suspicious_clusters.forEach((cluster, i) => {
       const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : cluster.suspicion_score >= 70 ? "⚠️" : "⚡";
       
-      // 根據 cluster_id 判斷類型
+      // Determine cluster type based on cluster_id
       let clusterType = "未知類型";
       if (cluster.cluster_id.includes("circular_flow")) {
         clusterType = "💫 資金循環集群";
@@ -505,7 +336,6 @@ function createClustersView(
       
       content += `${scoreEmoji} **${clusterType}** - 可疑度: ${cluster.suspicion_score}/100\n`;
       content += `- 涉及帳號: ${cluster.user_ids.length} 個\n`;
-      content += `- 交易統計:\n`;
       content += `  • 總交易次數: ${cluster.transaction_pattern.total_transactions} 次\n`;
       content += `  • 總交易金額: ${cluster.transaction_pattern.total_amount.toLocaleString()} 元\n`;
       content += `- 可疑特徵:\n`;
@@ -527,7 +357,14 @@ function createClustersView(
 }
 
 /**
- * 直接/間接關係視圖
+ * Create connections view
+ * 
+ * Displays detailed direct and indirect connection information, including
+ * net flow analysis and suspicious income/outflow patterns.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted connections view content string
  */
 function createConnectionsView(
   targetUser: User,
@@ -538,7 +375,7 @@ function createConnectionsView(
   let content = `# 🔗 關係連接詳情\n\n`;
   content += `> 查看與目標帳號的直接交易關係，包含詳細的淨流量分析。\n\n`;
 
-  // 按淨收入排序（收入 - 支出）
+  // Sort by net income (income - expense)
   const sortedByNetIncome = [...direct_connections]
     .filter(conn => conn.sent_amount !== undefined && conn.received_amount !== undefined)
     .sort((a, b) => {
@@ -547,7 +384,7 @@ function createConnectionsView(
       return netB - netA;
     });
 
-  // 可疑收款帳號（淨收入 > 100,000）
+  // Suspicious income accounts (net income > 100,000)
   const suspiciousIncome = sortedByNetIncome.filter(conn => {
     const netIncome = (conn.received_amount || 0) - (conn.sent_amount || 0);
     return netIncome > 100000;
@@ -566,7 +403,7 @@ function createConnectionsView(
       content += `📥 收款: ${(conn.received_amount || 0).toLocaleString()} (${conn.received_count || 0} 筆) | `;
       content += `📤 付款: ${(conn.sent_amount || 0).toLocaleString()} (${conn.sent_count || 0} 筆)\n`;
       
-      // 顯示收入來源明細
+      // Show income source details
       if (conn.income_sources && conn.income_sources.length > 0) {
         content += `來源 (前10):\n`;
         conn.income_sources.slice(0, 10).forEach(source => {
@@ -581,7 +418,7 @@ function createConnectionsView(
     });
   }
 
-  // 可疑付款帳號（淨支出 > 100,000）
+  // Suspicious outflow accounts (net expense > 100,000)
   const suspiciousOutflow = sortedByNetIncome.filter(conn => {
     const netIncome = (conn.received_amount || 0) - (conn.sent_amount || 0);
     return netIncome < -100000;
@@ -601,7 +438,7 @@ function createConnectionsView(
     });
   }
 
-  // 所有直接關係（按交易次數排序）
+  // All direct relationships (sorted by transaction count)
   content += `## 🔗 所有直接關係 (${direct_connections.length})\n`;
   content += `> 按交易次數排序\n\n`;
   
@@ -625,7 +462,7 @@ function createConnectionsView(
     content += `無直接關係。\n\n`;
   }
 
-  // 間接關係
+  // Indirect relationships
   if (indirect_connections.length > 0) {
     content += `## 🔗🔗 間接關係 (${indirect_connections.length})\n\n`;
     indirect_connections.slice(0, 10).forEach((conn, i) => {
@@ -641,7 +478,14 @@ function createConnectionsView(
 }
 
 /**
- * 伺服器關聯分析視圖
+ * Create guilds view
+ * 
+ * Displays guild correlation analysis, showing suspicious patterns
+ * at the server level including collective anomalies.
+ * 
+ * @param targetUser - The Discord user being analyzed
+ * @param relationshipNetwork - The relationship network data
+ * @returns Formatted guilds view content string
  */
 function createGuildsView(
   targetUser: User,
@@ -661,7 +505,7 @@ function createGuildsView(
       content += `- 活躍成員: ${guild.member_count} 人\n`;
       content += `- 可疑成員: ${guild.suspicious_members.length} 人\n\n`;
       
-      // 統計數據
+      // Statistics
       content += `**交易統計:**\n`;
       content += `- 總交易次數: ${guild.statistics.total_transactions} 次\n`;
       content += `- 總交易金額: ${guild.statistics.total_amount.toLocaleString()} 元\n`;
@@ -669,7 +513,7 @@ function createGuildsView(
       content += `- 高頻成員: ${guild.statistics.high_frequency_members} 人\n`;
       content += `- 循環交易對: ${guild.statistics.circular_flow_pairs} 對\n\n`;
       
-      // 異常模式
+      // Anomaly patterns
       if (guild.patterns.length > 0) {
         content += `**異常模式:**\n`;
         guild.patterns.forEach((pattern: string) => {
@@ -678,7 +522,7 @@ function createGuildsView(
         content += `\n`;
       }
       
-      // 可疑成員列表
+      // Suspicious members list
       if (guild.suspicious_members.length > 0) {
         content += `**可疑成員 Top ${Math.min(5, guild.suspicious_members.length)}:**\n`;
         guild.suspicious_members.slice(0, 5).forEach((member: any, idx: number) => {

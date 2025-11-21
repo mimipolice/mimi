@@ -19,11 +19,11 @@ const button: Button = {
         throw new Error("這是一個測試內部錯誤");
       
       case "cooldown":
-        const { CooldownError } = await import("../../errors");
-        throw new CooldownError(5.5);
+        const { CooldownError } = await import("../../errors/index.js");
+        throw new CooldownError("請稍後再試", 5.5);
       
       case "permissions":
-        const { MissingPermissionsError } = await import("../../errors");
+        const { MissingPermissionsError } = await import("../../errors/index.js");
         throw new MissingPermissionsError("你沒有權限執行此操作");
       
       default:

@@ -22,6 +22,10 @@ import {
   getRecentTransactions,
   getCommandUsagePatterns,
   getCommandUsageFrequency,
+  getTimePeriodFinancials,
+  getAnomalyData,
+  getServerActivityTrends,
+  getCommandUsageByType,
 } from "../../../repositories/user.repository";
 import { Services } from "../../../interfaces/Command";
 import {
@@ -31,8 +35,10 @@ import {
   createUsagePatternContent,
   createRelationshipContent,
   createDetailsContent,
-} from "./content-generators";
+} from "./content-generators/index";
 import { analyzeUserRelationships } from "./relationship-analyzer";
+import { CacheService } from "../../../services/CacheService";
+import { analyzeCommandTypes } from "./financial-analyzer";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -78,17 +84,121 @@ export const command: Command = {
         getRecentTransactions(targetUser.id, 0, 15),
       ]);
 
+    // 初始化快取服務
+    const cacheService = new CacheService();
+    
+    // Cache TTL constants (in seconds)
+    const CACHE_TTL = {
+      financials: 300,    // 5 minutes
+      anomaly: 60,        // 1 minute
+      activity: 300,      // 5 minutes
+      commands: 600,      // 10 minutes
+    };
+
     // 關係網路分析（延遲載入）
     let relationshipNetwork: Awaited<
       ReturnType<typeof analyzeUserRelationships>
+    > | undefined = undefined;
+
+    // 財務資料（延遲載入）
+    let timePeriodFinancials: Awaited<
+      ReturnType<typeof getTimePeriodFinancials>
+    > | undefined = undefined;
+
+    // 異常活動資料（延遲載入）
+    let anomalyData: Awaited<
+      ReturnType<typeof getAnomalyData>
+    > | undefined = undefined;
+
+    // 伺服器活動趨勢（延遲載入）
+    let serverActivityTrends: Awaited<
+      ReturnType<typeof getServerActivityTrends>
+    > | undefined = undefined;
+
+    // 指令類型分析（延遲載入）
+    let commandTypeAnalysis: Awaited<
+      ReturnType<typeof analyzeCommandTypes>
     > | undefined = undefined;
 
     // 狀態管理
     let currentView = "general";
     let interactionSortBy: "count" | "amount" = "amount";
     let relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" | "guilds" = "overview";
+    let financialSubView: "overview" | "time_period" | "anomaly" | "income" | "expense" | "portfolio" = "overview" as "overview" | "time_period" | "anomaly" | "income" | "expense" | "portfolio";
+    let anomalySubView: "overview" | "abnormal_income" | "abnormal_expense" | "high_frequency" | "large_transactions" | "time_comparison" = "overview" as "overview" | "abnormal_income" | "abnormal_expense" | "high_frequency" | "large_transactions" | "time_comparison";
     let expandedCommunities = new Set<number>(); // 追蹤哪些社群被展開
     let transactionPage = 0; // 交易記錄頁碼
+
+    // Lazy loading helper functions with caching
+    const loadTimePeriodFinancials = async () => {
+      if (timePeriodFinancials) return timePeriodFinancials;
+      
+      const cacheKey = `user-info:financials:${targetUser.id}`;
+      const cached = await cacheService.get<Awaited<ReturnType<typeof getTimePeriodFinancials>>>(cacheKey);
+      
+      if (cached) {
+        timePeriodFinancials = cached;
+        return cached;
+      }
+      
+      timePeriodFinancials = await getTimePeriodFinancials(targetUser.id);
+      await cacheService.set(cacheKey, timePeriodFinancials, CACHE_TTL.financials);
+      return timePeriodFinancials;
+    };
+
+    const loadAnomalyData = async () => {
+      if (anomalyData) return anomalyData;
+      
+      const cacheKey = `user-info:anomaly:${targetUser.id}`;
+      const cached = await cacheService.get<Awaited<ReturnType<typeof getAnomalyData>>>(cacheKey);
+      
+      if (cached) {
+        anomalyData = cached;
+        return cached;
+      }
+      
+      anomalyData = await getAnomalyData(targetUser.id, 24);
+      await cacheService.set(cacheKey, anomalyData, CACHE_TTL.anomaly);
+      return anomalyData;
+    };
+
+    const loadServerActivityTrends = async () => {
+      if (serverActivityTrends) return serverActivityTrends;
+      
+      const cacheKey = `user-info:activity:${targetUser.id}`;
+      const cached = await cacheService.get<Awaited<ReturnType<typeof getServerActivityTrends>>>(cacheKey);
+      
+      if (cached) {
+        serverActivityTrends = cached;
+        return cached;
+      }
+      
+      serverActivityTrends = await getServerActivityTrends(targetUser.id);
+      await cacheService.set(cacheKey, serverActivityTrends, CACHE_TTL.activity);
+      return serverActivityTrends;
+    };
+
+    const loadCommandTypeAnalysis = async () => {
+      if (commandTypeAnalysis) return commandTypeAnalysis;
+      
+      const cacheKey = `user-info:commands:${targetUser.id}`;
+      const cached = await cacheService.get<Awaited<ReturnType<typeof analyzeCommandTypes>>>(cacheKey);
+      
+      if (cached) {
+        commandTypeAnalysis = cached;
+        return cached;
+      }
+      
+      const commandUsage = await getCommandUsageByType(targetUser.id);
+      // Map CommandUsageByType to CommandUsage format
+      const mappedCommands = commandUsage.map(cmd => ({
+        commandName: cmd.commandName,
+        count: cmd.usageCount
+      }));
+      commandTypeAnalysis = analyzeCommandTypes(mappedCommands);
+      await cacheService.set(cacheKey, commandTypeAnalysis, CACHE_TTL.commands);
+      return commandTypeAnalysis;
+    };
 
     const contentOptions: any = {
       targetUser,
@@ -97,9 +207,15 @@ export const command: Command = {
       recentFrequency,
       recentTransactions,
       relationshipNetwork,
+      timePeriodFinancials,
+      anomalyData,
+      serverActivityTrends,
+      commandTypeAnalysis,
       client,
       interactionSortBy,
       relationshipSubView,
+      financialSubView,
+      anomalySubView,
       expandedCommunities,
       transactionPage,
     };
@@ -155,6 +271,98 @@ export const command: Command = {
               .setValue("details")
               .setEmoji("📝")
               .setDefault(currentView === "details")
+          )
+      );
+    };
+
+    const createFinancialSubMenu = () => {
+      return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("financial_sub_selector")
+          .setPlaceholder("選擇財務分析項目")
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel("總覽")
+              .setDescription("查看帳戶餘額、總收支和異常警報摘要")
+              .setValue("overview")
+              .setEmoji("📊")
+              .setDefault(financialSubView === "overview"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("時間段分析")
+              .setDescription("查看今日、本週、本月的淨利對比")
+              .setValue("time_period")
+              .setEmoji("💹")
+              .setDefault(financialSubView === "time_period"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("異常活動檢測")
+              .setDescription("檢測短期內的異常財務活動")
+              .setValue("anomaly")
+              .setEmoji("🚨")
+              .setDefault(financialSubView === "anomaly"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("收入分析")
+              .setDescription("查看收入來源的詳細分類")
+              .setValue("income")
+              .setEmoji("📈")
+              .setDefault(financialSubView === "income"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("支出分析")
+              .setDescription("查看支出項目的詳細分類")
+              .setValue("expense")
+              .setEmoji("📉")
+              .setDefault(financialSubView === "expense"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("投資組合")
+              .setDescription("查看股票持倉和市值分析")
+              .setValue("portfolio")
+              .setEmoji("💼")
+              .setDefault(financialSubView === "portfolio")
+          )
+      );
+    };
+
+    const createAnomalySubMenu = () => {
+      return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("anomaly_sub_selector")
+          .setPlaceholder("選擇異常活動分析項目")
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel("總覽")
+              .setDescription("查看風險評分和警報摘要")
+              .setValue("overview")
+              .setEmoji("📊")
+              .setDefault(anomalySubView === "overview"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("異常收入")
+              .setDescription("查看異常收入來源的詳細分析")
+              .setValue("abnormal_income")
+              .setEmoji("💰")
+              .setDefault(anomalySubView === "abnormal_income"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("異常支出")
+              .setDescription("查看異常支出對象的詳細分析")
+              .setValue("abnormal_expense")
+              .setEmoji("💸")
+              .setDefault(anomalySubView === "abnormal_expense"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("高頻交易")
+              .setDescription("查看交易頻率和對象分布")
+              .setValue("high_frequency")
+              .setEmoji("⚡")
+              .setDefault(anomalySubView === "high_frequency"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("大額交易")
+              .setDescription("查看所有大額交易列表")
+              .setValue("large_transactions")
+              .setEmoji("💎")
+              .setDefault(anomalySubView === "large_transactions"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("時間對比")
+              .setDescription("查看 24h、7d、30d 的詳細對比")
+              .setValue("time_comparison")
+              .setEmoji("📊")
+              .setDefault(anomalySubView === "time_comparison")
           )
       );
     };
@@ -286,6 +494,16 @@ export const command: Command = {
         )
         .addActionRowComponents(createSelectMenu());
       
+      // 如果在財務總覽頁面，添加財務子選單
+      if (currentView === "financial") {
+        container.addActionRowComponents(createFinancialSubMenu());
+        
+        // 如果在異常活動檢測子頁面，添加異常活動子選單
+        if (financialSubView === "anomaly") {
+          container.addActionRowComponents(createAnomalySubMenu());
+        }
+      }
+      
       // 如果在關係網路分析頁面，添加子選單
       if (currentView === "relationship" && relationshipNetwork) {
         container.addActionRowComponents(createRelationshipSubMenu());
@@ -319,16 +537,140 @@ export const command: Command = {
 
         if (i.isStringSelectMenu() && i.customId === "view_selector") {
           const newView = i.values[0];
+          const previousView = currentView;
           currentView = newView;
 
+          // Reset sub-menu states when switching away from their parent views
+          if (previousView === "financial" && newView !== "financial") {
+            financialSubView = "overview";
+            anomalySubView = "overview";
+            contentOptions.financialSubView = "overview";
+            contentOptions.anomalySubView = "overview";
+          }
+
+          // Lazy load data based on view
+          let needsDefer = false;
+          
           // 如果切換到關係網路分析且尚未載入，則載入資料
           if (newView === "relationship" && !relationshipNetwork) {
+            needsDefer = true;
+          }
+          
+          // 如果切換到財務總覽且尚未載入，則載入資料
+          if (newView === "financial" && !timePeriodFinancials) {
+            needsDefer = true;
+          }
+          
+          // 如果切換到綜合資訊且尚未載入活動趨勢，則載入資料
+          if (newView === "general" && !serverActivityTrends) {
+            needsDefer = true;
+          }
+          
+          // 如果切換到使用模式分析且尚未載入指令類型，則載入資料
+          if (newView === "usage_pattern" && !commandTypeAnalysis) {
+            needsDefer = true;
+          }
+
+          if (needsDefer) {
             await i.deferUpdate();
-            relationshipNetwork = await analyzeUserRelationships(
-              targetUser.id,
-              userInfo.top_guilds
-            );
-            contentOptions.relationshipNetwork = relationshipNetwork;
+            
+            // Load data based on view
+            if (newView === "relationship" && !relationshipNetwork) {
+              relationshipNetwork = await analyzeUserRelationships(
+                targetUser.id,
+                userInfo.top_guilds
+              );
+              contentOptions.relationshipNetwork = relationshipNetwork;
+            }
+            
+            if (newView === "financial" && !timePeriodFinancials) {
+              timePeriodFinancials = await loadTimePeriodFinancials();
+              contentOptions.timePeriodFinancials = timePeriodFinancials;
+            }
+            
+            if (newView === "general" && !serverActivityTrends) {
+              serverActivityTrends = await loadServerActivityTrends();
+              contentOptions.serverActivityTrends = serverActivityTrends;
+            }
+            
+            if (newView === "usage_pattern" && !commandTypeAnalysis) {
+              commandTypeAnalysis = await loadCommandTypeAnalysis();
+              contentOptions.commandTypeAnalysis = commandTypeAnalysis;
+            }
+            
+            await i.editReply({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          } else {
+            await i.update({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          }
+        } else if (i.isStringSelectMenu() && i.customId === "financial_sub_selector") {
+          const newSubView = i.values[0] as typeof financialSubView;
+          financialSubView = newSubView;
+          contentOptions.financialSubView = newSubView;
+          
+          // Reset anomaly sub-view when switching away from anomaly
+          if (newSubView !== "anomaly") {
+            anomalySubView = "overview";
+            contentOptions.anomalySubView = "overview";
+          }
+          
+          // Lazy load financial data if needed
+          let needsDefer = false;
+          
+          if ((newSubView === "time_period" || newSubView === "overview") && !timePeriodFinancials) {
+            needsDefer = true;
+          }
+          
+          if (newSubView === "anomaly" && !anomalyData) {
+            needsDefer = true;
+          }
+          
+          if (needsDefer) {
+            await i.deferUpdate();
+            
+            if ((newSubView === "time_period" || newSubView === "overview") && !timePeriodFinancials) {
+              timePeriodFinancials = await loadTimePeriodFinancials();
+              contentOptions.timePeriodFinancials = timePeriodFinancials;
+            }
+            
+            if (newSubView === "anomaly" && !anomalyData) {
+              anomalyData = await loadAnomalyData();
+              contentOptions.anomalyData = anomalyData;
+            }
+            
+            await i.editReply({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          } else {
+            await i.update({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          }
+        } else if (i.isStringSelectMenu() && i.customId === "anomaly_sub_selector") {
+          const newSubView = i.values[0] as typeof anomalySubView;
+          anomalySubView = newSubView;
+          contentOptions.anomalySubView = newSubView;
+          
+          // Ensure anomaly data is loaded
+          if (!anomalyData) {
+            await i.deferUpdate();
+            anomalyData = await loadAnomalyData();
+            contentOptions.anomalyData = anomalyData;
             await i.editReply({
               content: null,
               embeds: [],
