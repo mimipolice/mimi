@@ -11,6 +11,8 @@ import {
   DiscordAPIError,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
 } from "discord.js";
 import { Command } from "../../../interfaces/Command";
 import { getLocalizations } from "../../../utils/localization";
@@ -187,9 +189,20 @@ export const command: Command = {
       return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
     };
 
+    const createContainer = () => {
+      const container = new ContainerBuilder()
+        .setAccentColor(0x5865f2)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(contentMap[currentView]())
+        )
+        .addActionRowComponents(createSelectMenu())
+        .addActionRowComponents(createActionButtons());
+      
+      return container;
+    };
+
     const message = await interaction.editReply({
-      content: contentMap[currentView](),
-      components: [createSelectMenu(), createActionButtons()],
+      components: [createContainer()],
       flags: [MessageFlags.IsComponentsV2],
     });
 
@@ -219,14 +232,12 @@ export const command: Command = {
             );
             contentOptions.relationshipNetwork = relationshipNetwork;
             await i.editReply({
-              content: contentMap[currentView](),
-              components: [createSelectMenu(), createActionButtons()],
+              components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           } else {
             await i.update({
-              content: contentMap[currentView](),
-              components: [createSelectMenu(), createActionButtons()],
+              components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           }
@@ -255,24 +266,21 @@ export const command: Command = {
             }
 
             await i.editReply({
-              content: contentMap[currentView](),
-              components: [createSelectMenu(), createActionButtons()],
+              components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           } else if (i.customId === "sort_by_amount") {
             interactionSortBy = "amount";
             contentOptions.interactionSortBy = "amount";
             await i.update({
-              content: contentMap[currentView](),
-              components: [createSelectMenu(), createActionButtons()],
+              components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           } else if (i.customId === "sort_by_count") {
             interactionSortBy = "count" as const;
             contentOptions.interactionSortBy = "count" as const;
             await i.update({
-              content: contentMap[currentView](),
-              components: [createSelectMenu(), createActionButtons()],
+              components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           }
