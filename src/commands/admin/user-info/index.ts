@@ -202,6 +202,8 @@ export const command: Command = {
     };
 
     const message = await interaction.editReply({
+      content: null,
+      embeds: [],
       components: [createContainer()],
       flags: [MessageFlags.IsComponentsV2],
     });
@@ -232,11 +234,15 @@ export const command: Command = {
             );
             contentOptions.relationshipNetwork = relationshipNetwork;
             await i.editReply({
+              content: null,
+              embeds: [],
               components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
           } else {
             await i.update({
+              content: null,
+              embeds: [],
               components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
@@ -266,6 +272,8 @@ export const command: Command = {
             }
 
             await i.editReply({
+              content: null,
+              embeds: [],
               components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
@@ -273,6 +281,8 @@ export const command: Command = {
             interactionSortBy = "amount";
             contentOptions.interactionSortBy = "amount";
             await i.update({
+              content: null,
+              embeds: [],
               components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
@@ -280,6 +290,8 @@ export const command: Command = {
             interactionSortBy = "count" as const;
             contentOptions.interactionSortBy = "count" as const;
             await i.update({
+              content: null,
+              embeds: [],
               components: [createContainer()],
               flags: [MessageFlags.IsComponentsV2],
             });
