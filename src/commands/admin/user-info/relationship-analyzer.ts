@@ -190,14 +190,14 @@ async function getIndirectConnections(
     FROM (
       SELECT 
         CASE 
-          WHEN sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) THEN receiver_id::text 
+          WHEN sender_id::text = ANY(${directUserIds}::text[]) THEN receiver_id::text 
           ELSE sender_id::text 
         END as related_user_id,
         gross_amount,
         created_at
       FROM user_transaction_history
-      WHERE sender_id::text = ANY(${sql.lit(directUserIds)}::text[]) 
-         OR receiver_id::text = ANY(${sql.lit(directUserIds)}::text[])
+      WHERE sender_id::text = ANY(${directUserIds}::text[]) 
+         OR receiver_id::text = ANY(${directUserIds}::text[])
     ) AS t
     GROUP BY related_user_id
     HAVING COUNT(*) >= 3
