@@ -4,11 +4,10 @@ import {
   Locale,
   PermissionsBitField,
   MessageFlags,
+  DiscordAPIError,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ComponentType,
-  DiscordAPIError,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   ContainerBuilder,
@@ -87,6 +86,9 @@ export const command: Command = {
     // 狀態管理
     let currentView = "general";
     let interactionSortBy: "count" | "amount" = "amount";
+    let relationshipSubView: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections" = "overview";
+    let expandedCommunities = new Set<number>(); // 追蹤哪些社群被展開
+    let transactionPage = 0; // 交易記錄頁碼
 
     const contentOptions: any = {
       targetUser,
@@ -97,6 +99,9 @@ export const command: Command = {
       relationshipNetwork,
       client,
       interactionSortBy,
+      relationshipSubView,
+      expandedCommunities,
+      transactionPage,
     };
 
     const contentMap: { [key: string]: () => string } = {
@@ -115,41 +120,87 @@ export const command: Command = {
           .setPlaceholder("選擇要查看的資訊類別")
           .addOptions(
             new StringSelectMenuOptionBuilder()
-              .setLabel("📊 綜合資訊")
+              .setLabel("綜合資訊")
               .setDescription("查看使用者的基本資訊和活動統計")
               .setValue("general")
               .setEmoji("📊")
               .setDefault(currentView === "general"),
             new StringSelectMenuOptionBuilder()
-              .setLabel("💰 財務總覽")
+              .setLabel("財務總覽")
               .setDescription("查看帳戶餘額、交易統計和投資組合")
               .setValue("financial")
               .setEmoji("💰")
               .setDefault(currentView === "financial"),
             new StringSelectMenuOptionBuilder()
-              .setLabel("🤝 互動排行")
+              .setLabel("互動排行")
               .setDescription("查看最常互動的使用者")
               .setValue("interactions")
               .setEmoji("🤝")
               .setDefault(currentView === "interactions"),
             new StringSelectMenuOptionBuilder()
-              .setLabel("🔍 使用模式分析")
+              .setLabel("使用模式分析")
               .setDescription("分析指令使用模式，檢測異常行為")
               .setValue("usage_pattern")
               .setEmoji("🔍")
               .setDefault(currentView === "usage_pattern"),
             new StringSelectMenuOptionBuilder()
-              .setLabel("🕸️ 關係網路分析")
+              .setLabel("關係網路分析")
               .setDescription("分析帳號關聯性，檢測小帳集團")
               .setValue("relationship")
               .setEmoji("🕸️")
               .setDefault(currentView === "relationship"),
             new StringSelectMenuOptionBuilder()
-              .setLabel("📝 詳細記錄")
+              .setLabel("詳細記錄")
               .setDescription("查看交易記錄和卡片收藏")
               .setValue("details")
               .setEmoji("📝")
               .setDefault(currentView === "details")
+          )
+      );
+    };
+
+    const createRelationshipSubMenu = () => {
+      return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("relationship_sub_selector")
+          .setPlaceholder("選擇關係網路分析項目")
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel("總覽")
+              .setDescription("查看網路統計和整體概況")
+              .setValue("overview")
+              .setEmoji("📊")
+              .setDefault(relationshipSubView === "overview"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("關鍵節點 (PageRank)")
+              .setDescription("查看網路中最重要的帳號")
+              .setValue("pagerank")
+              .setEmoji("👑")
+              .setDefault(relationshipSubView === "pagerank"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("社群檢測")
+              .setDescription("查看自動發現的緊密群組")
+              .setValue("communities")
+              .setEmoji("🏘️")
+              .setDefault(relationshipSubView === "communities"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("循環交易")
+              .setDescription("查看可疑的循環交易模式")
+              .setValue("cycles")
+              .setEmoji("🔄")
+              .setDefault(relationshipSubView === "cycles"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("可疑集群")
+              .setDescription("查看基於規則檢測的可疑集群")
+              .setValue("clusters")
+              .setEmoji("🚨")
+              .setDefault(relationshipSubView === "clusters"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("直接/間接關係")
+              .setDescription("查看詳細的關係列表")
+              .setValue("connections")
+              .setEmoji("🔗")
+              .setDefault(relationshipSubView === "connections")
           )
       );
     };
@@ -186,6 +237,45 @@ export const command: Command = {
         );
       }
 
+      // 關係網路 - 社群檢測頁面顯示展開按鈕
+      if (currentView === "relationship" && relationshipSubView === "communities" && relationshipNetwork?.communities) {
+        relationshipNetwork.communities.slice(0, 3).forEach((community, i) => {
+          if (community.members.length > 10 && buttons.length < 5) {
+            const isExpanded = expandedCommunities.has(i);
+            buttons.push(
+              new ButtonBuilder()
+                .setCustomId(`expand_community_${i}`)
+                .setLabel(`${isExpanded ? "收起" : "展開"}社群 ${i + 1}`)
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji(isExpanded ? "▲" : "▼")
+            );
+          }
+        });
+      }
+
+      // 詳細記錄頁面顯示翻頁按鈕
+      if (currentView === "details") {
+        const totalPages = Math.ceil(recentTransactions.length / 5);
+        if (totalPages > 1) {
+          if (transactionPage > 0) {
+            buttons.push(
+              new ButtonBuilder()
+                .setCustomId("transaction_prev")
+                .setLabel("◀ 上一頁")
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+          if (transactionPage < totalPages - 1) {
+            buttons.push(
+              new ButtonBuilder()
+                .setCustomId("transaction_next")
+                .setLabel("下一頁 ▶")
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+        }
+      }
+
       return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
     };
 
@@ -195,8 +285,14 @@ export const command: Command = {
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(contentMap[currentView]())
         )
-        .addActionRowComponents(createSelectMenu())
-        .addActionRowComponents(createActionButtons());
+        .addActionRowComponents(createSelectMenu());
+      
+      // 如果在關係網路分析頁面，添加子選單
+      if (currentView === "relationship" && relationshipNetwork) {
+        container.addActionRowComponents(createRelationshipSubMenu());
+      }
+      
+      container.addActionRowComponents(createActionButtons());
       
       return container;
     };
@@ -247,6 +343,16 @@ export const command: Command = {
               flags: [MessageFlags.IsComponentsV2],
             });
           }
+        } else if (i.isStringSelectMenu() && i.customId === "relationship_sub_selector") {
+          const newSubView = i.values[0] as typeof relationshipSubView;
+          relationshipSubView = newSubView;
+          contentOptions.relationshipSubView = newSubView;
+          await i.update({
+            content: null,
+            embeds: [],
+            components: [createContainer()],
+            flags: [MessageFlags.IsComponentsV2],
+          });
         } else if (i.isButton()) {
           if (i.customId === "refresh_data") {
             await i.deferUpdate();
@@ -289,6 +395,39 @@ export const command: Command = {
           } else if (i.customId === "sort_by_count") {
             interactionSortBy = "count" as const;
             contentOptions.interactionSortBy = "count" as const;
+            await i.update({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          } else if (i.customId.startsWith("expand_community_")) {
+            const communityIndex = parseInt(i.customId.split("_")[2]);
+            if (expandedCommunities.has(communityIndex)) {
+              expandedCommunities.delete(communityIndex);
+            } else {
+              expandedCommunities.add(communityIndex);
+            }
+            contentOptions.expandedCommunities = expandedCommunities;
+            await i.update({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          } else if (i.customId === "transaction_prev") {
+            transactionPage = Math.max(0, transactionPage - 1);
+            contentOptions.transactionPage = transactionPage;
+            await i.update({
+              content: null,
+              embeds: [],
+              components: [createContainer()],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          } else if (i.customId === "transaction_next") {
+            const totalPages = Math.ceil(recentTransactions.length / 5);
+            transactionPage = Math.min(totalPages - 1, transactionPage + 1);
+            contentOptions.transactionPage = transactionPage;
             await i.update({
               content: null,
               embeds: [],

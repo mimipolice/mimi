@@ -31,6 +31,9 @@ export interface ContentGeneratorOptions {
   relationshipNetwork?: RelationshipNetwork;
   client: Client;
   interactionSortBy?: "count" | "amount";
+  relationshipSubView?: "overview" | "pagerank" | "communities" | "cycles" | "clusters" | "connections";
+  expandedCommunities?: Set<number>;
+  transactionPage?: number;
 }
 
 /**
@@ -191,7 +194,7 @@ function truncateContent(content: string, maxLength: number = 1900): string {
 export function createRelationshipContent(
   options: ContentGeneratorOptions
 ): string {
-  const { targetUser, relationshipNetwork } = options;
+  const { targetUser, relationshipNetwork, relationshipSubView = "overview" } = options;
 
   if (!relationshipNetwork) {
     return `# 🕸️ ${targetUser.username} 的關係網路分析\n\n正在載入資料...`;
@@ -200,6 +203,36 @@ export function createRelationshipContent(
   const { direct_connections, indirect_connections, suspicious_clusters, network_stats } =
     relationshipNetwork;
 
+  let content = `# 🕸️ ${targetUser.username} 的關係網路分析\n\n`;
+  
+  // 根據子視圖顯示不同內容
+  switch (relationshipSubView) {
+    case "overview":
+      return createRelationshipOverview(targetUser, relationshipNetwork);
+    case "pagerank":
+      return createPageRankView(targetUser, relationshipNetwork);
+    case "communities":
+      return createCommunitiesView(targetUser, relationshipNetwork, options.expandedCommunities);
+    case "cycles":
+      return createCyclesView(targetUser, relationshipNetwork);
+    case "clusters":
+      return createClustersView(targetUser, relationshipNetwork);
+    case "connections":
+      return createConnectionsView(targetUser, relationshipNetwork);
+    default:
+      return createRelationshipOverview(targetUser, relationshipNetwork);
+  }
+}
+
+/**
+ * 總覽視圖
+ */
+function createRelationshipOverview(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  const { network_stats } = relationshipNetwork;
+  
   let content = `# 🕸️ ${targetUser.username} 的關係網路分析\n\n`;
   content += `> 分析帳號之間的交易關係，檢測可疑的小帳集團或關聯帳號。\n\n`;
 
@@ -260,14 +293,15 @@ export function createRelationshipContent(
   }
 
   // 可疑集群（基於規則）
-  if (suspicious_clusters.length > 0) {
+  if (relationshipNetwork.suspicious_clusters && relationshipNetwork.suspicious_clusters.length > 0) {
     content += `## 🚨 規則式集群\n`;
+    content += `發現 ${relationshipNetwork.suspicious_clusters.length} 個可疑集群\n\n`;
 
-    suspicious_clusters.slice(0, 2).forEach((cluster, i) => {
+    relationshipNetwork.suspicious_clusters.slice(0, 2).forEach((cluster, i) => {
       const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : "⚠️";
       content += `${scoreEmoji} **集群 ${i + 1}** (${cluster.suspicion_score}/100)\n`;
       content += `涉及 ${cluster.user_ids.length} 人: `;
-      content += cluster.user_ids.slice(0, 5).map(uid => `<@${uid}>`).join(", ");
+      content += cluster.user_ids.slice(0, 5).map((uid: string) => `<@${uid}>`).join(", ");
       if (cluster.user_ids.length > 5) {
         content += ` +${cluster.user_ids.length - 5}`;
       }
@@ -281,8 +315,8 @@ export function createRelationshipContent(
 
   // 直接關係 Top 5
   content += `## 🔗 直接關係 Top 5\n`;
-  if (direct_connections.length > 0) {
-    direct_connections.slice(0, 5).forEach((conn, i) => {
+  if (relationshipNetwork.direct_connections && relationshipNetwork.direct_connections.length > 0) {
+    relationshipNetwork.direct_connections.slice(0, 5).forEach((conn, i) => {
       const strengthEmoji = conn.relationship_strength >= 70 ? "🔴" : conn.relationship_strength >= 40 ? "🟡" : "🟢";
       
       content += `${i + 1}. <@${conn.related_user_id}> ${strengthEmoji} ${conn.relationship_strength}\n`;
@@ -294,9 +328,9 @@ export function createRelationshipContent(
   }
 
   // 間接關係
-  if (indirect_connections.length > 0) {
+  if (relationshipNetwork.indirect_connections && relationshipNetwork.indirect_connections.length > 0) {
     content += `## 🔗🔗 間接關係 Top 3\n`;
-    indirect_connections.slice(0, 3).forEach((conn, i) => {
+    relationshipNetwork.indirect_connections.slice(0, 3).forEach((conn, i) => {
       content += `${i + 1}. <@${conn.related_user_id}> - ${conn.transaction_count} 次\n`;
     });
   }
@@ -308,17 +342,222 @@ export function createRelationshipContent(
  * 生成詳細記錄內容
  */
 export function createDetailsContent(options: ContentGeneratorOptions): string {
-  const { targetUser, userInfo, recentTransactions } = options;
+  const { targetUser, userInfo, recentTransactions, transactionPage = 0 } = options;
+
+  // 分頁處理
+  const pageSize = 5;
+  const totalPages = Math.ceil(recentTransactions.length / pageSize);
+  const startIndex = transactionPage * pageSize;
+  const endIndex = startIndex + pageSize;
+  const pagedTransactions = recentTransactions.slice(startIndex, endIndex);
 
   const recentTransactionsContent = formatTransactions(
-    recentTransactions,
+    pagedTransactions,
     targetUser.id
   );
 
-  return (
-    `# 📝 ${targetUser.username} 的詳細記錄\n\n` +
-    `## 💳 最近交易紀錄\n${recentTransactionsContent}\n\n` +
-    `## 🃏 卡片收藏總覽\n` +
-    `- 總持有卡片數量: **${userInfo.total_cards}** 張`
-  );
+  let content = `# 📝 ${targetUser.username} 的詳細記錄\n\n`;
+  content += `## 💳 最近交易紀錄 (第 ${transactionPage + 1}/${totalPages} 頁)\n`;
+  content += `> 💡 提示：使用下方按鈕翻頁查看更多交易記錄\n\n`;
+  content += recentTransactionsContent;
+  content += `\n\n## 🃏 卡片收藏總覽\n`;
+  content += `- 總持有卡片數量: **${userInfo.total_cards}** 張`;
+
+  return content;
+}
+
+/**
+ * PageRank 關鍵節點視圖
+ */
+function createPageRankView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  let content = `# 👑 關鍵節點分析 (PageRank)\n\n`;
+  content += `> PageRank 算法識別網路中最重要的節點，分數越高表示該帳號在交易網路中的影響力越大。\n\n`;
+
+  if (relationshipNetwork.key_nodes && relationshipNetwork.key_nodes.length > 0) {
+    content += `## 📊 Top 10 關鍵節點\n\n`;
+    
+    relationshipNetwork.key_nodes.forEach((node) => {
+      const isTarget = node.user_id === targetUser.id;
+      const emoji = node.rank === 1 ? "👑" : node.rank === 2 ? "🥈" : node.rank === 3 ? "🥉" : "📍";
+      const score = (node.pagerank * 100).toFixed(2);
+      const bar = "█".repeat(Math.floor(node.pagerank * 50));
+      
+      content += `${emoji} **#${node.rank}** <@${node.user_id}>${isTarget ? " (目標)" : ""}\n`;
+      content += `   分數: ${score}% ${bar}\n\n`;
+    });
+  } else {
+    content += `無足夠資料進行 PageRank 分析。\n`;
+  }
+
+  return content;
+}
+
+/**
+ * 社群檢測視圖
+ */
+function createCommunitiesView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork,
+  expandedCommunities?: Set<number>
+): string {
+  let content = `# 🏘️ 社群檢測分析\n\n`;
+  content += `> 使用 Louvain 算法自動發現緊密交易的群組，可能代表朋友圈、工作室或小帳集團。\n`;
+  content += `> 💡 提示：點擊「展開」按鈕查看完整成員列表\n\n`;
+
+  if (relationshipNetwork.communities && relationshipNetwork.communities.length > 0) {
+    content += `## 📊 發現 ${relationshipNetwork.communities.length} 個社群\n\n`;
+
+    relationshipNetwork.communities.forEach((community, i) => {
+      const scoreEmoji = community.suspicion_score >= 70 ? "🚨" : community.suspicion_score >= 50 ? "⚠️" : "✅";
+      const isExpanded = expandedCommunities?.has(i) || false;
+      
+      content += `${scoreEmoji} **社群 ${i + 1}** - 可疑度: ${community.suspicion_score}/100\n`;
+      content += `- 成員數: ${community.members.length} 人\n`;
+      content += `- 模組度: ${(community.modularity * 100).toFixed(1)}%\n`;
+      content += `- 成員: `;
+      
+      if (isExpanded || community.members.length <= 10) {
+        // 顯示所有成員
+        content += community.members.map((uid: string) => `<@${uid}>`).join(", ");
+      } else {
+        // 只顯示前 10 個
+        content += community.members.slice(0, 10).map((uid: string) => `<@${uid}>`).join(", ");
+        content += ` +${community.members.length - 10} 人`;
+      }
+      
+      // 添加展開/收起提示（實際按鈕在 action buttons 中）
+      if (community.members.length > 10) {
+        content += `\n  ${isExpanded ? "▲" : "▼"} 使用「展開社群 ${i + 1}」按鈕${isExpanded ? "收起" : "查看全部"}`;
+      }
+      
+      content += `\n\n`;
+    });
+  } else {
+    content += `無足夠資料進行社群檢測。\n`;
+  }
+
+  return content;
+}
+
+/**
+ * 循環交易視圖
+ */
+function createCyclesView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  let content = `# 🔄 循環交易檢測\n\n`;
+  content += `> 檢測資金在多個帳號間循環流動的模式，這可能是洗錢或小帳互刷的跡象。\n\n`;
+
+  if (relationshipNetwork.cycle_patterns && relationshipNetwork.cycle_patterns.length > 0) {
+    content += `## 🚨 發現 ${relationshipNetwork.cycle_patterns.length} 個循環\n\n`;
+
+    relationshipNetwork.cycle_patterns.forEach((cycle, i) => {
+      const scoreEmoji = cycle.suspicion_score >= 80 ? "🚨" : cycle.suspicion_score >= 60 ? "⚠️" : "⚡";
+      content += `${scoreEmoji} **循環 ${i + 1}** - 可疑度: ${cycle.suspicion_score}/100\n`;
+      content += `- 循環長度: ${cycle.cycle.length} 個帳號\n`;
+      content += `- 總金額: ${cycle.total_amount.toLocaleString()} 元\n`;
+      content += `- 路徑: `;
+      
+      cycle.cycle.forEach((uid, idx) => {
+        content += `<@${uid}>`;
+        if (idx < cycle.cycle.length - 1) content += ` → `;
+      });
+      content += ` → <@${cycle.cycle[0]}>\n\n`;
+    });
+  } else {
+    content += `未發現明顯的循環交易模式。\n`;
+  }
+
+  return content;
+}
+
+/**
+ * 可疑集群視圖
+ */
+function createClustersView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  let content = `# 🚨 可疑集群檢測\n\n`;
+  content += `> 基於規則檢測可疑的帳號集群，包括高頻交易、相似行為模式等。\n\n`;
+
+  if (relationshipNetwork.suspicious_clusters && relationshipNetwork.suspicious_clusters.length > 0) {
+    content += `## 🔍 發現 ${relationshipNetwork.suspicious_clusters.length} 個可疑集群\n\n`;
+
+    relationshipNetwork.suspicious_clusters.forEach((cluster, i) => {
+      const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : cluster.suspicion_score >= 70 ? "⚠️" : "⚡";
+      content += `${scoreEmoji} **集群 ${i + 1}** - 可疑度: ${cluster.suspicion_score}/100\n`;
+      content += `- 涉及帳號: ${cluster.user_ids.length} 個\n`;
+      content += `- 可疑原因:\n`;
+      cluster.reasons.forEach(reason => {
+        content += `  • ${reason}\n`;
+      });
+      content += `- 成員: `;
+      content += cluster.user_ids.slice(0, 10).map(uid => `<@${uid}>`).join(", ");
+      if (cluster.user_ids.length > 10) {
+        content += ` +${cluster.user_ids.length - 10} 人`;
+      }
+      content += `\n\n`;
+    });
+  } else {
+    content += `未發現明顯的可疑集群。\n`;
+  }
+
+  return content;
+}
+
+/**
+ * 直接/間接關係視圖
+ */
+function createConnectionsView(
+  targetUser: User,
+  relationshipNetwork: RelationshipNetwork
+): string {
+  const { direct_connections, indirect_connections } = relationshipNetwork;
+  
+  let content = `# 🔗 關係連接詳情\n\n`;
+  content += `> 查看與目標帳號的直接和間接交易關係。\n\n`;
+
+  // 直接關係
+  content += `## 🔗 直接關係 (${direct_connections.length})\n\n`;
+  if (direct_connections.length > 0) {
+    direct_connections.slice(0, 20).forEach((conn, i) => {
+      const strengthEmoji = conn.relationship_strength >= 70 ? "🔴" : conn.relationship_strength >= 40 ? "🟡" : "🟢";
+      
+      content += `${i + 1}. <@${conn.related_user_id}> ${strengthEmoji} 強度: ${conn.relationship_strength}\n`;
+      content += `   • 交易次數: ${conn.transaction_count} 次\n`;
+      content += `   • 總金額: ${conn.total_amount.toLocaleString()} 元\n`;
+      content += `   • 平均金額: ${conn.avg_amount.toLocaleString()} 元\n`;
+      content += `   • 首次交易: <t:${Math.floor(new Date(conn.first_transaction).getTime() / 1000)}:R>\n`;
+      content += `   • 最後交易: <t:${Math.floor(new Date(conn.last_transaction).getTime() / 1000)}:R>\n\n`;
+    });
+    
+    if (direct_connections.length > 20) {
+      content += `... 還有 ${direct_connections.length - 20} 個直接關係\n\n`;
+    }
+  } else {
+    content += `無直接關係。\n\n`;
+  }
+
+  // 間接關係
+  content += `## 🔗🔗 間接關係 (${indirect_connections.length})\n\n`;
+  if (indirect_connections.length > 0) {
+    indirect_connections.slice(0, 15).forEach((conn, i) => {
+      content += `${i + 1}. <@${conn.related_user_id}>\n`;
+      content += `   • 交易次數: ${conn.transaction_count} 次\n`;
+      content += `   • 總金額: ${conn.total_amount.toLocaleString()} 元\n\n`;
+    });
+    
+    if (indirect_connections.length > 15) {
+      content += `... 還有 ${indirect_connections.length - 15} 個間接關係\n`;
+    }
+  } else {
+    content += `無間接關係。\n`;
+  }
+
+  return content;
 }
