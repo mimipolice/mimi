@@ -63,7 +63,10 @@ export const command: Command = {
     const t = translations[interaction.locale] ?? translations["en-US"];
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Check if interaction hasn't been deferred/replied to (important for retry logic)
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    }
 
     // 並行獲取所有資料
     const [userInfo, usagePatterns, recentFrequency, recentTransactions] =
