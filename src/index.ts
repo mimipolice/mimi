@@ -138,6 +138,11 @@ async function main() {
     for (const item of items) {
       const fullPath = path.join(dir, item.name);
       if (item.isDirectory()) {
+        // Skip utility directories that contain helper modules, not commands
+        const skipDirs = ['content-generators', 'help_docs'];
+        if (skipDirs.includes(item.name)) {
+          continue;
+        }
         // If the command is in a subdirectory, like /utility/help/index.ts,
         // we continue with the same category.
         loadCommandsRecursively(fullPath, category);
