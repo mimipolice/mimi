@@ -22,6 +22,9 @@ export interface RelationshipNetwork {
   direct_connections: UserRelationship[];
   indirect_connections: UserRelationship[]; // 二度關係
   suspicious_clusters: SuspiciousCluster[];
+  communities: import("./graph-algorithms").Community[]; // Louvain 社群檢測
+  key_nodes: Array<{ user_id: string; pagerank: number; rank: number }>; // PageRank 關鍵節點
+  cycle_patterns: import("./graph-algorithms").CyclePattern[]; // 循環交易
   network_stats: {
     total_connections: number;
     total_transactions: number;
@@ -58,13 +61,37 @@ export async function analyzeUserRelationships(
     directConnections.map((c) => c.related_user_id)
   );
 
-  // 3. 檢測可疑集群
+  // 3. 檢測可疑集群（基於規則）
   const suspiciousClusters = await detectSuspiciousClusters(
     userId,
     directConnections
   );
 
-  // 4. 計算網路統計
+  // 4. 建立圖並執行進階分析
+  const { buildGraph, calculatePageRank, detectCommunities, detectCycles } =
+    await import("./graph-algorithms.js");
+
+  const allRelationships = [...directConnections, ...indirectConnections];
+  const graph = buildGraph(allRelationships);
+
+  // 5. PageRank 分析 - 找出關鍵節點
+  const pageRankScores = calculatePageRank(graph);
+  const keyNodes: Array<{ user_id: string; pagerank: number; rank: number }> = Array.from(pageRankScores.entries())
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([user_id, pagerank]: [string, number], index: number) => ({
+      user_id,
+      pagerank,
+      rank: index + 1,
+    }));
+
+  // 6. Louvain 社群檢測 - 自動發現緊密群組
+  const communities = detectCommunities(graph);
+
+  // 7. 循環交易檢測
+  const cyclePatterns = detectCycles(graph, allRelationships, 5);
+
+  // 8. 計算網路統計
   const networkStats = calculateNetworkStats(directConnections);
 
   return {
@@ -72,6 +99,9 @@ export async function analyzeUserRelationships(
     direct_connections: directConnections,
     indirect_connections: indirectConnections,
     suspicious_clusters: suspiciousClusters,
+    communities,
+    key_nodes: keyNodes,
+    cycle_patterns: cyclePatterns,
     network_stats: networkStats,
   };
 }

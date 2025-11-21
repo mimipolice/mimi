@@ -202,10 +202,81 @@ export function createRelationshipContent(
   content += `- 💰 總交易金額: **${network_stats.total_amount.toLocaleString()}** 元\n`;
   content += `- 📈 平均關係強度: **${network_stats.avg_relationship_strength.toFixed(1)}** / 100\n\n`;
 
-  // 可疑集群
+  // PageRank 關鍵節點
+  if (relationshipNetwork.key_nodes && relationshipNetwork.key_nodes.length > 0) {
+    content += `## 👑 關鍵節點分析 (PageRank)\n`;
+    content += `> 這些帳號在網路中具有重要地位，可能是主帳號或中心節點\n\n`;
+
+    relationshipNetwork.key_nodes.slice(0, 5).forEach((node) => {
+      const isTarget = node.user_id === targetUser.id;
+      const emoji = node.rank === 1 ? "👑" : node.rank === 2 ? "🥈" : node.rank === 3 ? "🥉" : "⭐";
+      const score = (node.pagerank * 100).toFixed(2);
+      
+      content += `${emoji} **第 ${node.rank} 名** <@${node.user_id}>${isTarget ? " (目標帳號)" : ""}\n`;
+      content += `   重要度分數: ${score}%\n\n`;
+    });
+  }
+
+  // Louvain 社群檢測
+  if (relationshipNetwork.communities && relationshipNetwork.communities.length > 0) {
+    content += `## 🏘️ 社群檢測 (Louvain 演算法)\n`;
+    content += `> 自動發現的緊密連結群組，共 ${relationshipNetwork.communities.length} 個社群\n\n`;
+
+    relationshipNetwork.communities.slice(0, 3).forEach((community, i) => {
+      const scoreEmoji = community.suspicion_score >= 70 ? "🚨" : community.suspicion_score >= 50 ? "⚠️" : "✅";
+      content += `### ${scoreEmoji} 社群 ${i + 1} - 可疑度: ${community.suspicion_score}/100\n`;
+      content += `**成員**: ${community.members.length} 個帳號\n`;
+      community.members.slice(0, 8).forEach((uid) => {
+        content += `- <@${uid}>${uid === targetUser.id ? " (目標帳號)" : ""}\n`;
+      });
+      if (community.members.length > 8) {
+        content += `- ... 還有 ${community.members.length - 8} 個帳號\n`;
+      }
+      content += `\n**社群特徵**:\n`;
+      content += `- 內部連接: ${community.internal_edges} 條\n`;
+      content += `- 外部連接: ${community.external_edges} 條\n`;
+      content += `- 模組度: ${(community.modularity * 100).toFixed(1)}%\n`;
+      if (community.reasons.length > 0) {
+        content += `\n**可疑原因**:\n`;
+        community.reasons.forEach((reason) => {
+          content += `- ${reason}\n`;
+        });
+      }
+      content += `\n`;
+    });
+  }
+
+  // 循環交易檢測
+  if (relationshipNetwork.cycle_patterns && relationshipNetwork.cycle_patterns.length > 0) {
+    content += `## 🔄 循環交易檢測\n`;
+    content += `> 發現 ${relationshipNetwork.cycle_patterns.length} 個循環交易模式\n\n`;
+
+    relationshipNetwork.cycle_patterns.slice(0, 5).forEach((cycle, i) => {
+      const scoreEmoji = cycle.suspicion_score >= 80 ? "🚨" : "⚠️";
+      content += `### ${scoreEmoji} 循環 ${i + 1} - 可疑度: ${cycle.suspicion_score}/100\n`;
+      content += `**路徑**: `;
+      cycle.cycle.forEach((uid, idx) => {
+        content += `<@${uid}>`;
+        if (idx < cycle.cycle.length - 1) content += ` → `;
+      });
+      content += ` → <@${cycle.cycle[0]}>\n`;
+      content += `**統計**:\n`;
+      content += `- 總金額: ${cycle.total_amount.toLocaleString()} 元\n`;
+      content += `- 平均金額: ${cycle.avg_amount.toLocaleString()} 元\n`;
+      if (cycle.reasons.length > 0) {
+        content += `**可疑原因**:\n`;
+        cycle.reasons.forEach((reason) => {
+          content += `- ${reason}\n`;
+        });
+      }
+      content += `\n`;
+    });
+  }
+
+  // 可疑集群（基於規則）
   if (suspicious_clusters.length > 0) {
-    content += `## 🚨 可疑集群檢測\n`;
-    content += `> 發現 ${suspicious_clusters.length} 個可疑集群\n\n`;
+    content += `## 🚨 規則式集群檢測\n`;
+    content += `> 基於預設規則發現 ${suspicious_clusters.length} 個可疑集群\n\n`;
 
     suspicious_clusters.forEach((cluster, i) => {
       const scoreEmoji = cluster.suspicion_score >= 85 ? "🚨" : "⚠️";
@@ -226,9 +297,6 @@ export function createRelationshipContent(
       content += `- 總金額: ${cluster.transaction_pattern.total_amount.toLocaleString()} 元\n`;
       content += `\n`;
     });
-  } else {
-    content += `## ✅ 可疑集群檢測\n`;
-    content += `未發現明顯的可疑集群。\n\n`;
   }
 
   // 直接關係 Top 10
