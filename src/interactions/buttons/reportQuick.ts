@@ -1,8 +1,7 @@
 import {
-  StringSelectMenuInteraction,
+  ButtonInteraction,
   MessageFlags,
   AttachmentBuilder,
-  ButtonStyle,
 } from "discord.js";
 import { createUnauthorizedReply } from "../../utils/interactionReply";
 import { Services } from "../../interfaces/Command";
@@ -22,6 +21,8 @@ import { buildSummaryText } from "../../commands/public/report/summaryBuilder";
 import { getLocalizations } from "../../utils/localization";
 import assetList from "../../config/asset-list.json";
 import logger from "../../utils/logger";
+import { ButtonStyle } from "discord.js";
+import { createStockSelectMenu } from "../selectMenus/stockSelect";
 
 interface Asset {
   asset_symbol: string;
@@ -40,24 +41,15 @@ function formatPercent(value: number): string {
 }
 
 export default {
-  name: "stock-select",
-  async execute(interaction: StringSelectMenuInteraction, services: Services) {
+  name: "report-quick",
+  async execute(interaction: ButtonInteraction, services: Services) {
     try {
-      // Parse customId: stock-select:range:originalUserId
-      const [_, range, originalUserId] = interaction.customId.split(":");
-      const selectedSymbol = interaction.values[0];
-      const userId = interaction.user.id;
+      // Parse customId: report-quick-{symbol}
+      const symbol = interaction.customId.split("-")[2];
+      const range = "7d"; // Default range
 
-      // Check authorization
-      if (originalUserId && userId !== originalUserId) {
-        await interaction.reply(
-          createUnauthorizedReply(services.localizationManager, interaction)
-        );
-        return;
-      }
-
-      // Defer the update since we need to fetch data
-      await interaction.deferUpdate();
+      // Defer the reply since we need to fetch data
+      await interaction.deferReply({ ephemeral: false });
 
       const translations = getLocalizations(
         services.localizationManager,
@@ -66,12 +58,11 @@ export default {
       const t = translations[interaction.locale] || translations["en-US"];
 
       // Get report data
-      const data = await getReportData(selectedSymbol, range || "7d", services);
+      const data = await getReportData(symbol, range, services);
 
       if (!data) {
         await interaction.editReply({
-          content: t.responses.no_data.replace("{{symbol}}", selectedSymbol),
-          components: [],
+          content: t.responses.no_data.replace("{{symbol}}", symbol),
         });
         return;
       }
@@ -87,13 +78,13 @@ export default {
       } = data;
 
       const assetName =
-        assetList.find((a: Asset) => a.asset_symbol === selectedSymbol)
-          ?.asset_name || selectedSymbol;
+        assetList.find((a: Asset) => a.asset_symbol === symbol)?.asset_name ||
+        symbol;
 
       // Generate chart
       const chartBuffer = await generateCandlestickChart(
         history,
-        selectedSymbol,
+        symbol,
         intervalLabel,
         { latestOhlc, change, changePercent },
         true
@@ -101,7 +92,7 @@ export default {
 
       // Cache the chart
       const chartCacheService = new ChartCacheService();
-      const chartCacheKey = `report-chart:${selectedSymbol}:${range}`;
+      const chartCacheKey = `report-chart:${symbol}:${range}`;
       const chartPath = await chartCacheService.saveChart(
         chartCacheKey,
         chartBuffer
@@ -110,7 +101,6 @@ export default {
       if (!chartPath) {
         await interaction.editReply({
           content: t.responses.chart_error,
-          components: [],
         });
         return;
       }
@@ -157,20 +147,16 @@ export default {
 
       const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId(`report-price-${selectedSymbol}-${range}-${generatedAt}`)
+          .setCustomId(`report-price-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_price_analysis)
           .setStyle(ButtonStyle.Primary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId(
-            `report-detailed-${selectedSymbol}-${range}-${generatedAt}`
-          )
+          .setCustomId(`report-detailed-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_detailed_price)
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
-          .setCustomId(
-            `report-volume-${selectedSymbol}-${range}-${generatedAt}`
-          )
+          .setCustomId(`report-volume-${symbol}-${range}-${generatedAt}`)
           .setLabel(t.responses.button_volume_analysis)
           .setStyle(ButtonStyle.Secondary)
       );
@@ -184,8 +170,8 @@ export default {
             )
       );
 
-      // Recreate the stock select menu with the same options
-      const stockSelectMenu = createStockSelectMenu(range || "7d", userId);
+      // Create stock select menu
+      const stockSelectMenu = createStockSelectMenu(range, interaction.user.id);
 
       container.components.push(
         title,
@@ -207,34 +193,10 @@ export default {
         flags: MessageFlags.IsComponentsV2,
       });
     } catch (error) {
-      logger.error("Error executing stock select menu:", error);
+      logger.error("Error executing report quick button:", error);
       await interaction.editReply({
-        content: "處理您的選擇時發生了未預期的錯誤。",
-        components: [],
+        content: "處理您的請求時發生了未預期的錯誤。",
       });
     }
   },
 };
-
-// Helper function to create the stock select menu wrapped in ActionRow
-export function createStockSelectMenu(range: string, userId: string) {
-  const { StringSelectMenuBuilder } = require("@discordjs/builders");
-  
-  // Get top 25 assets for the select menu
-  const topAssets = assetList.slice(0, 25) as Asset[];
-
-  const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId(`stock-select:${range}:${userId}`)
-    .setPlaceholder("選擇其他股票查看報告...")
-    .addOptions(
-      topAssets.map((asset) => ({
-        label: `${asset.asset_name} (${asset.asset_symbol})`,
-        value: asset.asset_symbol,
-      }))
-    );
-
-  // Wrap in ActionRow for Components V2 compatibility
-  const actionRow = new ActionRowBuilder().addComponents(selectMenu);
-  
-  return actionRow;
-}

@@ -311,11 +311,76 @@ export default {
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === "list") {
-        const assetListText = assetList
-          .map((a: Asset) => `**${a.asset_name}** (${a.asset_symbol})`)
-          .join("\n");
+        // 從快取或資料庫取得價格變化資料
+        const cacheKey = "asset-price-changes";
+        let priceChanges = await services.cacheService.get<any[]>(cacheKey);
+
+        if (!priceChanges) {
+          const assetPriceCacheRepo = await import(
+            "../../../repositories/asset-price-cache.repository.js"
+          );
+          priceChanges = await assetPriceCacheRepo.getAllAssetsWithPriceChange();
+          // 快取 5 分鐘（價格每 10 分鐘更新，快取 5 分鐘可以減少查詢）
+          await services.cacheService.set(cacheKey, priceChanges, 300);
+        }
+
+        // 建立價格 map
+        const priceMap = new Map(
+          (priceChanges || []).map((p: any) => [p.asset_symbol, p])
+        );
+
+        // Build Components V2 container
+        const container = new ContainerBuilder();
+        container.setAccentColor(0x5865f2);
+
+        // Title
+        const title = new TextDisplayBuilder().setContent(
+          `# ${t.responses.asset_list || "可用資產列表"}\n*價格每 10 分鐘更新*`
+        );
+
+        // Build asset list text with price changes
+        let assetListText = "";
+        for (const asset of assetList as Asset[]) {
+          const priceInfo = priceMap.get(asset.asset_symbol);
+
+          if (priceInfo) {
+            const isUp = priceInfo.change_percent >= 0;
+            const emoji = isUp
+              ? ":chart_with_upwards_trend:"
+              : ":chart_with_downwards_trend:";
+            const sign = isUp ? "+" : "";
+
+            assetListText += `**${asset.asset_name}** (${asset.asset_symbol}) ${emoji} ${sign}${priceInfo.change_percent.toFixed(2)}%\n`;
+          } else {
+            assetListText += `**${asset.asset_name}** (${asset.asset_symbol}) 💤\n`;
+          }
+        }
+
+        const listContent = new TextDisplayBuilder().setContent(assetListText);
+
+        // Info text
+        const infoText = new TextDisplayBuilder().setContent(
+          "💡 使用下方選單快速查看股票報告"
+        );
+
+        // Create stock select menu
+        const stockSelectMenu = createStockSelectMenu(
+          "7d",
+          interaction.user.id
+        );
+
+        container.components.push(
+          title,
+          new SeparatorBuilder(),
+          listContent,
+          new SeparatorBuilder(),
+          infoText,
+          stockSelectMenu
+        );
+
         await interaction.editReply({
-          content: t.responses.asset_list + "\n" + assetListText,
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
         });
       } else if (subcommand === "symbol") {
         const symbol = interaction.options.getString("symbol", true);
