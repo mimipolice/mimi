@@ -28,6 +28,7 @@ import { Services, Databases } from "../../../interfaces/Command";
 import moment from "moment";
 import { buildSummaryText } from "./summaryBuilder";
 import { ChartCacheService } from "../../../services/ChartCacheService";
+import { createStockSelectMenu } from "../../../interactions/selectMenus/stockSelect";
 
 interface Asset {
   asset_symbol: string;
@@ -432,6 +433,9 @@ export default {
           )} (${formatPercent(data.changePercent)}%)`
         );
 
+        // Create stock select menu
+        const stockSelectMenu = createStockSelectMenu(range, interaction.user.id);
+
         container.components.push(
           title,
           lastUpdated,
@@ -441,7 +445,9 @@ export default {
           new SeparatorBuilder(),
           buttons,
           new SeparatorBuilder(),
-          chartImage
+          chartImage,
+          new SeparatorBuilder(),
+          stockSelectMenu
         );
 
         await interaction.editReply({
