@@ -216,7 +216,7 @@ export default {
   },
 };
 
-// Helper function to create the stock select menu
+// Helper function to create the stock select menu wrapped in ActionRow
 export function createStockSelectMenu(range: string, userId: string) {
   const { StringSelectMenuBuilder } = require("@discordjs/builders");
   
@@ -234,5 +234,8 @@ export function createStockSelectMenu(range: string, userId: string) {
       }))
     );
 
-  return selectMenu;
+  // Wrap in ActionRow for Components V2 compatibility
+  const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+  
+  return actionRow;
 }
