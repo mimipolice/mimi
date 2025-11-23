@@ -335,7 +335,7 @@ export default {
 
         // Title
         const title = new TextDisplayBuilder().setContent(
-          `# ${t.responses.asset_list || "可用資產列表"}\n*價格每 10 分鐘更新*`
+          `# ${t.responses.asset_list || "可選資產列表"}\n*價格每 10 分鐘更新*`
         );
 
         // Build asset list text with price changes
