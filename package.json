@@ -21,7 +21,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "discord-html-transcripts": "^3.2.0",
-    "discord.js": "^14.21.0",
+    "discord.js": "^14.25.1",
     "dompurify": "^3.2.6",
     "dotenv": "^17.0.1",
     "es-toolkit": "^1.39.8",
