@@ -1,17 +1,29 @@
 import { generateFromMessages } from "discord-html-transcripts";
-import { TextChannel, AttachmentBuilder } from "discord.js";
+import {
+  TextChannel,
+  AttachmentBuilder,
+  ThreadChannel,
+  VoiceChannel,
+  NewsChannel,
+} from "discord.js";
 import fs from "fs";
 import path from "path";
 import logger from "./logger";
 
+type SupportedChannel =
+  | TextChannel
+  | ThreadChannel
+  | VoiceChannel
+  | NewsChannel;
+
 /**
  * Generate a chat transcript for any channel and return as Discord attachment
- * @param channel - The text channel to export
+ * @param channel - The channel to export (text, thread, voice, or news)
  * @param messageLimit - Number of messages to fetch (default: 100)
  * @returns Object containing the attachment and local file path
  */
 export async function generateChatTranscript(
-  channel: TextChannel,
+  channel: SupportedChannel,
   messageLimit: number = 100
 ): Promise<{ attachment: AttachmentBuilder; filePath: string | null }> {
   try {
@@ -29,7 +41,7 @@ export async function generateChatTranscript(
     // Generate HTML transcript
     const transcriptAttachment = (await generateFromMessages(
       messages.reverse(),
-      channel
+      channel as any
     )) as AttachmentBuilder;
 
     let transcriptBuffer = transcriptAttachment.attachment as Buffer;
@@ -37,8 +49,11 @@ export async function generateChatTranscript(
 
     // Inject Open Graph meta tags for better link previews
     const guild = channel.guild;
+    const channelName = channel.isThread()
+      ? `${channel.name} (Thread)`
+      : channel.name;
     const ogMetadata = {
-      title: `Chat Export - #${channel.name}`,
+      title: `Chat Export - #${channelName}`,
       description: `Exported ${messages.size} messages from ${guild.name}`,
       siteName: guild.name,
       type: "website",

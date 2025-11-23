@@ -58,11 +58,26 @@ export const command: Command = {
       return;
     }
 
-    // Validate channel type
+    // Validate channel type - support text channels, threads, and voice text channels
     const channel = interaction.channel;
-    if (!channel || channel.type !== ChannelType.GuildText) {
+    if (!channel) {
       await interaction.reply({
-        content: "❌ This command can only be used in text channels.",
+        content: "❌ Unable to access this channel.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    const supportedChannelTypes = [
+      ChannelType.GuildText,
+      ChannelType.PublicThread,
+      ChannelType.PrivateThread,
+      ChannelType.GuildVoice,
+    ];
+
+    if (!supportedChannelTypes.includes(channel.type)) {
+      await interaction.reply({
+        content: "❌ This command can only be used in text channels, threads, or voice channels.",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -73,13 +88,15 @@ export const command: Command = {
     try {
       const limit = interaction.options.getInteger("limit") || 100;
       
+      const channelName =
+        "name" in channel ? channel.name : `Channel ${channel.id}`;
       logger.info(
-        `Exporting ${limit} messages from channel ${channel.id} (${channel.name}) by ${interaction.user.tag}`
+        `Exporting ${limit} messages from channel ${channel.id} (${channelName}) by ${interaction.user.tag}`
       );
 
-      // Generate transcript
+      // Generate transcript (cast to TextChannel for compatibility)
       const { attachment, filePath } = await generateChatTranscript(
-        channel,
+        channel as any,
         limit
       );
 
