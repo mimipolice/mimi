@@ -5,6 +5,7 @@ import {
   PermissionFlagsBits,
   Locale,
   Client,
+  ContainerBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
   MessageFlags,
@@ -192,18 +193,18 @@ export default {
           return;
         }
 
-        // Build Components v2 - use simple TextDisplay components
-        // Note: SectionBuilder requires an accessory (thumbnail/button), so we use TextDisplay directly
-        const components: any[] = [];
+        // Build Components v2 with Container to prevent mentions
+        const container = new ContainerBuilder()
+          .setAccentColor(0x5865F2);
         
         // Header with summary
-        components.push(
+        container.addTextDisplayComponents(
           new TextDisplayBuilder()
             .setContent(`# ${t.subcommands.list.responses.title}\n*Total: ${keywords.length} keyword(s)*`)
         );
         
         // Add separator
-        components.push(new SeparatorBuilder());
+        container.addSeparatorComponents(new SeparatorBuilder());
         
         // Group keywords by type for better organization
         const exactKeywords = keywords.filter(kw => kw.match_type === 'exact');
@@ -214,7 +215,7 @@ export default {
           if (keywordList.length === 0) return;
           
           // Type header
-          components.push(
+          container.addTextDisplayComponents(
             new TextDisplayBuilder()
               .setContent(`## ${typeLabel} (${keywordList.length})`)
           );
@@ -234,13 +235,13 @@ export default {
               })
               .join('\n\n');
             
-            components.push(
+            container.addTextDisplayComponents(
               new TextDisplayBuilder().setContent(content)
             );
             
             // Add separator between chunks (but not after the last one)
             if (i + CHUNK_SIZE < keywordList.length) {
-              components.push(new SeparatorBuilder());
+              container.addSeparatorComponents(new SeparatorBuilder());
             }
           }
         };
@@ -249,7 +250,7 @@ export default {
         if (exactKeywords.length > 0) {
           addKeywordSections(exactKeywords, '🎯 Exact Match');
           if (containsKeywords.length > 0) {
-            components.push(new SeparatorBuilder());
+            container.addSeparatorComponents(new SeparatorBuilder());
           }
         }
         
@@ -261,8 +262,9 @@ export default {
         await interaction.editReply({
           content: null,
           embeds: [],
-          components: components,
-          flags: [MessageFlags.IsComponentsV2]
+          components: [container],
+          flags: [MessageFlags.IsComponentsV2],
+          allowedMentions: { parse: [] } // 禁止所有 mentions
         });
       }
     } catch (error) {
