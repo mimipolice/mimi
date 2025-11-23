@@ -140,6 +140,22 @@
       },
       "general_error": "處理設定指令時發生錯誤。"
     },
+    "export-chat": {
+      "name": "匯出聊天紀錄",
+      "description": "將目前頻道的聊天紀錄匯出為 HTML 檔案。",
+      "options": {
+        "limit": {
+          "name": "訊息數量",
+          "description": "要匯出的訊息數量（預設：100，最多：1000）"
+        }
+      },
+      "responses": {
+        "success": "✅ 聊天紀錄已成功匯出（{{count}} 則訊息）。",
+        "not_text_channel": "❌ 此指令只能在文字頻道中使用。",
+        "no_messages": "❌ 此頻道中沒有找到任何訊息。",
+        "error": "❌ 匯出聊天紀錄失敗：{{error}}"
+      }
+    },
     "keyword": {
       "name": "關鍵字",
       "description": "管理關鍵字回覆。",

@@ -140,6 +140,22 @@
       },
       "general_error": "An error occurred while handling the config command."
     },
+    "export-chat": {
+      "name": "export-chat",
+      "description": "Export chat history of the current channel as an HTML file.",
+      "options": {
+        "limit": {
+          "name": "limit",
+          "description": "Number of messages to export (default: 100, max: 1000)"
+        }
+      },
+      "responses": {
+        "success": "✅ Chat history exported successfully ({{count}} messages).",
+        "not_text_channel": "❌ This command can only be used in text channels.",
+        "no_messages": "❌ No messages found in this channel.",
+        "error": "❌ Failed to export chat history: {{error}}"
+      }
+    },
     "keyword": {
       "name": "keyword",
       "description": "Manages keyword replies.",
