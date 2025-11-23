@@ -5,11 +5,8 @@ import {
   PermissionFlagsBits,
   Locale,
   Client,
-  ContainerBuilder,
-  SectionBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
-  SeparatorSpacingSize,
   MessageFlags,
 } from "discord.js";
 import { mimiDLCDb } from "../../../shared/database";
@@ -195,22 +192,18 @@ export default {
           return;
         }
 
-        // Build Components v2 container
-        const container = new ContainerBuilder()
-          .setAccentColor(0x5865F2);
+        // Build Components v2 - use simple TextDisplay components
+        // Note: SectionBuilder requires an accessory (thumbnail/button), so we use TextDisplay directly
+        const components: any[] = [];
         
         // Header with summary
-        container.addTextDisplayComponents(
+        components.push(
           new TextDisplayBuilder()
             .setContent(`# ${t.subcommands.list.responses.title}\n*Total: ${keywords.length} keyword(s)*`)
         );
         
         // Add separator
-        container.addSeparatorComponents(
-          new SeparatorBuilder()
-            .setSpacing(SeparatorSpacingSize.Small)
-            .setDivider(true)
-        );
+        components.push(new SeparatorBuilder());
         
         // Group keywords by type for better organization
         const exactKeywords = keywords.filter(kw => kw.match_type === 'exact');
@@ -221,12 +214,12 @@ export default {
           if (keywordList.length === 0) return;
           
           // Type header
-          container.addTextDisplayComponents(
+          components.push(
             new TextDisplayBuilder()
               .setContent(`## ${typeLabel} (${keywordList.length})`)
           );
           
-          // Split into chunks to avoid character limit (max ~700 chars per section)
+          // Split into chunks to avoid character limit (max ~700 chars per TextDisplay)
           const CHUNK_SIZE = 4;
           for (let i = 0; i < keywordList.length; i += CHUNK_SIZE) {
             const chunk = keywordList.slice(i, i + CHUNK_SIZE);
@@ -241,19 +234,13 @@ export default {
               })
               .join('\n\n');
             
-            container.addSectionComponents(
-              new SectionBuilder()
-                .addTextDisplayComponents(
-                  new TextDisplayBuilder().setContent(content)
-                )
+            components.push(
+              new TextDisplayBuilder().setContent(content)
             );
             
             // Add separator between chunks (but not after the last one)
             if (i + CHUNK_SIZE < keywordList.length) {
-              container.addSeparatorComponents(
-                new SeparatorBuilder()
-                  .setSpacing(SeparatorSpacingSize.Small)
-              );
+              components.push(new SeparatorBuilder());
             }
           }
         };
@@ -262,11 +249,7 @@ export default {
         if (exactKeywords.length > 0) {
           addKeywordSections(exactKeywords, '🎯 Exact Match');
           if (containsKeywords.length > 0) {
-            container.addSeparatorComponents(
-              new SeparatorBuilder()
-                .setSpacing(SeparatorSpacingSize.Large)
-                .setDivider(true)
-            );
+            components.push(new SeparatorBuilder());
           }
         }
         
@@ -278,7 +261,7 @@ export default {
         await interaction.editReply({
           content: null,
           embeds: [],
-          components: [container],
+          components: components,
           flags: [MessageFlags.IsComponentsV2]
         });
       }
