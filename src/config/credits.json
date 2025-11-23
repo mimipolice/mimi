@@ -1,0 +1,54 @@
+{
+  "bot": {
+    "name": "米米DLC",
+    "version": "",
+    "description": "好東西",
+    "author": "",
+    "repository": ""
+  },
+  "assets": {
+    "images": [
+      {
+        "name": "pfp",
+        "source": "Twitter",
+        "license": "Fair Use",
+        "url": "https://x.com/Zzul0714/status/1512354288315813891"
+      },
+      {
+        "name": "banner",
+        "source": "Pixiv",
+        "license": "Discord Brand Guidelines",
+        "url": "https://www.pixiv.net/artworks/103156033"
+      }
+    ],
+    "data": [
+      {
+        "name": "",
+        "source": "",
+        "license": "",
+        "url": ""
+      }
+    ],
+    "libraries": [
+      {
+        "name": "",
+        "version": "",
+        "license": "",
+        "url": ""
+      }
+    ]
+  },
+  "contributors": [
+    {
+      "name": "",
+      "role": "",
+      "github": ""
+    }
+  ],
+  "links": {
+    "github": "",
+    "privacy": "https://gist.githubusercontent.com/956zs/7f1823cd4a0b64f213042f52cf1f15f3/raw/650828961fd54eeae1d00ba7905778d94b860f9f/PRIVACY_POLICY",
+    "terms": "https://gist.githubusercontent.com/956zs/7f1823cd4a0b64f213042f52cf1f15f3/raw/650828961fd54eeae1d00ba7905778d94b860f9f/TERMS_OF_SERVICE",
+    "support": "https://discord.gg/kDua5dDt4v"
+  }
+}
