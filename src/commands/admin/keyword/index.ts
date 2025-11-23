@@ -195,7 +195,7 @@ export default {
 
         // Build Components v2 with Container to prevent mentions
         const container = new ContainerBuilder()
-          .setAccentColor(0x5865F2);
+          .setAccentColor(0xFAA7CF); // #FAA7CF
         
         // Header with summary
         container.addTextDisplayComponents(
