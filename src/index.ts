@@ -6,6 +6,7 @@ import {
   ActivityType,
   Client,
   Collection,
+  Events,
   GatewayIntentBits,
 } from "discord.js";
 import logger from "./utils/logger";
@@ -268,7 +269,7 @@ async function main() {
   client.login(process.env.DISCORD_TOKEN);
 
   // 6. Start background services
-  client.once("ready", async () => {
+  client.once(Events.ClientReady, async () => {
     if (!client.user) {
       logger.error("Client user is not available.");
       return;
