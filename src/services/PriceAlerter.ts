@@ -137,6 +137,17 @@ export class PriceAlerter {
 
       await user.send(message);
     } catch (error) {
+      // Check if the error is "Cannot send messages to this user" (code 50007)
+      // This happens when user left server, has DMs disabled, or blocked the bot
+      const discordError = error as { code?: number };
+      if (discordError.code === 50007) {
+        logger.warn(
+          `[PriceAlerter] Cannot send DM to user ${alert.user_id} (code 50007). Removing all their alerts to prevent log spam.`
+        );
+        // Remove all alerts for this user since we can't reach them
+        await removePriceAlert(alert.id, alert.user_id);
+        return;
+      }
       logger.error(`Failed to send price alert DM to ${alert.user_id}:`, error);
     }
   }
