@@ -65,7 +65,7 @@ module.exports = {
       `[messageCreate] Message from ${message.author.tag} in guild ${message.guild?.id || "DM"} channel ${message.channel.id}`
     );
 
-    if (message.author.bot || !message.guild) {
+    if (message.author.bot || !message.guild || message.system) {
       return;
     }
 
