@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import fs from "fs";
 import path from "path";
-import logger from "./logger";
+import logger from "../logger";
 
 type SupportedChannel =
   | TextChannel

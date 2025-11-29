@@ -7,7 +7,7 @@ import {
 } from "discord.js";
 import { SettingsManager, GuildSettings } from "./SettingsManager";
 import logger from "../utils/logger";
-import { generateTranscript } from "../utils/transcript";
+import { generateTranscript } from "../utils/transcript/transcript";
 import { sanitize } from "../utils/sanitize";
 import { MimiDLCDB } from "../shared/database/types";
 import { TicketRepository, Ticket } from "../repositories/ticket.repository";

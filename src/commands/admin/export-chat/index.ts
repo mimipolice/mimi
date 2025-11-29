@@ -7,7 +7,7 @@ import {
 } from "discord.js";
 import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
-import { generateChatTranscript } from "../../../utils/chatTranscript";
+import { generateChatTranscript } from "../../../utils/transcript/chatTranscript";
 import { createMissingPermissionsReply } from "../../../utils/interactionReply";
 import logger from "../../../utils/logger";
 

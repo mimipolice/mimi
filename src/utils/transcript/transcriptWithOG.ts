@@ -2,7 +2,7 @@ import { generateFromMessages } from "discord-html-transcripts";
 import { TextChannel, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
-import logger from "./logger";
+import logger from "../logger";
 
 export interface OGMetadata {
   title?: string;
