@@ -249,7 +249,7 @@ export const command: Command = {
         // Check if at least one option is provided
         if (threshold === null && timeout === null && timeWindow === null && ignoredRolesStr === null) {
           await interaction.editReply({
-            content: "❌ 請至少提供一個參數來更新設定。\n" +
+            content: "<:notice:1444897740566958111> 請至少提供一個參數來更新設定。\n" +
               "可用參數：`threshold`（閾值）、`timeout`（禁言時長）、`time_window`（時間範圍）、`ignored_roles`（豁免身分組）",
           });
           return;
@@ -402,7 +402,7 @@ export const command: Command = {
         await deleteAntiSpamSettings(interaction.guildId);
         flushAntiSpamSettingsForGuild(interaction.guildId);
         await interaction.editReply({
-          content: "Anti-spam settings have been reset to default.",
+          content: "<:bck:1444901131825315850> 防洗版設定已重設為預設值。",
         });
       }
       return;
@@ -447,7 +447,7 @@ export const command: Command = {
 
       if (antiSpamLogChannelId) {
         await setAntiSpamLogChannel(interaction.guildId, antiSpamLogChannelId);
-        responseContent += `Anti-spam log channel set to <#${antiSpamLogChannelId}>.\n`;
+        responseContent += `<:bck:1444901131825315850> 防洗版日誌頻道已設定為 <#${antiSpamLogChannelId}>。\n`;
         updated = true;
       }
 
@@ -456,7 +456,7 @@ export const command: Command = {
       } else {
         await interaction.editReply({
           content:
-            "No settings were provided to update. Please provide at least one option.",
+            "<:notice:1444897740566958111> 未提供任何設定值。請至少提供一個選項。",
         });
       }
     } else if (subcommand === "view") {
