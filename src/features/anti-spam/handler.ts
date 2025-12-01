@@ -109,12 +109,13 @@ async function handleSpamAction(
       if (err.code === 50013) {
         // Missing Permissions
         await message.channel.send(
-          `⚠️ Spam detected from ${member.toString()}, but I lack permissions to timeout this user. ` +
-          `Please ensure my role is higher than theirs in Server Settings → Roles.`
+          `⚠️ 偵測到 ${member.toString()} 疑似洗版，但我沒有權限禁言此用戶。\n` +
+          `請確保我的身分組在伺服器設定 → 身分組中高於該用戶。\n` +
+          `💡 提示：管理員可使用 </config anti-spam set:1397608562225709100>  設定豁免身分組。`
         );
       } else {
         await message.channel.send(
-          `⚠️ Spam detected from ${member.toString()}, but I cannot timeout this user (Error: ${err.code || 'Unknown'}).`
+          `⚠️ 偵測到 ${member.toString()} 疑似洗版，但無法禁言此用戶（錯誤代碼：${err.code || '未知'}）。`
         );
       }
     } catch (notifyErr) {

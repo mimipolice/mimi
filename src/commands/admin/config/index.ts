@@ -150,7 +150,7 @@ export const command: Command = {
                 .setDescriptionLocalizations({
                   [Locale.ChineseTW]: "觸發偵測的訊息數量。",
                 })
-                .setRequired(true)
+                .setRequired(false)
             )
             .addIntegerOption((option) =>
               option
@@ -162,7 +162,7 @@ export const command: Command = {
                 .setDescriptionLocalizations({
                   [Locale.ChineseTW]: "禁言的持續時間（秒）。",
                 })
-                .setRequired(true)
+                .setRequired(false)
             )
             .addIntegerOption((option) =>
               option
@@ -174,7 +174,7 @@ export const command: Command = {
                 .setDescriptionLocalizations({
                   [Locale.ChineseTW]: "偵測洗版的秒數範圍。",
                 })
-                .setRequired(true)
+                .setRequired(false)
             )
             .addStringOption((option) =>
               option
@@ -235,33 +235,79 @@ export const command: Command = {
 
     if (subcommandGroup === "anti-spam") {
       if (subcommand === "set") {
-        const threshold = interaction.options.getInteger("threshold", true);
-        const timeout = interaction.options.getInteger("timeout", true);
-        const timeWindow = interaction.options.getInteger("time_window", true);
-        const ignoredRolesStr =
-          interaction.options.getString("ignored_roles") || "";
-        const ignoredRoles = ignoredRolesStr
-          .split(/[, ]+/)
-          .filter((id) => /^\d+$/.test(id));
+        const threshold = interaction.options.getInteger("threshold");
+        const timeout = interaction.options.getInteger("timeout");
+        const timeWindow = interaction.options.getInteger("time_window");
+        const ignoredRolesStr = interaction.options.getString("ignored_roles");
 
-        await upsertAntiSpamSettings({
+        // Check if at least one option is provided
+        if (threshold === null && timeout === null && timeWindow === null && ignoredRolesStr === null) {
+          await interaction.editReply({
+            content: "❌ 請至少提供一個參數來更新設定。\n" +
+              "可用參數：`threshold`（閾值）、`timeout`（禁言時長）、`time_window`（時間範圍）、`ignored_roles`（豁免身分組）",
+          });
+          return;
+        }
+
+        // Get existing settings to merge with new values
+        const existingSettings = await getAntiSpamSettingsForGuild(interaction.guildId);
+        
+        const updatedSettings: {
+          guildid: string;
+          messagethreshold?: number;
+          time_window?: number;
+          timeoutduration?: number;
+          ignored_roles?: string[];
+        } = {
           guildid: interaction.guildId,
-          messagethreshold: threshold,
-          time_window: timeWindow * 1000, // Convert to ms
-          timeoutduration: timeout * 1000, // Convert to ms
-          ignored_roles: ignoredRoles,
-        });
+        };
 
+        // Only update fields that were provided
+        if (threshold !== null) {
+          updatedSettings.messagethreshold = threshold;
+        } else if (existingSettings?.messagethreshold) {
+          updatedSettings.messagethreshold = existingSettings.messagethreshold;
+        }
+
+        if (timeWindow !== null) {
+          updatedSettings.time_window = timeWindow * 1000; // Convert to ms
+        } else if (existingSettings?.time_window) {
+          updatedSettings.time_window = existingSettings.time_window;
+        }
+
+        if (timeout !== null) {
+          updatedSettings.timeoutduration = timeout * 1000; // Convert to ms
+        } else if (existingSettings?.timeoutduration) {
+          updatedSettings.timeoutduration = existingSettings.timeoutduration;
+        }
+
+        if (ignoredRolesStr !== null) {
+          updatedSettings.ignored_roles = ignoredRolesStr
+            .split(/[, ]+/)
+            .filter((id) => /^\d+$/.test(id));
+        } else if (existingSettings?.ignored_roles) {
+          updatedSettings.ignored_roles = existingSettings.ignored_roles as string[];
+        }
+
+        await upsertAntiSpamSettings(updatedSettings);
         flushAntiSpamSettingsForGuild(interaction.guildId);
 
-        let replyContent = `Anti-spam settings updated: Threshold=${threshold}, Time Window=${timeWindow}s, Timeout=${timeout}s.`;
-        if (ignoredRoles.length > 0) {
-          replyContent += `\nIgnored roles: ${ignoredRoles
-            .map((id) => `<@&${id}>`)
-            .join(", ")}`;
+        // Build response message
+        const updatedParts: string[] = [];
+        if (threshold !== null) updatedParts.push(`閾值=${threshold}`);
+        if (timeWindow !== null) updatedParts.push(`時間範圍=${timeWindow}秒`);
+        if (timeout !== null) updatedParts.push(`禁言時長=${timeout}秒`);
+        if (ignoredRolesStr !== null) {
+          const roles = updatedSettings.ignored_roles || [];
+          if (roles.length > 0) {
+            updatedParts.push(`豁免身分組=${roles.map((id) => `<@&${id}>`).join(", ")}`);
+          } else {
+            updatedParts.push(`豁免身分組=無`);
+          }
         }
+
         await interaction.editReply({
-          content: replyContent,
+          content: `✅ 防洗版設定已更新：${updatedParts.join("、")}`,
         });
       } else if (subcommand === "show") {
         const settings = await getAntiSpamSettingsForGuild(interaction.guildId);
