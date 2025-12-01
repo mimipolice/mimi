@@ -4,6 +4,12 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   Locale,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  SectionBuilder,
+  ThumbnailBuilder,
 } from "discord.js";
 import { Command, Databases, Services } from "../../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
@@ -307,31 +313,89 @@ export const command: Command = {
         }
 
         await interaction.editReply({
-          content: `✅ 防洗版設定已更新：${updatedParts.join("、")}`,
+          content: `<:bck:1444901131825315850> 防洗版設定已更新：${updatedParts.join("、")}`,
         });
       } else if (subcommand === "show") {
         const settings = await getAntiSpamSettingsForGuild(interaction.guildId);
+        const container = new ContainerBuilder().setAccentColor(0x5865f2);
+        
+        // Title section with thumbnail
+        container.addSectionComponents(
+          new SectionBuilder()
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent("# <:sc:1444897142509670481> 防洗版設定\n*目前的防洗版設定*")
+            )
+            .setThumbnailAccessory(
+              new ThumbnailBuilder().setURL(interaction.guild?.iconURL() || "https://cdn.discordapp.com/embed/avatars/0.png")
+            )
+        );
+        
+        container.addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+        );
+
         if (settings) {
+          const ignoredRolesText = settings.ignored_roles &&
+            Array.isArray(settings.ignored_roles) &&
+            settings.ignored_roles.length > 0
+              ? settings.ignored_roles.map((id: string) => `<@&${id}>`).join(", ")
+              : "*無*";
+
+          // Detection settings
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:pck:1444901376139202662> 偵測參數")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `-# 閾值\n**${settings.messagethreshold}** 則訊息\n` +
+              `-# 時間範圍\n**${settings.time_window / 1000}** 秒`
+            )
+          );
+          
+          container.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+          );
+          
+          // Punishment settings
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:st:1444900782372683786> 處罰設定")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `-# 禁言時長\n**${settings.timeoutduration / 1000}** 秒`
+            )
+          );
+          
+          container.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+          );
+          
+          // Exemptions
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:st:1444900782372683786> 豁免身分組")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(ignoredRolesText)
+          );
+
           await interaction.editReply({
-            content: `Current anti-spam settings:\n- Threshold: ${
-              settings.messagethreshold
-            } messages\n- Time Window: ${
-              settings.time_window / 1000
-            } seconds\n- Timeout: ${
-              settings.timeoutduration / 1000
-            } seconds\n- Ignored Roles: ${
-              settings.ignored_roles &&
-              Array.isArray(settings.ignored_roles) &&
-              settings.ignored_roles.length > 0
-                ? settings.ignored_roles
-                    .map((id: string) => `<@&${id}>`)
-                    .join(", ")
-                : "None"
-            }`,
+            components: [container],
+            flags: [MessageFlags.IsComponentsV2],
           });
         } else {
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:notice:1444897740566958111> 尚未設定")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              "此伺服器尚未設定自訂防洗版參數，使用預設值。\n\n" +
+              "使用 </config anti-spam show:1397608562225709100> 來自訂設定。"
+            )
+          );
+
           await interaction.editReply({
-            content: "No custom anti-spam settings found for this server.",
+            components: [container],
+            flags: [MessageFlags.IsComponentsV2],
           });
         }
       } else if (subcommand === "reset") {
@@ -401,28 +465,90 @@ export const command: Command = {
         interaction.guildId
       );
 
-      let viewResponse = t.subcommands.view.responses.no_config;
+      const container = new ContainerBuilder().setAccentColor(0x5865f2);
+
+      // Title section with server thumbnail
+      container.addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`# <:bow:1444897109336653886> ${t.subcommands.view.responses.title}\n*目前的伺服器設定*`)
+          )
+          .setThumbnailAccessory(
+            new ThumbnailBuilder().setURL(interaction.guild?.iconURL() || "https://cdn.discordapp.com/embed/avatars/0.png")
+          )
+      );
+      
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      );
 
       if (settings) {
-        viewResponse = `
-${t.subcommands.view.responses.title}
-${t.subcommands.view.responses.staff_role} <@&${settings.staffRoleId}>
-${t.subcommands.view.responses.ticket_category} <#${settings.ticketCategoryId}>
-${t.subcommands.view.responses.log_channel} <#${settings.logChannelId}>
-${t.subcommands.view.responses.panel_channel} <#${settings.panelChannelId}>
-${t.subcommands.view.responses.archive_category} <#${settings.archiveCategoryId}>
-          `;
-      }
+        // Ticket System Settings
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### <:bh:1444897086763044976> 客服單系統")
+        );
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `-# ${t.subcommands.view.responses.staff_role}\n<@&${settings.staffRoleId}>\n` +
+            `-# ${t.subcommands.view.responses.ticket_category}\n<#${settings.ticketCategoryId}>\n` +
+            `-# ${t.subcommands.view.responses.archive_category}\n<#${settings.archiveCategoryId}>`
+          )
+        );
+        
+        container.addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+        );
+        
+        // Channel Settings
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### <:bc:1444896412042002533> 頻道設定")
+        );
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `-# ${t.subcommands.view.responses.log_channel}\n<#${settings.logChannelId}>\n` +
+            `-# ${t.subcommands.view.responses.panel_channel}\n<#${settings.panelChannelId}>`
+          )
+        );
 
-      if (antiSpamLogChannel) {
-        if (viewResponse === t.subcommands.view.responses.no_config) {
-          viewResponse = "**Anti-Spam Settings**\n";
+        if (antiSpamLogChannel) {
+          container.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:sc:1444897142509670481> 防洗版")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `-# 日誌頻道\n<#${antiSpamLogChannel}>`
+            )
+          );
         }
-        viewResponse += `\n**Anti-Spam Log Channel**: <#${antiSpamLogChannel}>`;
+      } else {
+        if (antiSpamLogChannel) {
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:sc:1444897142509670481> 防洗版")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `-# 日誌頻道\n<#${antiSpamLogChannel}>`
+            )
+          );
+        } else {
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("### <:notice:1444897740566958111> 尚未設定")
+          );
+          container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              t.subcommands.view.responses.no_config + "\n\n" +
+              "使用 </config set:1397608562225709100> 來設定伺服器。"
+            )
+          );
+        }
       }
 
       await interaction.editReply({
-        content: viewResponse,
+        components: [container],
+        flags: [MessageFlags.IsComponentsV2],
       });
     }
   },
