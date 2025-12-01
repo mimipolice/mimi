@@ -7,14 +7,35 @@ export async function execute(guild: Guild) {
 
   if (channel) {
     await channel.send({
-      content: `
-Thanks for inviting me to your server!
+      content: `<:sc:1444897142509670481> **感謝邀請我！**
 
-To get started, please use the \`/config set\` command to configure the ticket system.
-You will need to provide a staff role, a ticket category, a log channel, and a panel channel.
+<:pck:1444901376139202662> **開始使用**
+使用 </config set:1397608562225709100> 來設定客服單系統。
 
-Once you have configured the bot, you can use the \`/ticketpanel setup\` command to create the ticket panel.
-      `,
+<:notice:1444897740566958111> **必要設定**
+• 客服身分組
+• 客服單類別
+• 日誌頻道
+• 面板頻道
+
+<:bck:1444901131825315850> **最後一步**
+執行 </panel setup:1397608562678698107> 來建立客服單面板。
+
+———
+
+<:sc:1444897142509670481> **Thanks for inviting me!**
+
+<:pck:1444901376139202662> **Getting Started**
+Use </config set:1397608562225709100> to configure the ticket system.
+
+<:notice:1444897740566958111> **Required Settings**
+• Staff role
+• Ticket category
+• Log channel
+• Panel channel
+
+<:bck:1444901131825315850> **Final Step**
+Run </panel setup:1397608562678698107> to create the ticket panel.`,
     });
   }
 }

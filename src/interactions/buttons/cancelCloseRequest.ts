@@ -17,7 +17,7 @@ export default {
 
     if (!ticket) {
       await interaction.reply({
-        content: '❌ This is not a valid ticket channel.',
+        content: '<:notice:1444897740566958111> 這不是有效的客服單頻道。',
         ephemeral: true,
       });
       return;
@@ -30,7 +30,7 @@ export default {
 
     if (!isAuthorized) {
       await interaction.reply({
-        content: '❌ Only the ticket owner or assigned staff can cancel this request.',
+        content: '<:notice:1444897740566958111> 只有客服單擁有者或負責的客服人員可以取消此請求。',
         ephemeral: true,
       });
       return;
@@ -38,9 +38,9 @@ export default {
 
     // Send a message indicating the request was cancelled
     const embed = new EmbedBuilder()
-      .setTitle("❌ Close Request Cancelled")
+      .setTitle("<:notice:1444897740566958111> 關閉請求已取消")
       .setDescription(
-        `${interaction.user} has cancelled the close request.\n\nThe ticket will remain open.`
+        `${interaction.user} 已取消關閉請求。\n\n客服單將保持開啟狀態。`
       )
       .setColor(0x808080)
       .setTimestamp();

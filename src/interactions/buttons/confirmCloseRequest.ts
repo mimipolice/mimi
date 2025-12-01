@@ -17,7 +17,7 @@ export default {
 
     if (!ticket) {
       await interaction.reply({
-        content: '❌ This is not a valid ticket channel.',
+        content: '<:notice:1444897740566958111> 這不是有效的客服單頻道。',
         ephemeral: true,
       });
       return;
@@ -30,7 +30,7 @@ export default {
 
     if (!isAuthorized) {
       await interaction.reply({
-        content: '❌ Only the ticket owner or assigned staff can confirm closing.',
+        content: '<:notice:1444897740566958111> 只有客服單擁有者或負責的客服人員可以確認關閉。',
         ephemeral: true,
       });
       return;
@@ -39,11 +39,11 @@ export default {
     // Show modal for close reason
     const modal = new ModalBuilder()
       .setCustomId('close_ticket_modal')
-      .setTitle('Close Ticket');
+      .setTitle('關閉客服單');
 
     const reasonInput = new TextInputBuilder()
       .setCustomId('close_reason')
-      .setLabel('Reason for closing (optional)')
+      .setLabel('關閉原因（選填）')
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(false);
 
