@@ -389,7 +389,7 @@ export const command: Command = {
           container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
               "此伺服器尚未設定自訂防洗版參數，使用預設值。\n\n" +
-              "使用 </config anti-spam show:1397608562225709100> 來自訂設定。"
+              "使用 </config anti-spam set:1397608562225709100> 來自訂設定。"
             )
           );
 
