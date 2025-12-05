@@ -254,6 +254,7 @@ export async function upsertAntiSpamSettings(
     .insertInto("anti_spam_settings")
     .values({
       guildid: guildid,
+      enabled: dataForDb.enabled ?? false,
       messagethreshold: dataForDb.messagethreshold ?? 5,
       time_window: dataForDb.time_window ?? 5000,
       timeoutduration: dataForDb.timeoutduration ?? 86400000,

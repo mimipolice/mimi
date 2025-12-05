@@ -225,6 +225,12 @@ export async function handleAntiSpam(message: Message) {
 
   const guildSettings = await getAntiSpamSettingsForGuild(message.guild.id);
 
+  // Check if anti-spam is enabled for this guild (default: disabled)
+  if (!guildSettings?.enabled) {
+    logger.debug(`[Anti-Spam] Anti-spam is disabled for guild ${message.guild.id}, skipping`);
+    return;
+  }
+
   const settings = {
     spamThreshold:
       guildSettings?.messagethreshold ?? config.antiSpam.spamThreshold,

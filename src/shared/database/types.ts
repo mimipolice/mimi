@@ -296,6 +296,7 @@ export interface MimiDLCDB {
   };
   anti_spam_settings: {
     guildid: string;
+    enabled: boolean;
     messagethreshold: number;
     timeoutduration: number;
     time_window: number;

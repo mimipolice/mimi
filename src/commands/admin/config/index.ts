@@ -219,6 +219,28 @@ export const command: Command = {
               [Locale.ChineseTW]: "將防洗版設定重設為預設值。",
             })
         )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("enable")
+            .setDescription("Enable anti-spam protection.")
+            .setNameLocalizations({
+              [Locale.ChineseTW]: "啟用",
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]: "啟用防洗版保護。",
+            })
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("disable")
+            .setDescription("Disable anti-spam protection.")
+            .setNameLocalizations({
+              [Locale.ChineseTW]: "停用",
+            })
+            .setDescriptionLocalizations({
+              [Locale.ChineseTW]: "停用防洗版保護。",
+            })
+        )
     ),
   async execute(
     interaction: ChatInputCommandInteraction,
@@ -334,6 +356,20 @@ export const command: Command = {
           new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
         );
 
+        // Status section (always show)
+        const isEnabled = settings?.enabled ?? false;
+        const statusText = isEnabled ? "✅ **已啟用**" : "❌ **已停用**";
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### <:bow:1444897109336653886> 狀態")
+        );
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(statusText)
+        );
+        
+        container.addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+        );
+
         if (settings) {
           const ignoredRolesText = settings.ignored_roles &&
             Array.isArray(settings.ignored_roles) &&
@@ -389,6 +425,7 @@ export const command: Command = {
           container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
               "此伺服器尚未設定自訂防洗版參數，使用預設值。\n\n" +
+              "使用 </config anti-spam enable:1397608562225709100> 來啟用防洗版。\n" +
               "使用 </config anti-spam set:1397608562225709100> 來自訂設定。"
             )
           );
@@ -403,6 +440,24 @@ export const command: Command = {
         flushAntiSpamSettingsForGuild(interaction.guildId);
         await interaction.editReply({
           content: "<:bck:1444901131825315850> 防洗版設定已重設為預設值。",
+        });
+      } else if (subcommand === "enable") {
+        await upsertAntiSpamSettings({
+          guildid: interaction.guildId,
+          enabled: true,
+        });
+        flushAntiSpamSettingsForGuild(interaction.guildId);
+        await interaction.editReply({
+          content: "<:bck:1444901131825315850> 防洗版保護已**啟用**。",
+        });
+      } else if (subcommand === "disable") {
+        await upsertAntiSpamSettings({
+          guildid: interaction.guildId,
+          enabled: false,
+        });
+        flushAntiSpamSettingsForGuild(interaction.guildId);
+        await interaction.editReply({
+          content: "<:bck:1444901131825315850> 防洗版保護已**停用**。",
         });
       }
       return;
