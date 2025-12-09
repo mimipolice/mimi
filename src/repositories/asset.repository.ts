@@ -321,6 +321,7 @@ export async function createPriceAlert(
       created_at: new Date().toISOString(),
       repeatable: repeatable,
       locale: locale,
+      deprecation_notified: false,
     })
     .execute();
 }
@@ -386,6 +387,36 @@ export async function updatePriceAlertNotified(
     .executeTakeFirst();
 
   return result?.numUpdatedRows ?? BigInt(0);
+}
+
+/**
+ * Check if a user has already received the deprecation notice
+ */
+export async function hasUserReceivedDeprecationNotice(
+  userId: string
+): Promise<boolean> {
+  const result = await mimiDLCDb
+    .selectFrom("price_alerts")
+    .select("deprecation_notified")
+    .where("user_id", "=", userId)
+    .where("deprecation_notified", "=", true)
+    .limit(1)
+    .executeTakeFirst();
+
+  return !!result;
+}
+
+/**
+ * Mark all alerts for a user as deprecation notified
+ */
+export async function markUserDeprecationNotified(
+  userId: string
+): Promise<void> {
+  await mimiDLCDb
+    .updateTable("price_alerts")
+    .set({ deprecation_notified: true })
+    .where("user_id", "=", userId)
+    .execute();
 }
 
 // src/repositories/asset.repository.ts

@@ -293,6 +293,7 @@ export interface MimiDLCDB {
     last_notified_at: ColumnType<Date, string, string> | null;
     repeatable: ColumnType<boolean, boolean, boolean>;
     locale: string;
+    deprecation_notified: ColumnType<boolean, boolean, boolean>;
   };
   anti_spam_settings: {
     guildid: string;

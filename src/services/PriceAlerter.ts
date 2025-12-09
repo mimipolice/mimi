@@ -1,16 +1,23 @@
 import { Client } from "discord.js";
 import {
   getAllPriceAlerts,
-  removePriceAlert,
   getAllAssetsWithLatestPrice,
   PriceAlert,
-  updatePriceAlertNotified,
+  markUserDeprecationNotified,
+  hasUserReceivedDeprecationNotice,
 } from "../repositories/asset.repository";
 import logger from "../utils/logger";
 import { getLocalizations } from "../utils/localization";
 import { LocalizationManager } from "./LocalizationManager";
 import { CacheService } from "./CacheService";
 
+/**
+ * PriceAlerter - DEPRECATED
+ * 
+ * This service has been deprecated due to Discord policy changes.
+ * It now only sends deprecation notices to users when their alerts would have triggered.
+ * Each user receives the deprecation notice only once.
+ */
 export class PriceAlerter {
   private client: Client;
   private localizationManager: LocalizationManager;
@@ -23,7 +30,7 @@ export class PriceAlerter {
   }
 
   public async checkAlerts() {
-    logger.info("[PriceAlerter] Starting alert check cycle...");
+    logger.info("[PriceAlerter] Starting alert check cycle (deprecation mode)...");
     try {
       let priceMap = await this.cacheService.get<Map<string, number>>(
         "prices:latest"
@@ -45,9 +52,6 @@ export class PriceAlerter {
         );
       }
 
-      // Since this is now event-driven, we can check for any alert
-      // that hasn't been notified in the last minute to avoid spam,
-      // but still be highly responsive. A 60-second cooldown is reasonable.
       const alerts = await getAllPriceAlerts(60);
       if (alerts.length === 0) {
         logger.info("[PriceAlerter] No pending alerts found.");
@@ -57,12 +61,12 @@ export class PriceAlerter {
         `[PriceAlerter] Found ${alerts.length} pending alerts to check.`
       );
 
+      // Track users we've already processed in this cycle to avoid duplicate checks
+      const processedUsers = new Set<string>();
+
       for (const alert of alerts) {
         const currentPrice = priceMap.get(alert.asset_symbol);
         if (currentPrice === undefined) {
-          logger.warn(
-            `[PriceAlerter] No price found for symbol ${alert.asset_symbol} for alert #${alert.id}. Skipping.`
-          );
           continue;
         }
 
@@ -70,36 +74,13 @@ export class PriceAlerter {
           (alert.condition === "above" && currentPrice > alert.target_price) ||
           (alert.condition === "below" && currentPrice < alert.target_price);
 
-        if (conditionMet) {
-          if (!alert.repeatable) {
-            // ATOMIC ACTION: Try to delete the alert. If we succeed (count > 0), we own it.
-            const removedCount = await removePriceAlert(
-              alert.id,
-              alert.user_id
-            );
-            if (removedCount > 0) {
-              logger.info(
-                `[PriceAlerter] Atomically removed alert #${alert.id}. Sending notification.`
-              );
-              await this.sendNotification(alert, currentPrice);
-            } else {
-              logger.debug(
-                `[PriceAlerter] Alert #${alert.id} was already removed by another process. Skipping notification.`
-              );
-            }
-          } else {
-            // ATOMIC ACTION: Try to update the timestamp. If we succeed (count > 0), we own it.
-            const updatedCount = await updatePriceAlertNotified(alert.id);
-            if (updatedCount > 0) {
-              logger.info(
-                `[PriceAlerter] Atomically updated timestamp for alert #${alert.id}. Sending notification.`
-              );
-              await this.sendNotification(alert, currentPrice);
-            } else {
-              logger.debug(
-                `[PriceAlerter] Alert #${alert.id} was already updated by another process. Skipping notification.`
-              );
-            }
+        if (conditionMet && !processedUsers.has(alert.user_id)) {
+          processedUsers.add(alert.user_id);
+          
+          // Check if user has already received deprecation notice
+          const alreadyNotified = await hasUserReceivedDeprecationNotice(alert.user_id);
+          if (!alreadyNotified) {
+            await this.sendDeprecationNotice(alert);
           }
         }
       }
@@ -108,11 +89,11 @@ export class PriceAlerter {
     }
   }
 
-  private async sendNotification(alert: PriceAlert, currentPrice: number) {
+  private async sendDeprecationNotice(alert: PriceAlert) {
     try {
       const user = await this.client.users.fetch(alert.user_id);
       if (!user) {
-        logger.warn(`User not found for price alert: ${alert.user_id}`);
+        logger.warn(`User not found for deprecation notice: ${alert.user_id}`);
         return;
       }
 
@@ -122,33 +103,24 @@ export class PriceAlerter {
       );
       const t = translations[alert.locale] || translations["en-US"];
 
-      const conditionText =
-        alert.condition === "above"
-          ? t.subcommands.set.options.condition.choices.above
-          : t.subcommands.set.options.condition.choices.below;
-
-      const message =
-        `${t.notification.title}\n` +
-        t.notification.body
-          .replace("{{assetSymbol}}", alert.asset_symbol)
-          .replace("{{condition}}", conditionText)
-          .replace("{{targetPrice}}", alert.target_price.toString())
-          .replace("{{currentPrice}}", currentPrice.toFixed(2));
+      const message = `${t.notification.deprecation_title}\n\n${t.notification.deprecation_body}`;
 
       await user.send(message);
+      
+      // Mark user as notified
+      await markUserDeprecationNotified(alert.user_id);
+      logger.info(`[PriceAlerter] Sent deprecation notice to user ${alert.user_id}`);
     } catch (error) {
-      // Check if the error is "Cannot send messages to this user" (code 50007)
-      // This happens when user left server, has DMs disabled, or blocked the bot
       const discordError = error as { code?: number };
       if (discordError.code === 50007) {
         logger.warn(
-          `[PriceAlerter] Cannot send DM to user ${alert.user_id} (code 50007). Removing all their alerts to prevent log spam.`
+          `[PriceAlerter] Cannot send DM to user ${alert.user_id} (code 50007). Marking as notified anyway.`
         );
-        // Remove all alerts for this user since we can't reach them
-        await removePriceAlert(alert.id, alert.user_id);
+        // Mark as notified even if we can't reach them
+        await markUserDeprecationNotified(alert.user_id);
         return;
       }
-      logger.error(`Failed to send price alert DM to ${alert.user_id}:`, error);
+      logger.error(`Failed to send deprecation notice to ${alert.user_id}:`, error);
     }
   }
 }

@@ -482,7 +482,12 @@
       },
       "notification": {
         "title": "🔔 **Price Alert** 🔔",
-        "body": "Your price alert for **{{assetSymbol}}** has been triggered!\n\n> **Condition:** {{condition}} {{targetPrice}}\n> **Current Price:** {{currentPrice}}"
+        "body": "Your price alert for **{{assetSymbol}}** has been triggered!\n\n> **Condition:** {{condition}} {{targetPrice}}\n> **Current Price:** {{currentPrice}}",
+        "deprecation_title": "📢 **Important Notice: Price Alert Feature Discontinued**",
+        "deprecation_body": "Due to Discord policy changes, the **Price Alert** feature has been permanently discontinued.\n\n> Your existing alerts will no longer trigger notifications.\n> You can use `/pricealert list` to view your alerts and `/pricealert remove` to clean them up.\n\nIf a better notification method becomes available in the future, we will notify you.\n\nWe apologize for any inconvenience. Thank you for your understanding! 🙏"
+      },
+      "deprecated": {
+        "set_disabled": "⚠️ **Feature Discontinued**\n> The Price Alert feature has been permanently discontinued due to Discord policy changes.\n> You can still use `/pricealert list` to view existing alerts and `/pricealert remove` to remove them."
       },
       "general_error": "An error occurred while processing your command."
     },
