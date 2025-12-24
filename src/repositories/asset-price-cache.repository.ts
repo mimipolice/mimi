@@ -13,78 +13,55 @@ export interface AssetPriceChange {
 /**
  * 取得所有資產的最近兩次價格，用於計算漲跌幅
  * 這個函數會被快取，避免頻繁查詢資料庫
+ *
+ * 優化: 使用 virtual_assets.current_price 取得當前價格，
+ * 並用 LATERAL 子查詢只取每個資產的前一筆價格記錄
  */
 export async function getAllAssetsWithPriceChange(): Promise<
   AssetPriceChange[]
 > {
-  const result = await gachaDB
-    .with("RankedPrices", (db) =>
-      db
-        .selectFrom("virtual_assets")
-        .innerJoin(
-          "asset_price_history",
-          "virtual_assets.asset_id",
-          "asset_price_history.asset_id"
-        )
-        .select([
-          "virtual_assets.asset_symbol",
-          "virtual_assets.asset_name",
-          "asset_price_history.price",
-          "asset_price_history.timestamp",
-          sql<number>`ROW_NUMBER() OVER(PARTITION BY virtual_assets.asset_symbol ORDER BY asset_price_history.timestamp DESC)`.as(
-            "rn"
-          ),
-        ])
-    )
-    .selectFrom("RankedPrices")
-    .select(["asset_symbol", "asset_name", "price", "timestamp", "rn"])
-    .where("rn", "<=", 2) // 取最近兩筆
-    .execute();
+  // 使用原生 SQL 進行高效查詢：
+  // 1. 從 virtual_assets 取得當前價格（current_price 欄位）
+  // 2. 用 LATERAL JOIN 只取每個資產的第二新價格記錄
+  const result = await sql<{
+    asset_symbol: string;
+    asset_name: string;
+    current_price: string;
+    previous_price: string | null;
+  }>`
+    SELECT 
+      va.asset_symbol,
+      va.asset_name,
+      va.current_price,
+      prev.price as previous_price
+    FROM virtual_assets va
+    LEFT JOIN LATERAL (
+      SELECT aph.price
+      FROM asset_price_history aph
+      WHERE aph.asset_id = va.asset_id
+      ORDER BY aph.timestamp DESC
+      LIMIT 1 OFFSET 1
+    ) prev ON true
+  `.execute(gachaDB);
 
-  // 將資料按 symbol 分組
-  const groupedBySymbol = new Map<
-    string,
-    Array<{ price: number; timestamp: Date; asset_name: string }>
-  >();
-
-  for (const row of result) {
-    const symbol = row.asset_symbol as string;
-    if (!groupedBySymbol.has(symbol)) {
-      groupedBySymbol.set(symbol, []);
-    }
-    groupedBySymbol.get(symbol)!.push({
-      price: parseFloat(row.price as unknown as string),
-      timestamp: row.timestamp as Date,
-      asset_name: row.asset_name as string,
-    });
-  }
-
-  // 計算漲跌幅
-  const priceChanges: AssetPriceChange[] = [];
-
-  for (const [symbol, prices] of groupedBySymbol.entries()) {
-    if (prices.length === 0) continue;
-
-    // 按時間排序（最新的在前）
-    prices.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-    const current = prices[0];
-    const previous = prices[1] || prices[0]; // 如果只有一筆，就用同一筆
+  return result.rows.map((row) => {
+    const currentPrice = Number(row.current_price);
+    const previousPrice = row.previous_price
+      ? Number(row.previous_price)
+      : currentPrice;
 
     const changePercent =
-      previous.price === 0
+      previousPrice === 0
         ? 0
-        : ((current.price - previous.price) / previous.price) * 100;
+        : ((currentPrice - previousPrice) / previousPrice) * 100;
 
-    priceChanges.push({
-      asset_symbol: symbol,
-      asset_name: current.asset_name,
-      current_price: current.price,
-      previous_price: previous.price,
+    return {
+      asset_symbol: row.asset_symbol,
+      asset_name: row.asset_name,
+      current_price: currentPrice,
+      previous_price: previousPrice,
       change_percent: changePercent,
-      timestamp: current.timestamp,
-    });
-  }
-
-  return priceChanges;
+      timestamp: new Date(),
+    };
+  });
 }

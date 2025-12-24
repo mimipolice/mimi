@@ -84,36 +84,21 @@ export async function getAssetPriceHistory(
 export async function getAllAssetsWithLatestPrice(): Promise<
   AssetWithLatestPrice[]
 > {
+  // 直接使用 virtual_assets.current_price，避免 JOIN 整個 asset_price_history 表進行排序
   const result = await gachaDB
-    .with("RankedPrices", (db) =>
-      db
-        .selectFrom("virtual_assets")
-        .innerJoin(
-          "asset_price_history",
-          "virtual_assets.asset_id",
-          "asset_price_history.asset_id"
-        )
-        .select([
-          "virtual_assets.asset_symbol",
-          "virtual_assets.asset_name",
-          "asset_price_history.price",
-          "asset_price_history.timestamp",
-          sql<number>`ROW_NUMBER() OVER(PARTITION BY virtual_assets.asset_symbol ORDER BY asset_price_history.timestamp DESC)`.as(
-            "rn"
-          ),
-        ])
-    )
-    .selectFrom("RankedPrices")
-    .select(["asset_symbol", "asset_name", "price", "timestamp"])
-    .where("rn", "=", 1)
+    .selectFrom("virtual_assets")
+    .select([
+      "virtual_assets.asset_symbol",
+      "virtual_assets.asset_name",
+      "virtual_assets.current_price as price",
+    ])
     .execute();
 
   return result.map((row) => ({
-    ...row,
-    price: parseFloat(row.price as unknown as string),
-    timestamp: row.timestamp as Date,
-    asset_symbol: row.asset_symbol as string,
-    asset_name: row.asset_name as string,
+    asset_symbol: row.asset_symbol,
+    asset_name: row.asset_name,
+    price: Number(row.price),
+    timestamp: new Date(), // current_price 本身就是最新價格，使用現在時間
   }));
 }
 
