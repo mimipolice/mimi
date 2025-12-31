@@ -22,6 +22,10 @@ export class PriceAlerter {
   private client: Client;
   private localizationManager: LocalizationManager;
   private cacheService: CacheService;
+  private isChecking: boolean = false;
+  private pendingCheck: boolean = false;
+  private lastCheckTime: number = 0;
+  private static readonly DEBOUNCE_MS = 5000; // 5 seconds debounce
 
   constructor(client: Client, localizationManager: LocalizationManager) {
     this.client = client;
@@ -30,7 +34,21 @@ export class PriceAlerter {
   }
 
   public async checkAlerts() {
-    logger.info("[PriceAlerter] Starting alert check cycle (deprecation mode)...");
+    // Debounce: skip if we checked recently
+    const now = Date.now();
+    if (now - this.lastCheckTime < PriceAlerter.DEBOUNCE_MS) {
+      return; // Skip this check, too soon
+    }
+
+    // If already checking, mark that we need to check again after
+    if (this.isChecking) {
+      this.pendingCheck = true;
+      return;
+    }
+
+    this.isChecking = true;
+    this.lastCheckTime = now;
+
     try {
       let priceMap = await this.cacheService.get<Map<string, number>>(
         "prices:latest"
@@ -54,11 +72,11 @@ export class PriceAlerter {
 
       const alerts = await getAllPriceAlerts(60);
       if (alerts.length === 0) {
-        logger.info("[PriceAlerter] No pending alerts found.");
+        // Don't log if no alerts - reduces noise
         return;
       }
       logger.info(
-        `[PriceAlerter] Found ${alerts.length} pending alerts to check.`
+        `[PriceAlerter] Checking ${alerts.length} pending alerts (deprecation mode)...`
       );
 
       // Track users we've already processed in this cycle to avoid duplicate checks
@@ -76,7 +94,7 @@ export class PriceAlerter {
 
         if (conditionMet && !processedUsers.has(alert.user_id)) {
           processedUsers.add(alert.user_id);
-          
+
           // Check if user has already received deprecation notice
           const alreadyNotified = await hasUserReceivedDeprecationNotice(alert.user_id);
           if (!alreadyNotified) {
@@ -86,6 +104,14 @@ export class PriceAlerter {
       }
     } catch (error) {
       logger.error("Error checking price alerts:", error);
+    } finally {
+      this.isChecking = false;
+
+      // If there was a pending check, schedule it after debounce
+      if (this.pendingCheck) {
+        this.pendingCheck = false;
+        setTimeout(() => this.checkAlerts(), PriceAlerter.DEBOUNCE_MS);
+      }
     }
   }
 
@@ -106,7 +132,7 @@ export class PriceAlerter {
       const message = `${t.notification.deprecation_title}\n\n${t.notification.deprecation_body}`;
 
       await user.send(message);
-      
+
       // Mark user as notified
       await markUserDeprecationNotified(alert.user_id);
       logger.info(`[PriceAlerter] Sent deprecation notice to user ${alert.user_id}`);

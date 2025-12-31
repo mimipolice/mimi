@@ -340,6 +340,7 @@ export async function getAllPriceAlerts(
   return await mimiDLCDb
     .selectFrom("price_alerts")
     .selectAll()
+    .where("deprecation_notified", "=", false) // Only get alerts from users who haven't been notified yet
     .where((eb) =>
       eb.or([
         eb("last_notified_at", "is", null),
