@@ -415,7 +415,9 @@ export interface OhlcData {
   low: number;
   close: number;
   volume: number;
+  vwap?: number; // 成交量加權平均價 (TimescaleDB candlestick_agg)
 }
+
 
 // 新增這個函數
 export async function getOhlcPriceHistory(
@@ -513,5 +515,202 @@ export async function getOhlcPriceHistory(
   return {
     ohlcData,
     rawDataPointCount: priceHistory.length,
+  };
+}
+
+// ============================================
+// TimescaleDB Toolkit 超函數優化版本
+// 需要安裝: CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;
+// ============================================
+
+/**
+ * 解析時間範圍字串為 PostgreSQL INTERVAL 格式
+ * @param timeRange - 時間範圍字串，如 "7d", "1m", "1y"
+ * @returns PostgreSQL INTERVAL 字串，如 "7 days"
+ */
+function parseTimeRange(timeRange: string): string {
+  if (timeRange === "all") return "100 years"; // 足夠長的時間範圍
+  const match = timeRange.match(/^(\d+)([hdwmy])$/);
+  if (!match) return "7 days";
+  const value = parseInt(match[1], 10);
+  const unitMap: Record<string, string> = {
+    h: "hours",
+    d: "days",
+    w: "weeks",
+    m: "months",
+    y: "years",
+  };
+  const unit = unitMap[match[2]] || "days";
+  return `${value} ${unit}`;
+}
+
+/**
+ * 使用 TimescaleDB candlestick_agg() 計算 OHLCV + VWAP
+ *
+ * 優點：
+ * - 單次掃描計算 open/high/low/close
+ * - 自動計算 VWAP（成交量加權平均價）
+ * - 比應用層聚合更高效
+ *
+ * @param symbol - 資產符號
+ * @param timeRange - 時間範圍，如 "7d", "1m"
+ * @param intervalStr - K線間隔，如 "30 minutes", "1 hour", "1 day"
+ */
+export async function getOhlcWithCandlestick(
+  symbol: string,
+  timeRange: string,
+  intervalStr: string
+): Promise<OhlcData[]> {
+  const interval = parseTimeRange(timeRange);
+
+  const result = await sql<{
+    bucket: Date;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    vwap: number;
+    volume: string;
+  }>`
+    WITH candles AS (
+      SELECT 
+        time_bucket(${intervalStr}::interval, aph.timestamp) AS bucket,
+        candlestick_agg(aph.timestamp, aph.price, 1.0) AS cs
+      FROM asset_price_history aph
+      JOIN virtual_assets va ON aph.asset_id = va.asset_id
+      WHERE va.asset_symbol = ${symbol}
+        AND aph.timestamp >= NOW() - INTERVAL '${sql.raw(interval)}'
+      GROUP BY bucket
+    ),
+    volumes AS (
+      SELECT
+        time_bucket(${intervalStr}::interval, mt.timestamp) AS bucket,
+        SUM(mt.quantity) AS volume
+      FROM market_transactions mt
+      JOIN virtual_assets va ON mt.asset_id = va.asset_id
+      WHERE va.asset_symbol = ${symbol}
+        AND mt.timestamp >= NOW() - INTERVAL '${sql.raw(interval)}'
+      GROUP BY bucket
+    )
+    SELECT 
+      c.bucket,
+      open(c.cs) AS open,
+      high(c.cs) AS high,
+      low(c.cs) AS low,
+      close(c.cs) AS close,
+      vwap(c.cs) AS vwap,
+      COALESCE(v.volume, 0) AS volume
+    FROM candles c
+    LEFT JOIN volumes v ON c.bucket = v.bucket
+    ORDER BY c.bucket ASC
+  `.execute(gachaDB);
+
+  return result.rows.map((row) => ({
+    timestamp: row.bucket,
+    open: Number(row.open),
+    high: Number(row.high),
+    low: Number(row.low),
+    close: Number(row.close),
+    vwap: Number(row.vwap),
+    volume: Number(row.volume),
+  }));
+}
+
+/**
+ * 使用 TimescaleDB LTTB (Largest Triangle Three Buckets) 降採樣
+ *
+ * 用於圖表渲染：將大量數據點壓縮到指定數量，同時保留視覺特徵
+ * 例如：10萬筆 tick 數據 → 500 點，視覺上幾乎無損失
+ *
+ * @param symbol - 資產符號
+ * @param timeRange - 時間範圍
+ * @param targetPoints - 目標數據點數量（預設 500）
+ */
+export async function getDownsampledPrices(
+  symbol: string,
+  timeRange: string,
+  targetPoints: number = 500
+): Promise<{ timestamp: Date; price: number }[]> {
+  const interval = parseTimeRange(timeRange);
+
+  const result = await sql<{ time: Date; value: number }>`
+    SELECT time, value AS price
+    FROM unnest((
+      SELECT lttb(
+        aph.timestamp, 
+        aph.price::float8, 
+        ${targetPoints}
+      )
+      FROM asset_price_history aph
+      JOIN virtual_assets va ON aph.asset_id = va.asset_id
+      WHERE va.asset_symbol = ${symbol}
+        AND aph.timestamp >= NOW() - INTERVAL '${sql.raw(interval)}'
+    ))
+  `.execute(gachaDB);
+
+  return result.rows.map((row) => ({
+    timestamp: row.time,
+    price: Number(row.value),
+  }));
+}
+
+/**
+ * 價格統計結果介面
+ */
+export interface PriceStatistics {
+  mean: number; // 平均價格
+  stddev: number; // 標準差
+  variance: number; // 變異數
+  skewness: number; // 偏度（正值=右偏，負值=左偏）
+  kurtosis: number; // 峰度（高值=尖峰厚尾）
+}
+
+/**
+ * 使用 TimescaleDB stats_agg() 計算價格統計指標
+ *
+ * 可用於：
+ * - 波動率分析（stddev, variance）
+ * - 布林帶指標
+ * - 風險評估（skewness, kurtosis）
+ *
+ * @param symbol - 資產符號
+ * @param timeRange - 時間範圍
+ */
+export async function getPriceStatistics(
+  symbol: string,
+  timeRange: string
+): Promise<PriceStatistics | null> {
+  const interval = parseTimeRange(timeRange);
+
+  const result = await sql<{
+    mean: number;
+    stddev: number;
+    variance: number;
+    skewness: number;
+    kurtosis: number;
+  }>`
+    SELECT
+      average(stats_agg(aph.price)) AS mean,
+      stddev(stats_agg(aph.price)) AS stddev,
+      variance(stats_agg(aph.price)) AS variance,
+      skewness(stats_agg(aph.price)) AS skewness,
+      kurtosis(stats_agg(aph.price)) AS kurtosis
+    FROM asset_price_history aph
+    JOIN virtual_assets va ON aph.asset_id = va.asset_id
+    WHERE va.asset_symbol = ${symbol}
+      AND aph.timestamp >= NOW() - INTERVAL '${sql.raw(interval)}'
+  `.execute(gachaDB);
+
+  const row = result.rows[0];
+  if (!row || row.mean === null) {
+    return null;
+  }
+
+  return {
+    mean: Number(row.mean),
+    stddev: Number(row.stddev),
+    variance: Number(row.variance),
+    skewness: Number(row.skewness),
+    kurtosis: Number(row.kurtosis),
   };
 }
