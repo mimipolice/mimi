@@ -28,6 +28,9 @@ export { generateTranscript } from "./transcript/transcript";
 export { generateTranscriptWithOG, type OGMetadata } from "./transcript/transcriptWithOG";
 export { generateChatTranscript } from "./transcript/chatTranscript";
 
+// Cloud Storage
+export { uploadToR2, deleteFromR2, isR2Configured, type R2UploadOptions, type R2UploadResult } from "./r2";
+
 // Rendering
 export { generateCandlestickChart } from "./chart-generator";
 export { markdownTableToImage } from "./markdown-to-image";

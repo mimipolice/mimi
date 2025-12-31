@@ -3,12 +3,17 @@ import { TextChannel } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import logger from '../logger';
+import { uploadToR2, isR2Configured } from '../r2';
 
 import { AttachmentBuilder } from 'discord.js';
 
 export async function generateTranscript(channel: TextChannel): Promise<string | null> {
-    if (!process.env.TRANSCRIPT_PATH || !process.env.TRANSCRIPT_BASE_URL) {
-        logger.error('TRANSCRIPT_PATH or TRANSCRIPT_BASE_URL is not set in the environment variables.');
+    // Check if either R2 or local filesystem is configured
+    const r2Configured = isR2Configured();
+    const localConfigured = !!(process.env.TRANSCRIPT_PATH && process.env.TRANSCRIPT_BASE_URL);
+
+    if (!r2Configured && !localConfigured) {
+        logger.error('Neither R2 nor local transcript storage is configured.');
         return null;
     }
 
@@ -31,20 +36,44 @@ export async function generateTranscript(channel: TextChannel): Promise<string |
     transcriptBuffer = Buffer.from(htmlContent, 'utf-8');
 
     const fileName = `transcript-${channel.id}-${Date.now()}.html`;
-    const savePath = path.join(process.env.TRANSCRIPT_PATH, fileName);
 
-    try {
-        fs.writeFileSync(savePath, transcriptBuffer);
-        const publicUrl = new URL(fileName, process.env.TRANSCRIPT_BASE_URL).toString();
-        return publicUrl;
-    } catch (error) {
-        if (error instanceof Error) {
-            logger.error(`Failed to save transcript: ${error.message}`);
-        } else {
-            logger.error('Failed to save transcript due to an unknown error.');
+    // Try R2 first (preferred - no exposed ports)
+    if (r2Configured) {
+        const result = await uploadToR2({
+            key: fileName,
+            body: transcriptBuffer,
+            contentType: 'text/html; charset=utf-8',
+            prefix: 'transcripts',
+            cacheControl: 'public, max-age=31536000', // 1 year
+        });
+
+        if (result.success && result.url) {
+            logger.info(`Transcript uploaded to R2: ${result.url}`);
+            return result.url;
         }
-        return null;
+
+        logger.warn(`R2 upload failed: ${result.error}. Falling back to local storage.`);
     }
+
+    // Fallback to local filesystem
+    if (localConfigured) {
+        const savePath = path.join(process.env.TRANSCRIPT_PATH!, fileName);
+
+        try {
+            fs.writeFileSync(savePath, transcriptBuffer);
+            const publicUrl = new URL(fileName, process.env.TRANSCRIPT_BASE_URL).toString();
+            logger.info(`Transcript saved locally: ${publicUrl}`);
+            return publicUrl;
+        } catch (error) {
+            if (error instanceof Error) {
+                logger.error(`Failed to save transcript locally: ${error.message}`);
+            } else {
+                logger.error('Failed to save transcript due to an unknown error.');
+            }
+        }
+    }
+
+    return null;
 }
 
 /**

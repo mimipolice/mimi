@@ -3,6 +3,7 @@ import { TextChannel, AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import path from "path";
 import logger from "../logger";
+import { uploadToR2, isR2Configured } from "../r2";
 
 export interface OGMetadata {
   title?: string;
@@ -56,12 +57,30 @@ export async function generateTranscriptWithOG(
       transcriptBuffer = Buffer.from(htmlContent, "utf-8");
     }
 
-    // Save to local file if TRANSCRIPT_PATH is configured
+    const fileName = `transcript-${channel.id}-${Date.now()}.html`;
     let filePath: string | null = null;
     let publicUrl: string | null = null;
 
-    if (process.env.TRANSCRIPT_PATH) {
-      const fileName = `transcript-${channel.id}-${Date.now()}.html`;
+    // Try R2 first (preferred - no exposed ports)
+    if (isR2Configured()) {
+      const result = await uploadToR2({
+        key: fileName,
+        body: transcriptBuffer,
+        contentType: "text/html; charset=utf-8",
+        prefix: "transcripts",
+        cacheControl: "public, max-age=31536000", // 1 year
+      });
+
+      if (result.success && result.url) {
+        logger.info(`Transcript with OG tags uploaded to R2: ${result.url}`);
+        publicUrl = result.url;
+      } else {
+        logger.warn(`R2 upload failed: ${result.error}. Falling back to local storage.`);
+      }
+    }
+
+    // Fallback to local filesystem if R2 failed or not configured
+    if (!publicUrl && process.env.TRANSCRIPT_PATH) {
       filePath = path.join(process.env.TRANSCRIPT_PATH, fileName);
 
       try {
