@@ -24,9 +24,9 @@ export class CacheService {
   }
 
   // 設置一個值，可以是物件或字串
-  public async set(
+  public async set<T>(
     key: string,
-    value: any,
+    value: T,
     ttl: number = DEFAULT_TTL_SECONDS
   ): Promise<void> {
     if (!redisClient) return;

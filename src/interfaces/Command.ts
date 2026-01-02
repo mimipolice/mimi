@@ -17,6 +17,7 @@ import { ForumService } from "../services/ForumService";
 import { CacheService } from "../services/CacheService";
 import { StoryForumService } from "../services/StoryForumService";
 import { Kysely } from "kysely";
+import { GachaDB, MimiDLCDB } from "../shared/database/types";
 
 export interface Services {
   settingsManager: SettingsManager;
@@ -29,8 +30,8 @@ export interface Services {
 }
 
 export interface Databases {
-  gachaDb: Kysely<any>;
-  ticketDb: Kysely<any>;
+  gachaDb: Kysely<GachaDB>;
+  ticketDb: Kysely<MimiDLCDB>;
 }
 
 export interface Command {
@@ -55,7 +56,7 @@ export interface Command {
   ): Promise<void>;
   autocomplete?(
     interaction: AutocompleteInteraction,
-    gachaDb: Kysely<any>,
-    ticketDb: Kysely<any>
+    gachaDb: Kysely<GachaDB>,
+    ticketDb: Kysely<MimiDLCDB>
   ): Promise<void>;
 }

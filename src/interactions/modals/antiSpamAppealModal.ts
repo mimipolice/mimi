@@ -12,12 +12,13 @@ import { AntiSpamSettingsManager } from "../../services/AntiSpamSettingsManager"
 import { mimiDLCDb } from "../../shared/database";
 import { createUnauthorizedReply } from "../../utils/interactionReply";
 import logger from "../../utils/logger";
+import { Services, Databases } from "../../interfaces/Command";
 
 const settingsManager = new AntiSpamSettingsManager(mimiDLCDb);
 
 const modal: Modal = {
   name: "anti_spam_appeal_modal",
-  execute: async (interaction: ModalSubmitInteraction, services: any) => {
+  execute: async (interaction: ModalSubmitInteraction, services: Services, databases: Databases) => {
     if (!interaction.isModalSubmit()) return;
 
     const { customId, client } = interaction;

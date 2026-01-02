@@ -2,8 +2,15 @@ import { readdirSync, existsSync } from "fs";
 import path from "path";
 import logger from "../utils/logger";
 
+export interface CommandLocale {
+  name?: string;
+  description?: string;
+  options?: Record<string, { name?: string; description?: string }>;
+  [key: string]: unknown;
+}
+
 export class LocalizationManager {
-  private localizations: Map<string, Record<string, any>> = new Map();
+  private localizations: Map<string, Record<string, unknown>> = new Map();
 
   constructor() {
     this.loadLocalizations();
@@ -41,10 +48,10 @@ export class LocalizationManager {
     if (!langFile) return undefined;
 
     const keys = key.split(".");
-    let current = langFile;
+    let current: unknown = langFile;
     for (const k of keys) {
-      if (current[k]) {
-        current = current[k];
+      if (current && typeof current === "object" && k in current) {
+        current = (current as Record<string, unknown>)[k];
       } else {
         return undefined;
       }
@@ -63,11 +70,23 @@ export class LocalizationManager {
     return current;
   }
 
-  public getLocale(commandName: string, lang: string): any | undefined {
+  /**
+   * Get locale data for a specific section (e.g., "global", or a command name under "commands")
+   * @param sectionName - The section name ("global" for global strings, or command name for commands)
+   * @param lang - The language code (e.g., "zh-TW", "en-US")
+   */
+  public getLocale(sectionName: string, lang: string): CommandLocale | undefined {
     const langFile = this.localizations.get(lang);
     if (!langFile) return undefined;
 
-    return langFile.commands?.[commandName];
+    // Check if it's a top-level section (like "global")
+    if (sectionName in langFile) {
+      return langFile[sectionName] as CommandLocale;
+    }
+
+    // Otherwise, look in commands section
+    const commands = langFile.commands as Record<string, CommandLocale> | undefined;
+    return commands?.[sectionName];
   }
 
   public getAvailableLanguages(): string[] {

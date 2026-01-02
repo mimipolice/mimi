@@ -7,6 +7,8 @@ import {
   DiscordAPIError,
   CommandInteraction,
   MessageFlags,
+  InteractionReplyOptions,
+  MessagePayload,
 } from "discord.js";
 import logger from "./logger";
 import {
@@ -25,6 +27,17 @@ import {
   createAutoModBlockedReply,
   createDiscordErrorReply,
 } from "../utils/interactionReply";
+import type { LocalizationManager } from "../services/LocalizationManager";
+
+/**
+ * Minimal services interface needed for error handling.
+ * This avoids circular dependency with full Services interface.
+ */
+export interface ErrorHandlerServices {
+  localizationManager: LocalizationManager;
+}
+
+export type ErrorPayload = InteractionReplyOptions;
 
 // Define Discord API error codes for readability
 const DISCORD_API_ERROR_CODES = {
@@ -45,7 +58,7 @@ const DISCORD_API_ERROR_CODES = {
  */
 export async function sendErrorResponse(
   interaction: Interaction,
-  payload: any,
+  payload: ErrorPayload,
   ephemeral: boolean = true
 ): Promise<void> {
   try {
@@ -55,38 +68,68 @@ export async function sendErrorResponse(
     }
 
     // Merge flags properly - preserve existing flags and add ephemeral if needed
-    const existingFlags = payload.flags || [];
-    const flags = ephemeral 
-      ? [...existingFlags, MessageFlags.Ephemeral]
-      : existingFlags;
-    
-    const options = { 
-      ...payload, 
-      flags: flags.length > 0 ? flags : undefined
+    // Important: Don't override IsComponentsV2 flag if present
+    let replyFlags = payload.flags;
+    if (ephemeral) {
+      if (Array.isArray(replyFlags)) {
+        // If flags is an array, add Ephemeral if not present
+        if (!replyFlags.includes(MessageFlags.Ephemeral)) {
+          replyFlags = [...replyFlags, MessageFlags.Ephemeral];
+        }
+      } else if (typeof replyFlags === "number") {
+        // If flags is a bitfield number, add Ephemeral
+        replyFlags = replyFlags | MessageFlags.Ephemeral;
+      } else {
+        // No existing flags, just use Ephemeral
+        replyFlags = MessageFlags.Ephemeral;
+      }
+    }
+
+    const replyOptions: InteractionReplyOptions = {
+      ...payload,
+      flags: replyFlags,
     };
+
+    // For editReply, we need to handle flags specially
+    // IsComponentsV2 must be preserved, but Ephemeral cannot be changed after defer
+    // We construct editOptions without flags that can't be used in editReply
+    const editOptions: Parameters<typeof interaction.editReply>[0] = {
+      content: payload.content,
+      embeds: payload.embeds,
+      components: payload.components,
+      files: payload.files,
+      allowedMentions: payload.allowedMentions,
+    };
+
+    // Add IsComponentsV2 flag if present in original payload (required for Components v2)
+    if (Array.isArray(payload.flags) && payload.flags.includes(MessageFlags.IsComponentsV2)) {
+      (editOptions as { flags?: MessageFlags }).flags = MessageFlags.IsComponentsV2;
+    }
 
     // Check interaction state before attempting to send
     if (interaction.replied) {
       // Already replied, use followUp
-      await interaction.followUp(options);
+      await interaction.followUp(replyOptions);
     } else if (interaction.deferred) {
-      // Deferred but not replied, use editReply
-      await interaction.editReply(options);
+      // Deferred but not replied, use editReply (flags already set during defer)
+      await interaction.editReply(editOptions);
     } else {
       // Not yet replied or deferred, use reply
-      await interaction.reply(options);
+      await interaction.reply(replyOptions);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const err = e as { code?: number; message?: string };
     // If sending the error fails (e.g., interaction expired), log it appropriately
-    if (e.code === DISCORD_API_ERROR_CODES.UNKNOWN_INTERACTION) {
+    if (err.code === DISCORD_API_ERROR_CODES.UNKNOWN_INTERACTION) {
+      const payloadObj = payload as InteractionReplyOptions;
       const errorMessage =
-        payload.embeds?.[0]?.description || 
-        payload.components?.[0]?.data?.components?.[0]?.content ||
-        "An unknown error occurred.";
+        payloadObj.embeds?.[0] && 'description' in payloadObj.embeds[0]
+          ? (payloadObj.embeds[0] as { description?: string }).description
+          : "An unknown error occurred.";
       logger.warn(
         `[ErrorHandler] Failed to send error response: Interaction expired or was deleted. Original error: ${errorMessage}`
       );
-    } else if (e.code === DISCORD_API_ERROR_CODES.INTERACTION_ALREADY_ACKNOWLEDGED) {
+    } else if (err.code === DISCORD_API_ERROR_CODES.INTERACTION_ALREADY_ACKNOWLEDGED) {
       // Interaction was already acknowledged, silently ignore to avoid cascading errors
       logger.debug(
         `[ErrorHandler] Interaction already acknowledged, attempted to send error but skipped to prevent cascade.`
@@ -94,7 +137,7 @@ export async function sendErrorResponse(
     } else {
       // Log other errors but don't throw to prevent error handler from causing more errors
       logger.error(
-        `[ErrorHandler] Failed to send error response: ${e.message}. Code: ${e.code || 'N/A'}`,
+        `[ErrorHandler] Failed to send error response: ${err.message || 'Unknown error'}. Code: ${err.code || 'N/A'}`,
         e
       );
     }
@@ -107,7 +150,7 @@ async function handleCheckFailure(
   interaction: Interaction,
   error: CustomCheckError,
   contextInfo: string,
-  services: any
+  services: ErrorHandlerServices
 ): Promise<void> {
   const commandName = interaction.isCommand() ? interaction.commandName : "N/A";
   logger.warn(
@@ -127,7 +170,7 @@ async function handleMissingPermissions(
   interaction: Interaction,
   error: MissingPermissionsError,
   contextInfo: string,
-  services: any
+  services: ErrorHandlerServices
 ): Promise<void> {
   const commandName = interaction.isCommand() ? interaction.commandName : "N/A";
   logger.warn(
@@ -144,7 +187,7 @@ async function handleCooldown(
   error: CooldownError,
   contextInfo: string,
   commandName: string,
-  services: any
+  services: ErrorHandlerServices
 ): Promise<void> {
   const remaining = error.retryAfter;
   logger.warn(
@@ -163,7 +206,7 @@ async function handleDiscordHttpException(
   error: DiscordAPIError,
   contextInfo: string,
   commandName: string,
-  services: any
+  services: ErrorHandlerServices
 ): Promise<void> {
   const logMsg = `[ErrorHandler] Discord HTTP Error (Status: ${error.status}, Code: ${error.code}): source '${commandName}' | ${contextInfo}. Error: ${error.message}`;
 
@@ -217,9 +260,9 @@ async function recordFailedCommand(
 
 export async function handleInteractionError(
   interaction: Interaction,
-  error: any,
+  error: unknown,
   client: Client,
-  services: any
+  services: ErrorHandlerServices
 ): Promise<void> {
   const contextInfo =
     `User: '${interaction.user.tag}' (${interaction.user.id}) | ` +
@@ -231,7 +274,9 @@ export async function handleInteractionError(
     ? `Component:${interaction.customId}`
     : "Unknown Interaction";
 
-  const originalError = error.original || error;
+  // Extract original error if wrapped
+  const errorObj = error as { original?: unknown };
+  const originalError = errorObj.original ?? error;
 
   // --- Error Classification and Handling ---
 
@@ -274,15 +319,16 @@ export async function handleInteractionError(
     );
   } else {
     // --- Fallback for Unhandled Errors (Bugs) ---
+    const errForLog = originalError instanceof Error ? originalError : new Error(String(originalError));
     logger.error(
       `[ErrorHandler] Unhandled interaction error (BUG): command '${commandName}' | ${contextInfo}.`,
-      originalError // Pass the full error object for stack tracing
+      errForLog
     );
     await sendErrorResponse(
       interaction,
       createInternalErrorReply(services.localizationManager, interaction)
     );
-    await recordFailedCommand(client, interaction, commandName, originalError);
+    await recordFailedCommand(client, interaction, commandName, errForLog);
   }
 }
 

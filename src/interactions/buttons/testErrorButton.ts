@@ -4,28 +4,29 @@ import {
 } from "discord.js";
 import { Button } from "../../interfaces/Button";
 import { BusinessError } from "../../errors";
+import { Services, Databases } from "../../interfaces/Command";
 
 const button: Button = {
   name: "test_error",
-  execute: async (interaction: ButtonInteraction, client: Client, services: any) => {
+  execute: async (interaction: ButtonInteraction, client: Client, services: Services, databases: Databases) => {
     // Simulate different types of errors based on button customId
     const [, errorType] = interaction.customId.split(":");
-    
+
     switch (errorType) {
       case "business":
         throw new BusinessError("這是一個測試業務邏輯錯誤訊息");
-      
+
       case "internal":
         throw new Error("這是一個測試內部錯誤");
-      
+
       case "cooldown":
         const { CooldownError } = await import("../../errors/index.js");
         throw new CooldownError("請稍後再試", 5.5);
-      
+
       case "permissions":
         const { MissingPermissionsError } = await import("../../errors/index.js");
         throw new MissingPermissionsError("你沒有權限執行此操作");
-      
+
       default:
         throw new BusinessError("未知的錯誤類型");
     }

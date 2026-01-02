@@ -16,6 +16,7 @@ import { MessageFlags } from "discord-api-types/v10";
 import { getTicketTypes, TicketRepository } from "../../../repositories/ticket.repository";
 import { mimiDLCDb } from "../../../shared/database";
 import logger from "../../../utils/logger";
+import { getInteractionLocale } from "../../../utils/localeHelper";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -30,10 +31,17 @@ export const command: Command = {
     services: Services,
     _databases: Databases
   ) {
+    const locale = getInteractionLocale(interaction);
+    const { localizationManager } = services;
+
+    // Helper function to get ticket i18n strings
+    const t = (key: string, options?: Record<string, string | number>) =>
+      localizationManager.get(`global.ticket.${key}`, locale, options) ?? key;
+
     try {
       if (!interaction.guildId) {
         await interaction.reply({
-          content: "❌ This command can only be used in a server.",
+          content: t("serverOnly"),
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -48,7 +56,7 @@ export const command: Command = {
 
       if (existingTicket) {
         await interaction.reply({
-          content: `❌ You already have an open ticket: <#${existingTicket.channelId}>`,
+          content: t("alreadyOpen", { channelId: existingTicket.channelId }),
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -59,8 +67,7 @@ export const command: Command = {
 
       if (ticketTypes.length === 0) {
         await interaction.reply({
-          content:
-            "❌ This server has not set up any ticket types yet.\n\nPlease contact an administrator to configure the ticket system.",
+          content: t("noTypes"),
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -71,11 +78,11 @@ export const command: Command = {
         const ticketType = ticketTypes[0];
         const modal = new ModalBuilder()
           .setCustomId(`create_ticket_modal:${ticketType.type_id}`)
-          .setTitle("Create a New Ticket");
+          .setTitle(t("modalTitle"));
 
         const issueDescription = new TextInputBuilder()
           .setCustomId("ticket_issue_description")
-          .setLabel("Please describe your issue")
+          .setLabel(t("describeIssue"))
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(true)
           .setMinLength(10)
@@ -93,17 +100,17 @@ export const command: Command = {
       // Multiple ticket types - show select menu
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("ticket_type_select")
-        .setPlaceholder("Choose a ticket type")
+        .setPlaceholder(t("selectPlaceholder"))
         .addOptions(
           ticketTypes.map((type) => {
             const option = new StringSelectMenuOptionBuilder()
               .setLabel(type.label)
               .setValue(`ticket_type:${type.type_id}`);
-            
+
             if (type.emoji) {
               option.setEmoji(type.emoji);
             }
-            
+
             return option;
           })
         );
@@ -113,7 +120,7 @@ export const command: Command = {
       );
 
       const response = await interaction.reply({
-        content: "Please select the type of support you need:",
+        content: t("selectType"),
         components: [row],
         flags: MessageFlags.Ephemeral,
       });
@@ -130,11 +137,11 @@ export const command: Command = {
         // Show modal
         const modal = new ModalBuilder()
           .setCustomId(`create_ticket_modal:${selectedType}`)
-          .setTitle("Create a New Ticket");
+          .setTitle(t("modalTitle"));
 
         const issueDescription = new TextInputBuilder()
           .setCustomId("ticket_issue_description")
-          .setLabel("Please describe your issue")
+          .setLabel(t("describeIssue"))
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(true)
           .setMinLength(10)
@@ -149,15 +156,15 @@ export const command: Command = {
       } catch (error) {
         // Timeout or error
         await interaction.editReply({
-          content: "❌ Ticket creation timed out. Please try again.",
+          content: t("timeout"),
           components: [],
         });
       }
     } catch (error) {
       logger.error("[Ticket Command] Error:", error);
-      
-      const replyContent = "❌ An error occurred while creating your ticket. Please try again.";
-      
+
+      const replyContent = t("createError");
+
       if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ content: replyContent });
       } else {

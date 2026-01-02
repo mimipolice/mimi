@@ -43,10 +43,10 @@ async function main() {
     try {
       if (!fs.existsSync(transcriptPath)) {
         fs.mkdirSync(transcriptPath, { recursive: true });
-        fs.mkdirSync(transcriptPath, { recursive: true });
       }
-    } catch (error: any) {
-      if (error.code === "EACCES") {
+    } catch (error: unknown) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code === "EACCES") {
         logger.error(
           `Permission denied to create transcript directory at: ${transcriptPath}`
         );
@@ -164,7 +164,7 @@ async function main() {
           client.commandCategories
             .get(category)!
             .set(command.data.name, command);
-          // logger.info(`Loaded command: ${command.data.name} in category: ${category}`);
+          logger.debug(`Loaded command: ${command.data.name} in category: ${category}`);
         } else if (command && "name" in command && "execute" in command) {
           // This is a message command
         } else {
@@ -274,7 +274,7 @@ async function main() {
       logger.error("Client user is not available.");
       return;
     }
-    // logger.info(`Logged in as ${client.user.tag}!`);
+    logger.debug(`Logged in as ${client.user.tag}!`);
     await services.helpService.initialize();
     // Start the cache invalidation listener
     const cacheInvalidator = new CacheInvalidationService(priceAlerter);

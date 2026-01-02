@@ -40,7 +40,19 @@
     },
     "supportServer": "Support Server",
     "ticket": {
-      "claimed": "You have successfully claimed this ticket."
+      "claimed": "You have successfully claimed this ticket.",
+      "serverOnly": "❌ This command can only be used in a server.",
+      "alreadyOpen": "❌ You already have an open ticket: <#{channelId}>",
+      "noTypes": "❌ This server has not set up any ticket types yet.\n\nPlease contact an administrator to configure the ticket system.",
+      "selectType": "Please select the type of support you need:",
+      "selectPlaceholder": "Choose a ticket type",
+      "modalTitle": "Create a New Ticket",
+      "describeIssue": "Please describe your issue",
+      "timeout": "❌ Ticket creation timed out. Please try again.",
+      "createError": "❌ An error occurred while creating your ticket. Please try again.",
+      "formError": "❌ An error occurred while opening the ticket form. Please try again.",
+      "claimError": "❌ An error occurred while claiming the ticket. Please try again or contact an administrator.",
+      "descriptionTooLong": "❌ Issue description is too long ({length} characters). Please keep it under 1024 characters."
     }
   },
   "commands": {

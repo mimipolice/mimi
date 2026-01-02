@@ -40,7 +40,19 @@
     },
     "supportServer": "支援伺服器",
     "ticket": {
-      "claimed": "您已成功接手此客服單。"
+      "claimed": "您已成功接手此客服單。",
+      "serverOnly": "❌ 此指令只能在伺服器中使用。",
+      "alreadyOpen": "❌ 您已經有一個開啟的客服單：<#{channelId}>",
+      "noTypes": "❌ 此伺服器尚未設定任何客服單類型。\n\n請聯繫管理員設定客服單系統。",
+      "selectType": "請選擇您需要的支援類型：",
+      "selectPlaceholder": "選擇客服單類型",
+      "modalTitle": "建立新客服單",
+      "describeIssue": "請描述您的問題",
+      "timeout": "❌ 客服單建立逾時，請重新嘗試。",
+      "createError": "❌ 建立客服單時發生錯誤，請重新嘗試。",
+      "formError": "❌ 開啟客服單表單時發生錯誤，請重新嘗試。",
+      "claimError": "❌ 接手客服單時發生錯誤，請重新嘗試或聯繫管理員。",
+      "descriptionTooLong": "❌ 問題描述過長（{length} 字元），請保持在 1024 字元以內。"
     }
   },
   "commands": {

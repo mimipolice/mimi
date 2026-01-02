@@ -1,8 +1,8 @@
 import { Interaction, Client } from "discord.js";
-import retry from "async-retry";
 import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
+import { withRetry } from "../utils/withRetry";
 import { handleHelpInteraction } from "./handlers/helpInteractionHandler";
 import reportViewHandler from "../interactions/buttons/reportView";
 
@@ -32,21 +32,9 @@ export async function execute(
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
       const startTime = Date.now();
-      await retry(
-        async () => {
-          await command.execute(interaction, client, services, databases);
-        },
-        {
-          retries: 3,
-          factor: 2,
-          minTimeout: 200,
-          onRetry: (error: Error, attempt: number) => {
-            logger.warn(
-              `[DB Retry] Command execution failed on attempt ${attempt}. Retrying...`,
-              error.message
-            );
-          },
-        }
+      await withRetry(
+        () => command.execute(interaction, client, services, databases),
+        `Command: ${interaction.commandName}`
       );
       const executionTime = Date.now() - startTime;
       errorHandler.recordSuccessfulCommand(

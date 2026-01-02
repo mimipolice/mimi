@@ -4,23 +4,28 @@ import {
   ButtonBuilder,
   ButtonInteraction,
   EmbedBuilder,
-  GuildMember,
   Client,
   ComponentType,
 } from "discord.js";
-import { Services } from "../../interfaces/Command"; // Import Services and Databases
+import { Services } from "../../interfaces/Command";
 import { createBusinessErrorReply } from "../../utils/interactionReply";
 import { BusinessError } from "../../errors";
 import logger from "../../utils/logger";
+import { getInteractionLocale } from "../../utils/localeHelper";
 
 export default {
   name: "claim_ticket",
-  // Correct the function signature
   execute: async function (
     interaction: ButtonInteraction,
     client: Client,
     services: Services
   ) {
+    const locale = getInteractionLocale(interaction);
+    const { localizationManager } = services;
+
+    const t = (key: string) =>
+      localizationManager.get(`global.ticket.${key}`, locale) ?? key;
+
     try {
       await services.ticketManager.claim(interaction);
 
@@ -56,17 +61,8 @@ export default {
         });
       }
 
-      const locale = interaction.locale;
-      const localizations = services.localizationManager.getLocale(
-        "global",
-        locale
-      );
-      const claimedMessage =
-        localizations?.ticket?.claimed ||
-        "You have successfully claimed this ticket.";
-
       return interaction.reply({
-        content: claimedMessage,
+        content: t("claimed"),
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {
@@ -91,7 +87,7 @@ export default {
       try {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
-            content: "❌ An error occurred while claiming the ticket. Please try again or contact an administrator.",
+            content: t("claimError"),
             flags: MessageFlags.Ephemeral,
           });
         }

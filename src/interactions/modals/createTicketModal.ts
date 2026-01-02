@@ -2,10 +2,17 @@ import { ModalSubmitInteraction } from "discord.js";
 import { Services } from "../../interfaces/Command";
 import { MessageFlags } from "discord-api-types/v10";
 import logger from "../../utils/logger";
+import { getInteractionLocale } from "../../utils/localeHelper";
 
 export default {
   name: "create_ticket_modal",
   execute: async (interaction: ModalSubmitInteraction, services: Services) => {
+    const locale = getInteractionLocale(interaction);
+    const { localizationManager } = services;
+
+    const t = (key: string, options?: Record<string, string | number>) =>
+      localizationManager.get(`global.ticket.${key}`, locale, options) ?? key;
+
     if (!services.ticketManager) {
       logger.error("TicketManager service not available in createTicketModal");
       return;
@@ -24,7 +31,7 @@ export default {
           `User ${interaction.user.id} attempted to create ticket with description length ${issueDescription.length} (max 1024)`
         );
         await interaction.editReply({
-          content: `❌ Issue description is too long (${issueDescription.length} characters). Please keep it under 1024 characters.`,
+          content: t("descriptionTooLong", { length: issueDescription.length }),
         });
         return;
       }
@@ -34,10 +41,11 @@ export default {
         issueDescription,
         ticketType
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; stack?: string };
       logger.error("Error in createTicketModal:", {
-        error: error.message,
-        stack: error.stack,
+        error: err.message,
+        stack: err.stack,
         userId: interaction.user.id,
         guildId: interaction.guildId,
       });
@@ -46,11 +54,11 @@ export default {
       try {
         if (interaction.deferred || interaction.replied) {
           await interaction.editReply({
-            content: "❌ An error occurred while creating your ticket. Please try again or contact an administrator.",
+            content: t("createError"),
           });
         } else {
           await interaction.reply({
-            content: "❌ An error occurred while creating your ticket. Please try again or contact an administrator.",
+            content: t("createError"),
             flags: MessageFlags.Ephemeral,
           });
         }

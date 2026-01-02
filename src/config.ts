@@ -1,28 +1,26 @@
-import dotenv from "dotenv";
-
-dotenv.config();
+import { env } from "./config/env";
 
 const mimiDLCDatabaseConfig = {
-  host: process.env.MIMIDLC_DB_HOST,
-  port: Number(process.env.MIMIDLC_DB_PORT),
-  user: process.env.MIMIDLC_DB_USER,
-  password: process.env.MIMIDLC_DB_PASSWORD,
-  name: process.env.MIMIDLC_DB_NAME,
+  host: env.MIMIDLC_DB_HOST,
+  port: env.MIMIDLC_DB_PORT,
+  user: env.MIMIDLC_DB_USER,
+  password: env.MIMIDLC_DB_PASSWORD,
+  name: env.MIMIDLC_DB_NAME,
 };
 
 const gachaDatabaseConfig = {
-  host: process.env.GACHA_DB_HOST,
-  port: Number(process.env.GACHA_DB_PORT),
-  user: process.env.GACHA_DB_USER,
-  password: process.env.GACHA_DB_PASSWORD,
-  name: process.env.GACHA_DB_NAME,
+  host: env.GACHA_DB_HOST,
+  port: env.GACHA_DB_PORT,
+  user: env.GACHA_DB_USER,
+  password: env.GACHA_DB_PASSWORD,
+  name: env.GACHA_DB_NAME,
 };
 
 const config = {
   discord: {
-    token: process.env.DISCORD_TOKEN,
-    clientId: process.env.CLIENT_ID,
-    guildId: process.env.DEV_GUILD_ID, // For guild-specific commands
+    token: env.DISCORD_TOKEN,
+    clientId: env.CLIENT_ID,
+    guildId: env.DEV_GUILD_ID,
   },
   gachaDatabase: gachaDatabaseConfig,
   ticketDatabase: mimiDLCDatabaseConfig,

@@ -7,20 +7,28 @@ import {
   MessageFlags,
 } from "discord.js";
 import logger from "../../utils/logger";
+import { SelectMenu } from "../../interfaces/SelectMenu";
+import { getInteractionLocale } from "../../utils/localeHelper";
 
-export default {
+const selectMenu: SelectMenu = {
   name: "create_ticket_menu",
-  execute: async function (interaction: StringSelectMenuInteraction) {
+  execute: async function (interaction, services, _databases) {
+    const locale = getInteractionLocale(interaction);
+    const { localizationManager } = services;
+
+    const t = (key: string) =>
+      localizationManager.get(`global.ticket.${key}`, locale) ?? key;
+
     try {
       const ticketType = interaction.values[0].split(":")[1];
 
       const modal = new ModalBuilder()
         .setCustomId(`create_ticket_modal:${ticketType || ""}`)
-        .setTitle("Create a New Ticket");
+        .setTitle(t("modalTitle"));
 
       const issueDescription = new TextInputBuilder()
         .setCustomId("ticket_issue_description")
-        .setLabel("Please describe your issue")
+        .setLabel(t("describeIssue"))
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(10)
@@ -44,7 +52,7 @@ export default {
       try {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({
-            content: "❌ An error occurred while opening the ticket form. Please try again.",
+            content: t("formError"),
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -54,3 +62,5 @@ export default {
     }
   }
 };
+
+export default selectMenu;
