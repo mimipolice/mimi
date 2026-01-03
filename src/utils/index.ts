@@ -47,4 +47,5 @@ export {
 } from "./ticketDebug";
 
 // Transport
-export { DiscordWebhookTransport } from "./discordWebhookTransport";
+export { EnhancedDiscordWebhookTransport } from "./discordWebhookTransport";
+export type { EnhancedTransportOptions, ErrorCategory, ErrorSeverity } from "./discordWebhookTransport";

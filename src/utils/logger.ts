@@ -1,5 +1,5 @@
 import winston from "winston";
-import { DiscordWebhookTransport } from "./discordWebhookTransport";
+import { EnhancedDiscordWebhookTransport } from "./discordWebhookTransport";
 
 // 1. (新增) 建立一個自訂 format，專門將 level 字串轉為大寫
 //    這一步是為了解決問題的核心
@@ -16,9 +16,19 @@ const transports: winston.transport[] = [
 // Add Discord webhook transport if configured
 if (process.env.ERROR_WEBHOOK_URL) {
   transports.push(
-    new DiscordWebhookTransport({
+    new EnhancedDiscordWebhookTransport({
       level: "error", // Only send error logs to Discord
       webhookUrl: process.env.ERROR_WEBHOOK_URL,
+      // Rate limiting: 15 messages per 10 minutes
+      windowDurationMs: 10 * 60 * 1000,
+      maxMessagesPerWindow: 15,
+      // Aggregate similar errors for 30 seconds
+      aggregationWindowMs: 30 * 1000,
+      // Send summary every 5 minutes
+      summaryIntervalMs: 5 * 60 * 1000,
+      enableSummary: true,
+      // CRITICAL errors (DB down) bypass rate limit
+      criticalBypassRateLimit: true,
     })
   );
 }
