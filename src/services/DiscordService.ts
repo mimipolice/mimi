@@ -14,25 +14,26 @@ import {
   ThumbnailBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  StringSelectMenuBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import logger from "../utils/logger";
 import { GuildSettings } from "./SettingsManager";
 import { Ticket } from "../repositories/ticket.repository";
-import { TicketAction, TicketLogMenuAction, TicketLogMenuOptions } from "../types/ticket";
+import { TicketAction } from "../types/ticket";
 import {
   logChannelPermissions,
   safeDeletePermissionOverwrite,
   safeEditPermissionOverwrite,
 } from "../utils/ticketDebug";
-
-// Discord brand colors
-const DISCORD_BLURPLE = 0x5865f2;
-const DISCORD_GREEN = 0x57f287;
-
-// Discord default avatar URL (used when guild has no icon)
-const DISCORD_DEFAULT_AVATAR = "https://cdn.discordapp.com/embed/avatars/0.png";
+import {
+  DISCORD_BLURPLE,
+  DISCORD_GREEN,
+  DISCORD_DEFAULT_AVATAR,
+  TICKET_LOG_BANNER_URL,
+  EMOJIS,
+} from "../constants";
 
 export class DiscordService {
   private client: Client;
@@ -218,7 +219,7 @@ export class DiscordService {
         transcriptUrl
       );
 
-      const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>)[] = [container];
+      const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder>)[] = [container];
 
       // Add transcript button if available
       if (transcriptUrl) {
@@ -231,19 +232,15 @@ export class DiscordService {
         components.push(buttonRow);
       }
 
-      // Add ticket management select menu (uses shared option values)
-      const selectMenuRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`${TicketLogMenuAction.MAIN}:${ticket.id}`)
-          .setPlaceholder("Select action...")
-          .addOptions(
-            { label: "Ticket History", description: "View this user's ticket history", ...TicketLogMenuOptions.HISTORY },
-            { label: "Mark Status", description: "Mark the resolution status", ...TicketLogMenuOptions.STATUS },
-            { label: "Category", description: "Set a category for this ticket", ...TicketLogMenuOptions.CATEGORY },
-            { label: "Rating", description: "Rate the handling quality", ...TicketLogMenuOptions.RATING }
-          )
+      // Add ticket history button
+      const historyButtonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_history:${ticket.id}`)
+          .setLabel("View User's Ticket History")
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji(EMOJIS.ID.toComponentEmoji())
       );
-      components.push(selectMenuRow);
+      components.push(historyButtonRow);
 
       const logMessage = await logChannel.send({
         components,
@@ -413,6 +410,17 @@ export class DiscordService {
     const container = new ContainerBuilder();
     container.setAccentColor(DISCORD_GREEN);
 
+    // Add banner at the top to set container width
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(TICKET_LOG_BANNER_URL)
+      )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
     // Header with guild info
     container.addSectionComponents(
       new SectionBuilder()
@@ -432,9 +440,9 @@ export class DiscordService {
     // Ticket info with emojis
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `<:id:1395852626360275166> **Ticket ID**\n#${ticket.guildTicketId}\n\n` +
-        `<:open:1395852835266236547> **Opened By**\n<@${owner.id}>\n\n` +
-        `<:opentime:1395852963079000106> **Open Time**\n<t:${openTime}:f>`
+        `${EMOJIS.ID} **Ticket ID**\n#${ticket.guildTicketId}\n\n` +
+        `${EMOJIS.OPEN} **Opened By**\n<@${owner.id}>\n\n` +
+        `${EMOJIS.OPENTIME} **Open Time**\n<t:${openTime}:f>`
       )
     );
 
@@ -444,8 +452,8 @@ export class DiscordService {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `<:close:1395852886596128818> **Closed By**\n<@${closer.id}>\n\n` +
-        `<:claim:1395853067357786202> **Claimed By**\n${ticket.claimedById ? `<@${ticket.claimedById}>` : "Not claimed"}`
+        `${EMOJIS.CLOSE} **Closed By**\n<@${closer.id}>\n\n` +
+        `${EMOJIS.CLAIM} **Claimed By**\n${ticket.claimedById ? `<@${ticket.claimedById}>` : "Not claimed"}`
       )
     );
 
@@ -455,7 +463,7 @@ export class DiscordService {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `<:reason:1395853176841834516> **Reason**\n${reason || "No reason specified"}`
+        `${EMOJIS.REASON} **Reason**\n${reason || "No reason specified"}`
       )
     );
 

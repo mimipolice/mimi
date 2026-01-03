@@ -48,19 +48,6 @@ export enum TicketResolution {
 
 // Select menu action types
 export const TicketLogMenuAction = {
-  // Main menu
-  MAIN: "ticket_log_menu:main",
-  // Sub menus
+  // History menu (triggered by button, handled by select menu)
   HISTORY: "ticket_log_menu:history",
-  STATUS: "ticket_log_menu:status",
-  CATEGORY: "ticket_log_menu:category",
-  RATING: "ticket_log_menu:rating",
-} as const;
-
-// Shared menu option values for consistency between DiscordService and ticketLogMenu
-export const TicketLogMenuOptions = {
-  HISTORY: { value: "history", emoji: "📋" },
-  STATUS: { value: "status", emoji: "🏷️" },
-  CATEGORY: { value: "category", emoji: "📁" },
-  RATING: { value: "rating", emoji: "⭐" },
 } as const;
