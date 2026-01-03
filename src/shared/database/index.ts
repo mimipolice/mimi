@@ -14,7 +14,12 @@ types.setTypeParser(20, (val) => {
 
 // ===== Main Database Pools =====
 
-// gacha Database Pool (also used for odog)
+/**
+ * gacha Database Pool (也用於 odog)
+ *
+ * ⚠️ 警告：此資料庫由外部服務維護，禁止修改結構！
+ * 只能進行讀取操作。
+ */
 export const gachaPool = new Pool({
   host: config.gachaDatabase.host,
   database: config.gachaDatabase.name,
@@ -29,7 +34,11 @@ gachaPool.on("error", (err, client) => {
   logger.error("[Gacha Pool] An idle client has experienced an error", err);
 });
 
-// mimiDLC Database Pool (also used for tickets)
+/**
+ * mimiDLC Database Pool (也用於 tickets)
+ *
+ * ✅ 此資料庫可以自由修改，用於 Mimi 機器人所有功能。
+ */
 const mimiDLCPool = new Pool({
   host: config.mimiDLCDatabase.host,
   database: config.mimiDLCDatabase.name,
@@ -46,12 +55,20 @@ mimiDLCPool.on("error", (err, client) => {
 
 // ===== Kysely Instances =====
 
-// Main instance for gacha-related operations
+/**
+ * gachaDB - 卡片/股票專用資料庫實例
+ *
+ * ⚠️ 警告：只能讀取，禁止修改結構！
+ */
 export const gachaDB = new Kysely<GachaDB>({
   dialect: new PostgresDialect({ pool: gachaPool }),
 });
 
-// Main instance for mimiDLC-related operations
+/**
+ * mimiDLCDb - Mimi 機器人功能專用資料庫實例
+ *
+ * ✅ 可以自由修改，所有新功能都應該使用此資料庫。
+ */
 export const mimiDLCDb = new Kysely<MimiDLCDB>({
   dialect: new PostgresDialect({ pool: mimiDLCPool }),
 });

@@ -1,4 +1,5 @@
 import { ColumnType } from "kysely";
+import { TicketCategory, TicketResolution } from "../../types/ticket";
 
 export interface UserTopGuild {
   guild_id: string;
@@ -127,6 +128,12 @@ export interface UserInfoData {
   total_transactions_count: number;
 }
 
+/**
+ * GachaDB - 卡片/股票專用資料庫
+ *
+ * ⚠️ 警告：此資料庫由外部服務維護，禁止修改結構！
+ * 只能進行讀取操作，不可新增/修改/刪除欄位或資料表。
+ */
 export interface GachaDB {
   ai_prompts: {
     id: ColumnType<number, never, never>;
@@ -229,6 +236,16 @@ export interface GachaDB {
   };
 }
 
+/**
+ * MimiDLCDB - Mimi 機器人功能專用資料庫
+ *
+ * ✅ 此資料庫可以自由修改，用於：
+ * - 客服單系統 (tickets, ticket_types, guild_ticket_counters)
+ * - 伺服器設定 (guild_settings)
+ * - 其他 Mimi 機器人功能
+ *
+ * 所有新功能的資料表都應該新增在這裡。
+ */
 export interface MimiDLCDB {
   guild_settings: {
     guildId: string;
@@ -259,6 +276,10 @@ export interface MimiDLCDB {
     closedAt: ColumnType<Date, string, string> | null;
     transcriptUrl: string | null;
     logMessageId: string | null;
+    // Ticket management fields (set via log message select menu)
+    category: TicketCategory | null;
+    rating: number | null;
+    resolution: TicketResolution | null;
   };
   guild_ticket_counters: {
     guildId: string;

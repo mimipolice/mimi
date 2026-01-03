@@ -1,6 +1,7 @@
 import { generateFromMessages } from 'discord-html-transcripts';
 import { TextChannel } from 'discord.js';
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import path from 'path';
 import logger from '../logger';
 import { uploadToR2, isR2Configured } from '../r2';
@@ -148,4 +149,42 @@ function escapeHtml(text: string): string {
         "'": '&#039;',
     };
     return text.replace(/[&<>"']/g, (char) => map[char]);
+}
+
+/**
+ * Find a local transcript file by channel ID.
+ * Searches TRANSCRIPT_PATH for files matching the pattern transcript-{channelId}-*.html
+ * Returns the public URL of the most recent transcript if found, null otherwise.
+ */
+export async function findLocalTranscript(channelId: string): Promise<string | null> {
+    const transcriptPath = process.env.TRANSCRIPT_PATH;
+    const transcriptBaseUrl = process.env.TRANSCRIPT_BASE_URL;
+
+    if (!transcriptPath || !transcriptBaseUrl) {
+        return null;
+    }
+
+    try {
+        const files = await fsPromises.readdir(transcriptPath);
+        const pattern = new RegExp(`^transcript-${channelId}-\\d+\\.html$`);
+
+        // Find all matching files and sort by timestamp (newest first)
+        const matchingFiles = files
+            .filter(file => pattern.test(file))
+            .sort((a, b) => {
+                // Extract timestamp from filename: transcript-{channelId}-{timestamp}.html
+                const timestampA = parseInt(a.match(/-(\d+)\.html$/)?.[1] || '0', 10);
+                const timestampB = parseInt(b.match(/-(\d+)\.html$/)?.[1] || '0', 10);
+                return timestampB - timestampA; // Sort descending (newest first)
+            });
+
+        if (matchingFiles.length > 0) {
+            const fileName = matchingFiles[0];
+            return new URL(fileName, transcriptBaseUrl).toString();
+        }
+    } catch (error) {
+        logger.warn(`Failed to search for local transcript: ${error}`);
+    }
+
+    return null;
 }

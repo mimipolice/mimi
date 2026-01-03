@@ -42,13 +42,19 @@ export default {
         ticketType
       );
     } catch (error: unknown) {
-      const err = error as { message?: string; stack?: string };
+      const err = error as { message?: string; stack?: string; code?: number };
       logger.error("Error in createTicketModal:", {
         error: err.message,
         stack: err.stack,
         userId: interaction.user.id,
         guildId: interaction.guildId,
       });
+
+      // Don't try to reply if the interaction token is invalid (expired/unknown)
+      if (err.code === 10062) {
+        // Unknown interaction - token expired, nothing we can do
+        return;
+      }
 
       // Try to inform the user
       try {
@@ -63,7 +69,11 @@ export default {
           });
         }
       } catch (replyError) {
-        logger.error("Failed to send error message to user:", replyError);
+        // Silently ignore if we can't reply (interaction probably expired)
+        const replyErr = replyError as { code?: number };
+        if (replyErr.code !== 10062 && replyErr.code !== 40060) {
+          logger.error("Failed to send error message to user:", replyError);
+        }
       }
     }
   },

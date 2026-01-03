@@ -6,18 +6,20 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { TicketManager } from "../../services/TicketManager";
-import { SettingsManager } from "../../services/SettingsManager";
+import { Services } from "../../interfaces/Command";
+import logger from "../../utils/logger";
 
 export default {
   name: "create_ticket",
   execute: async function (
     interaction: ButtonInteraction,
     _client: Client,
-    _settingsManager: SettingsManager,
-    ticketManager: TicketManager
+    services: Services
   ) {
-    if (!ticketManager) return;
+    if (!services.ticketManager) {
+      logger.error("TicketManager service not available in createTicket button");
+      return;
+    }
 
     const [_, ticketType] = interaction.customId.split(":");
 

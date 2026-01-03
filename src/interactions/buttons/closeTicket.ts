@@ -1,10 +1,9 @@
 import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, Client } from 'discord.js';
-import { SettingsManager } from '../../services/SettingsManager';
-import { TicketManager } from '../../services/TicketManager';
+import { Services } from '../../interfaces/Command';
 
 export default {
   name: 'close_ticket',
-  execute: async function (interaction: ButtonInteraction, _client: Client, _settingsManager: SettingsManager, _ticketManager: TicketManager) {
+  execute: async function (interaction: ButtonInteraction, _client: Client, _services: Services) {
     const modal = new ModalBuilder()
       .setCustomId('close_ticket_modal')
       .setTitle('Close Ticket');

@@ -1,7 +1,11 @@
 import { Kysely, Selectable, sql } from "kysely";
 import { mimiDLCDb } from "../shared/database";
 import { MimiDLCDB } from "../shared/database/types";
-import { TicketStatus } from "../types/ticket";
+import { TicketStatus, TicketCategory, TicketResolution } from "../types/ticket";
+
+// Valid values for ticket category and resolution
+const VALID_CATEGORIES = Object.values(TicketCategory);
+const VALID_RESOLUTIONS = Object.values(TicketResolution);
 
 export type Ticket = Selectable<MimiDLCDB["tickets"]>;
 
@@ -99,6 +103,77 @@ export class TicketRepository {
       .updateTable("tickets")
       .set({ claimedById: userId })
       .where("channelId", "=", channelId)
+      .execute();
+  }
+
+  async updateTicketCategory(ticketId: number, category: string): Promise<void> {
+    // Validate category is a valid TicketCategory enum value
+    if (!VALID_CATEGORIES.includes(category as TicketCategory)) {
+      throw new Error(`Invalid category: ${category}. Valid values: ${VALID_CATEGORIES.join(", ")}`);
+    }
+
+    await this.db
+      .updateTable("tickets")
+      .set({ category: category as TicketCategory })
+      .where("id", "=", ticketId)
+      .execute();
+  }
+
+  async updateTicketRating(ticketId: number, rating: number): Promise<void> {
+    // Validate rating is between 1 and 5
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new Error(`Invalid rating: ${rating}. Must be an integer between 1 and 5.`);
+    }
+
+    await this.db
+      .updateTable("tickets")
+      .set({ rating })
+      .where("id", "=", ticketId)
+      .execute();
+  }
+
+  async updateTicketResolution(ticketId: number, resolution: string): Promise<void> {
+    // Validate resolution is a valid TicketResolution enum value
+    if (!VALID_RESOLUTIONS.includes(resolution as TicketResolution)) {
+      throw new Error(`Invalid resolution: ${resolution}. Valid values: ${VALID_RESOLUTIONS.join(", ")}`);
+    }
+
+    await this.db
+      .updateTable("tickets")
+      .set({ resolution: resolution as TicketResolution })
+      .where("id", "=", ticketId)
+      .execute();
+  }
+
+  async findTicketById(ticketId: number): Promise<Ticket | undefined> {
+    return await this.db
+      .selectFrom("tickets")
+      .selectAll()
+      .where("id", "=", ticketId)
+      .executeTakeFirst();
+  }
+
+  async findTicketByLogMessageId(logMessageId: string): Promise<Ticket | undefined> {
+    return await this.db
+      .selectFrom("tickets")
+      .selectAll()
+      .where("logMessageId", "=", logMessageId)
+      .executeTakeFirst();
+  }
+
+  async findUserTicketHistory(
+    guildId: string,
+    ownerId: string,
+    limit: number = 25
+  ): Promise<Ticket[]> {
+    return await this.db
+      .selectFrom("tickets")
+      .selectAll()
+      .where("guildId", "=", guildId)
+      .where("ownerId", "=", ownerId)
+      .where("status", "=", TicketStatus.CLOSED)
+      .orderBy("closedAt", "desc")
+      .limit(limit)
       .execute();
   }
 

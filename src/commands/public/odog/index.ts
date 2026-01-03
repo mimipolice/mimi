@@ -4,6 +4,9 @@ import {
   ContainerBuilder,
   Locale,
   Client,
+  SeparatorBuilder,
+  TextDisplayBuilder,
+  SeparatorSpacingSize,
 } from "discord.js";
 import { MessageFlags } from "discord-api-types/v10";
 import { getOdogRankings } from "../../../repositories/gacha.repository";
@@ -102,8 +105,7 @@ export default {
       }
 
       const container = new ContainerBuilder();
-      container.setAccentColor(0xffd700); // Gold color for rankings
-      container.setSpoiler(true);
+      container.setAccentColor(0xffd700);
 
       const gachaPools = getGachaPoolsCache();
       const gachaPoolInfo = gachaId
@@ -116,11 +118,15 @@ export default {
           : t.responses.global);
 
       const titleText = t.responses.title
-        .replace("{{gachaName}}", gachaName)
-        .replace("{{period}}", period);
+        .replace("{{gachaName}}", gachaName);
 
-      container.addTextDisplayComponents((text) =>
-        text.setContent(`# ${titleText}`)
+      // Header with title
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`# ${titleText}`)
+      );
+
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
       );
 
       const rarityEmojis: { [key: string]: string } = {
@@ -133,32 +139,54 @@ export default {
         "1": "<:t1:1403032106950721646>",
       };
 
-      const rankList = rankings
-        .slice(0, 10)
-        .map((user, index) => {
-          const rank = `**${index + 1}**.`;
-          const username = `**${user.nickname || `User ${user.user_id}`}**`;
+      // Build individual rank entries with better visual hierarchy
+      rankings.slice(0, 10).forEach((user, index) => {
+        const rank = index + 1;
+        const username = user.nickname || `User ${user.user_id}`;
 
-          const rarityDetails = user.rarity_counts
-            ? Object.entries(user.rarity_counts)
-                .sort(([a], [b]) => Number(b) - Number(a))
-                .map(
-                  ([rarity, count]) =>
-                    `${rarityEmojis[rarity] || "R" + rarity}: ${count}`
-                )
-                .join(" | ")
-            : t.responses.no_top_tier;
+        // Format rarity counts in a cleaner way
+        const rarityDetails = user.rarity_counts
+          ? Object.entries(user.rarity_counts)
+              .sort(([a], [b]) => Number(b) - Number(a))
+              .filter(([, count]) => count > 0)
+              .map(
+                ([rarity, count]) =>
+                  `${rarityEmojis[rarity] || "R" + rarity} ×${count}`
+              )
+              .join("  ")
+          : t.responses.no_top_tier;
 
-          const totalDraws = t.responses.user_rank_summary.replace(
-            "{{totalDraws}}",
-            `${user.total_draws.toString()}`
+        const totalDraws = t.responses.user_rank_summary.replace(
+          "{{totalDraws}}",
+          `${user.total_draws.toString()}`
+        );
+
+        // Create a section for each rank entry
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `**${rank}.** ${username}\n` +
+            `-# ${rarityDetails}\n` +
+            `-# ${totalDraws}`
+          )
+        );
+
+        // Add small separator between entries (except after last)
+        if (index < Math.min(rankings.length - 1, 9)) {
+          container.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
           );
+        }
+      });
 
-          return `${rank} ${username}\n- ${rarityDetails}\n- ${totalDraws}`;
-        })
-        .join("\n\n");
-
-      container.addTextDisplayComponents((text) => text.setContent(rankList));
+      // Footer with period info
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      );
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `-# ${t.responses.period_label}: ${period}`
+        )
+      );
 
       await interaction.editReply({
         components: [container],

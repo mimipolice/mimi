@@ -5,20 +5,34 @@ import {
   TextChannel,
   OverwriteResolvable,
   ChannelType,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ContainerBuilder,
+  SectionBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  StringSelectMenuBuilder,
 } from "discord.js";
+import { MessageFlags } from "discord-api-types/v10";
 import logger from "../utils/logger";
 import { GuildSettings } from "./SettingsManager";
 import { Ticket } from "../repositories/ticket.repository";
-import { TicketAction } from "../types/ticket";
+import { TicketAction, TicketLogMenuAction, TicketLogMenuOptions } from "../types/ticket";
 import {
   logChannelPermissions,
   safeDeletePermissionOverwrite,
   safeEditPermissionOverwrite,
 } from "../utils/ticketDebug";
+
+// Discord brand colors
+const DISCORD_BLURPLE = 0x5865f2;
+const DISCORD_GREEN = 0x57f287;
+
+// Discord default avatar URL (used when guild has no icon)
+const DISCORD_DEFAULT_AVATAR = "https://cdn.discordapp.com/embed/avatars/0.png";
 
 export class DiscordService {
   private client: Client;
@@ -65,6 +79,90 @@ export class DiscordService {
     }
   }
 
+  static buildTicketContainer(
+    user: User,
+    ticketType?: string,
+    issueDescription?: string,
+    claimedBy?: string
+  ): ContainerBuilder {
+    let truncatedDescription = issueDescription || "No issue description provided.";
+    if (truncatedDescription.length > 1024) {
+      logger.warn(
+        `Issue description truncated from ${truncatedDescription.length} to 1024 chars for user ${user.id}`
+      );
+      truncatedDescription = truncatedDescription.substring(0, 1021) + "...";
+    }
+
+    const container = new ContainerBuilder();
+    container.setAccentColor(DISCORD_BLURPLE);
+
+    // Header section with user avatar
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          (text) => text.setContent("# New Support Ticket"),
+          (text) => text.setContent(`Welcome, <@${user.id}>! A staff member will be with you shortly.`)
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(user.displayAvatarURL({ forceStatic: true }))
+        )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // Ticket details
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `**Type**\n${ticketType || "General"}`
+      )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `**Issue**\n${truncatedDescription}`
+      )
+    );
+
+    // Show claimed by if provided
+    if (claimedBy) {
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      );
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**Claimed by**\n<@${claimedBy}>`
+        )
+      );
+    }
+
+    return container;
+  }
+
+  static buildTicketActionRow(
+    claimed: boolean = false,
+    claimLabel: string = "Claim Ticket",
+    closeLabel: string = "Close Ticket"
+  ): ActionRowBuilder<ButtonBuilder> {
+    // Original order: Close button first, then Claim button
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(TicketAction.CLOSE)
+        .setLabel(closeLabel)
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(TicketAction.CLAIM)
+        .setLabel(claimLabel)
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(claimed)
+    );
+  }
+
   async sendInitialMessages(
     channel: TextChannel,
     user: User,
@@ -72,42 +170,8 @@ export class DiscordService {
     ticketType?: string,
     issueDescription?: string
   ) {
-    // Truncate issue description if it exceeds Discord's embed field value limit (1024 characters)
-    let truncatedDescription = issueDescription || "No issue description provided.";
-    if (truncatedDescription.length > 1024) {
-      logger.warn(
-        `Issue description for ticket ${channel.id} exceeds 1024 characters, truncating...`
-      );
-      truncatedDescription = truncatedDescription.substring(0, 1021) + "...";
-    }
-
-    const embed = new EmbedBuilder()
-      .setAuthor({
-        name: "New Support Ticket",
-        iconURL: user.displayAvatarURL(),
-      })
-      .setDescription(
-        `Welcome, <@${user.id}>! A staff member will be with you shortly.`
-      )
-      .addFields(
-        { name: "Type", value: ticketType || "General" },
-        {
-          name: "Issue",
-          value: truncatedDescription,
-        }
-      )
-      .setTimestamp();
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(TicketAction.CLOSE)
-        .setLabel("Close Ticket")
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId(TicketAction.CLAIM)
-        .setLabel("Claim Ticket")
-        .setStyle(ButtonStyle.Success)
-    );
+    const container = DiscordService.buildTicketContainer(user, ticketType, issueDescription);
+    const row = DiscordService.buildTicketActionRow(false);
 
     const mentionContent = `||<@${user.id}>${
       settings.staffRoleId ? `<@&${settings.staffRoleId}>` : ""
@@ -115,12 +179,14 @@ export class DiscordService {
 
     try {
       await Promise.all([
-        channel.send({ embeds: [embed], components: [row] }),
+        channel.send({
+          components: [container, row],
+          flags: MessageFlags.IsComponentsV2,
+        }),
         channel.send({ content: mentionContent }),
       ]);
     } catch (error) {
       logger.error(`Failed to send initial messages to ${channel.id}:`, error);
-      // Attempt to delete the channel if messages fail, to avoid orphaned channels
       await channel
         .delete()
         .catch((delErr) =>
@@ -143,8 +209,7 @@ export class DiscordService {
       const logChannel = (await guild.channels.fetch(
         logChannelId
       )) as TextChannel;
-      const embed = this._createCloseEmbed(
-        "Ticket Closed",
+      const container = this._createCloseContainer(
         guild,
         ticket,
         owner,
@@ -152,17 +217,38 @@ export class DiscordService {
         reason,
         transcriptUrl
       );
-      const components = [];
+
+      const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>)[] = [container];
+
+      // Add transcript button if available
       if (transcriptUrl) {
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setLabel("View Transcript")
             .setStyle(ButtonStyle.Link)
             .setURL(transcriptUrl)
         );
-        components.push(row);
+        components.push(buttonRow);
       }
-      const logMessage = await logChannel.send({ embeds: [embed], components });
+
+      // Add ticket management select menu (uses shared option values)
+      const selectMenuRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`${TicketLogMenuAction.MAIN}:${ticket.id}`)
+          .setPlaceholder("Select action...")
+          .addOptions(
+            { label: "Ticket History", description: "View this user's ticket history", ...TicketLogMenuOptions.HISTORY },
+            { label: "Mark Status", description: "Mark the resolution status", ...TicketLogMenuOptions.STATUS },
+            { label: "Category", description: "Set a category for this ticket", ...TicketLogMenuOptions.CATEGORY },
+            { label: "Rating", description: "Rate the handling quality", ...TicketLogMenuOptions.RATING }
+          )
+      );
+      components.push(selectMenuRow);
+
+      const logMessage = await logChannel.send({
+        components,
+        flags: MessageFlags.IsComponentsV2,
+      });
       return logMessage.id;
     } catch (error) {
       logger.error(
@@ -179,11 +265,8 @@ export class DiscordService {
     settings: GuildSettings | null
   ) {
     try {
-      // Log initial state for debugging
       logChannelPermissions(channel, "Before Archive");
 
-      // CRITICAL SECURITY STEP 1: ALWAYS remove @everyone view permission FIRST
-      // This must succeed before anything else to prevent ticket content leaks
       logger.info(`[SECURITY] Removing @everyone view permission for channel ${channel.id}`);
       const everyoneSuccess = await safeEditPermissionOverwrite(
         channel,
@@ -200,14 +283,12 @@ export class DiscordService {
       }
       logger.info(`[SECURITY] Successfully secured channel ${channel.id} from @everyone`);
 
-      // Step 2: Remove owner's access
       await safeDeletePermissionOverwrite(
         channel,
         owner.id,
         `Owner ${owner.username}`
       );
 
-      // Step 3: Ensure staff can view (read-only)
       if (settings?.staffRoleId) {
         await safeEditPermissionOverwrite(
           channel,
@@ -221,20 +302,17 @@ export class DiscordService {
         );
       }
 
-      // Step 4: Try to move to archive category (optional, can fail)
       if (settings?.archiveCategoryId) {
         try {
-          // Verify archive category exists
           const archiveCategory = await channel.guild.channels.fetch(
             settings.archiveCategoryId
           );
-          
+
           if (!archiveCategory) {
             logger.warn(
               `Archive category ${settings.archiveCategoryId} not found for guild ${channel.guild.id}, skipping move`
             );
           } else {
-            // Move channel WITHOUT locking permissions (we already set them)
             await channel.setParent(settings.archiveCategoryId, {
               lockPermissions: false,
             });
@@ -243,24 +321,20 @@ export class DiscordService {
             );
           }
         } catch (moveError: any) {
-          // Moving to archive category failed, but channel is already secured
           logger.warn(
             `Failed to move channel ${channel.id} to archive category (possibly full - 50 channel limit), but channel is secured:`,
             moveError.message || moveError
           );
-          // Don't throw - the important part (securing permissions) already succeeded
         }
       } else {
         logger.info(`No archive category configured for guild ${channel.guild.id}`);
       }
 
-      // Log final state for debugging
       logChannelPermissions(channel, "After Archive");
       logger.info(`Successfully archived and secured channel ${channel.id}`);
     } catch (error) {
       logger.error(`Critical error archiving channel ${channel.id}:`, error);
       logChannelPermissions(channel, "After Archive Error");
-      // Don't silently fail - this is important for debugging
       throw new Error(
         `Failed to archive ticket channel: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -293,8 +367,7 @@ export class DiscordService {
     transcriptUrl: string | null
   ) {
     try {
-      const dmEmbed = this._createCloseEmbed(
-        "Ticket Closed",
+      const container = this._createCloseContainer(
         guild,
         ticket,
         owner,
@@ -302,7 +375,8 @@ export class DiscordService {
         reason,
         transcriptUrl
       );
-      const components = [];
+
+      const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder>)[] = [container];
       if (transcriptUrl) {
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
@@ -312,7 +386,11 @@ export class DiscordService {
         );
         components.push(row);
       }
-      await owner.send({ embeds: [dmEmbed], components });
+
+      await owner.send({
+        components,
+        flags: MessageFlags.IsComponentsV2,
+      });
     } catch (error) {
       logger.warn(`Could not DM user ${owner.id}`, error);
     }
@@ -322,63 +400,65 @@ export class DiscordService {
     return this.client.users.fetch(userId);
   }
 
-  private _createCloseEmbed(
-    title: string,
+  private _createCloseContainer(
     guild: Guild,
     ticket: Ticket,
     owner: User,
     closer: User,
     reason: string,
     transcriptUrl?: string | null
-  ): EmbedBuilder {
+  ): ContainerBuilder {
     const openTime = Math.floor(new Date(ticket.createdAt).getTime() / 1000);
-    const embed = new EmbedBuilder()
-      .setTitle(title)
-      .setColor(0x32a852)
-      .setTimestamp()
-      .addFields(
-        {
-          name: "<:id:1395852626360275166> Ticket ID",
-          value: ticket.guildTicketId.toString(),
-          inline: true,
-        },
-        {
-          name: "<:open:1395852835266236547> Opened By",
-          value: `<@${owner.id}>`,
-          inline: true,
-        },
-        {
-          name: "<:close:1395852886596128818> Closed By",
-          value: `<@${closer.id}>`,
-          inline: true,
-        },
-        {
-          name: "<:opentime:1395852963079000106> Open Time",
-          value: `<t:${openTime}:f>`,
-          inline: true,
-        },
-        {
-          name: "<:claim:1395853067357786202> Claimed By",
-          value: ticket.claimedById
-            ? `<@${ticket.claimedById}>`
-            : "Not claimed",
-          inline: true,
-        },
-        { name: "​", value: "‎", inline: true },
-        {
-          name: "<:reason:1395853176841834516> Reason",
-          value: reason || "No reason specified",
-          inline: false,
-        }
-      );
 
-    if (title === "Ticket Closed") {
-      embed.setAuthor({
-        name: guild.name,
-        iconURL: guild.iconURL() || undefined,
-      });
-    }
+    const container = new ContainerBuilder();
+    container.setAccentColor(DISCORD_GREEN);
 
-    return embed;
+    // Header with guild info
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          (text) => text.setContent("# Ticket Closed"),
+          (text) => text.setContent(`-# ${guild.name}`)
+        )
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(guild.iconURL() || DISCORD_DEFAULT_AVATAR)
+        )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // Ticket info with emojis
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `<:id:1395852626360275166> **Ticket ID**\n#${ticket.guildTicketId}\n\n` +
+        `<:open:1395852835266236547> **Opened By**\n<@${owner.id}>\n\n` +
+        `<:opentime:1395852963079000106> **Open Time**\n<t:${openTime}:f>`
+      )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `<:close:1395852886596128818> **Closed By**\n<@${closer.id}>\n\n` +
+        `<:claim:1395853067357786202> **Claimed By**\n${ticket.claimedById ? `<@${ticket.claimedById}>` : "Not claimed"}`
+      )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `<:reason:1395853176841834516> **Reason**\n${reason || "No reason specified"}`
+      )
+    );
+
+    return container;
   }
 }

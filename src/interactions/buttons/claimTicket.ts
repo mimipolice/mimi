@@ -3,15 +3,21 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonInteraction,
-  EmbedBuilder,
   Client,
   ComponentType,
+  ContainerBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  TextDisplayBuilder,
+  MessageActionRowComponentBuilder,
 } from "discord.js";
 import { Services } from "../../interfaces/Command";
 import { createBusinessErrorReply } from "../../utils/interactionReply";
 import { BusinessError } from "../../errors";
 import logger from "../../utils/logger";
 import { getInteractionLocale } from "../../utils/localeHelper";
+import { TicketAction } from "../../types/ticket";
+import { DiscordService } from "../../services/DiscordService";
 
 export default {
   name: "claim_ticket",
@@ -29,36 +35,84 @@ export default {
     try {
       await services.ticketManager.claim(interaction);
 
-      const originalMessage = await interaction.channel?.messages.fetch(
-        interaction.message.id
-      );
-      if (originalMessage && originalMessage.embeds.length > 0) {
-        const updatedEmbed = new EmbedBuilder(
-          originalMessage.embeds[0].toJSON()
-        ).addFields({ name: "Claimed by", value: `<@${interaction.user.id}>` });
+      const originalMessage = interaction.message;
 
-        // Disable the 'Claim' button after it's been claimed
-        const newComponents: ActionRowBuilder<ButtonBuilder>[] = [];
-        for (const row of originalMessage.components) {
-          if (row.type === ComponentType.ActionRow) {
-            const newRow = new ActionRowBuilder<ButtonBuilder>();
-            for (const component of row.components) {
-              if (component.type === ComponentType.Button) {
-                const button = ButtonBuilder.from(component);
-                if (component.customId === "claim_ticket") {
-                  button.setDisabled(true);
-                }
-                newRow.addComponents(button);
-              }
+      // Build the action row with claim button disabled using localized labels
+      const newRow = DiscordService.buildTicketActionRow(
+        true,
+        t("claimButton"),
+        t("closeButton")
+      );
+
+      // For Components V2 messages, we need to rebuild components
+      const existingComponents = originalMessage.components;
+
+      if (existingComponents.length > 0) {
+        /**
+         * Components V2 mixes multiple component types (Container, ActionRow, Section, etc.)
+         * Discord.js's type system doesn't have a unified base type for all V2 components.
+         * We use a controlled union type with explicit handling for known component types.
+         */
+        const newComponents: (
+          | ContainerBuilder
+          | ActionRowBuilder<ButtonBuilder>
+          | ActionRowBuilder<MessageActionRowComponentBuilder>
+        )[] = [];
+
+        for (const component of existingComponents) {
+          if (component.type === ComponentType.ActionRow) {
+            // Check if this row contains our buttons
+            const hasClaimButton = component.components.some(
+              (c) => c.type === ComponentType.Button && c.customId === TicketAction.CLAIM
+            );
+            if (hasClaimButton) {
+              // Use the new row builder
+              newComponents.push(newRow);
+            } else {
+              // Rebuild ActionRow from component data to maintain type consistency
+              newComponents.push(
+                ActionRowBuilder.from<MessageActionRowComponentBuilder>(component)
+              );
             }
-            newComponents.push(newRow);
+          } else if (component.type === ComponentType.Container) {
+            // Rebuild container with "Claimed by" field added
+            const containerData = component.toJSON();
+            const newContainer = new ContainerBuilder(containerData);
+
+            // Add separator and "Claimed by" text
+            newContainer.addSeparatorComponents(
+              new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+            );
+            newContainer.addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                `**${t("claimedByLabel")}**\n<@${interaction.user.id}>`
+              )
+            );
+
+            newComponents.push(newContainer);
           }
+          // Note: Other component types (Section, Separator, etc.) at top level
+          // are not expected in ticket messages and are intentionally skipped
+          // to maintain type safety. Add explicit handling if needed in the future.
         }
 
-        await originalMessage.edit({
-          embeds: [updatedEmbed],
-          components: newComponents,
-        });
+        try {
+          await originalMessage.edit({
+            components: newComponents,
+            flags: MessageFlags.IsComponentsV2,
+          });
+        } catch (editError) {
+          logger.warn("Failed to edit original message:", editError);
+          // Notify user that edit failed but claim succeeded
+          const channel = interaction.channel;
+          if (channel?.isTextBased() && "send" in channel) {
+            await channel.send({
+              content: t("editFailed"),
+            }).catch((sendError) => {
+              logger.warn("Failed to send edit failure notification:", sendError);
+            });
+          }
+        }
       }
 
       return interaction.reply({
