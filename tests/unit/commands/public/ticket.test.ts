@@ -38,7 +38,8 @@ describe('Create-Ticket Command', () => {
 
     it('should not have any options (simple command)', () => {
       const json = ticketCommand.data.toJSON();
-      expect(json.options).toBeUndefined();
+      // toJSON() returns empty array when no options, not undefined
+      expect(json.options ?? []).toHaveLength(0);
     });
   });
 });

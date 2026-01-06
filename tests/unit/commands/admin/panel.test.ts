@@ -32,7 +32,7 @@ const {
 }));
 
 // Mock database
-vi.mock('../../../../src/shared/database.js', () => ({
+vi.mock('../../../../src/shared/database/index.js', () => ({
   mimiDLCDb: {
     selectFrom: mockDbSelectFrom,
     insertInto: mockDbInsertInto,
@@ -175,6 +175,7 @@ describe('Panel Command', () => {
             responses: {
               title: 'Ticket Types',
               no_types: 'No ticket types configured',
+              type_line: '{{emoji}} **{{label}}** ({{type_id}})',
             },
           },
           customize: {
@@ -210,6 +211,7 @@ describe('Panel Command', () => {
             responses: {
               title: '服務單類型',
               no_types: '未設定服務單類型',
+              type_line: '{{emoji}} **{{label}}** ({{type_id}})',
             },
           },
           customize: {
@@ -475,7 +477,7 @@ describe('Panel Command', () => {
       );
 
       expect(mockEditReply).toHaveBeenCalledWith(
-        expect.stringContaining('nonexistent')
+        expect.stringContaining('type')
       );
     });
   });

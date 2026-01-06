@@ -17,12 +17,9 @@ const {
   mockGetOdogRankings,
   mockGetGachaPoolsCache,
   mockLocalizations,
-} = vi.hoisted(() => ({
-  mockDeferReply: vi.fn().mockResolvedValue(undefined),
-  mockEditReply: vi.fn().mockResolvedValue(undefined),
-  mockGetOdogRankings: vi.fn(),
-  mockGetGachaPoolsCache: vi.fn(),
-  mockLocalizations: {
+  mockGetLocalizations,
+} = vi.hoisted(() => {
+  const localizations = {
     'en-US': {
       options: { gacha_id: { name: 'gacha_id' }, period: { name: 'period' } },
       responses: {
@@ -45,8 +42,16 @@ const {
         period_label: 'Period', error_fetching: 'Error fetching rankings',
       },
     },
-  },
-}));
+  };
+  return {
+    mockDeferReply: vi.fn().mockResolvedValue(undefined),
+    mockEditReply: vi.fn().mockResolvedValue(undefined),
+    mockGetOdogRankings: vi.fn(),
+    mockGetGachaPoolsCache: vi.fn(),
+    mockLocalizations: localizations,
+    mockGetLocalizations: vi.fn(() => localizations),
+  };
+});
 
 // Mock gacha repository
 vi.mock('../../../../src/repositories/gacha.repository.js', () => ({
@@ -66,9 +71,9 @@ vi.mock('../../../../src/config/gacha.js', () => ({
   },
 }));
 
-// Mock localization - use hoisted mockLocalizations
+// Mock localization - use hoisted mockGetLocalizations
 vi.mock('../../../../src/utils/localization.js', () => ({
-  getLocalizations: vi.fn().mockImplementation(() => mockLocalizations),
+  getLocalizations: mockGetLocalizations,
 }));
 
 // ============================================

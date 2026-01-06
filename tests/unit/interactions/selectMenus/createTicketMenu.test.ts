@@ -244,25 +244,30 @@ describe('createTicketMenu', () => {
       await createTicketMenu.execute(interaction as any, mockServices, mockDatabases);
 
       // Assert - check that showModal was called with a modal containing the expected structure
-      expect(interaction.showModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          custom_id: 'create_ticket_modal:support',
-          title: 'Create Ticket',
-          components: expect.arrayContaining([
-            expect.objectContaining({
-              components: expect.arrayContaining([
-                expect.objectContaining({
-                  custom_id: 'ticket_issue_description',
-                  style: 2, // Paragraph style
-                  required: true,
-                  min_length: 10,
-                  max_length: 1024,
-                }),
-              ]),
-            }),
-          ]),
-        })
-      );
+      expect(interaction.showModal).toHaveBeenCalled();
+      const modalArg = (interaction.showModal as any).mock.calls[0][0];
+
+      // Check top-level properties (may be direct or under data)
+      const modalData = modalArg.data ?? modalArg;
+      expect(modalData.custom_id).toBe('create_ticket_modal:support');
+      expect(modalData.title).toBe('Create Ticket');
+
+      // Components might be at top level or under data, or accessed via toJSON()
+      const components = modalData.components ?? modalArg.components;
+      expect(components).toBeDefined();
+      expect(components).toHaveLength(1);
+
+      const textInputRow = components[0];
+      const rowComponents = textInputRow.components ?? textInputRow.data?.components;
+      expect(rowComponents).toHaveLength(1);
+
+      const textInput = rowComponents[0];
+      const inputData = textInput.data ?? textInput;
+      expect(inputData.custom_id).toBe('ticket_issue_description');
+      expect(inputData.style).toBe(2); // Paragraph style
+      expect(inputData.required).toBe(true);
+      expect(inputData.min_length).toBe(10);
+      expect(inputData.max_length).toBe(1024);
     });
 
     it('should use localized label for issue description', async () => {

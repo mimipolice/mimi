@@ -163,6 +163,8 @@ export function createMockTextChannel(
     },
     isTextBased: vi.fn().mockReturnValue(true),
     toString: vi.fn().mockReturnValue(`<#${id}>`),
+    // Flag for instanceof checks with mocked TextChannel
+    _isMockTextChannel: true,
   } as unknown as TextChannel;
 }
 

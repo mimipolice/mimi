@@ -127,7 +127,7 @@ function createMockThread(options: {
 describe('threadCreate event', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mockSettingsManagerGetSettings.mockResolvedValue({
       story_forum_channels: [],
       forum_autotags: null,

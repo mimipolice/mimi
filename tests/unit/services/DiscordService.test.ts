@@ -842,6 +842,23 @@ describe('DiscordService', () => {
         'Before Delete'
       );
     });
+
+    it('should log audit info with owner when provided', async () => {
+      // Arrange
+      const mockChannel = createMockTextChannel({ id: 'channel-999', name: 'ticket-001' });
+      const mockOwner = createMockUser({ id: 'owner-123', username: 'TestOwner' });
+
+      // Act
+      await discordService.deleteTicketChannel(mockChannel as any, mockOwner as any);
+
+      // Assert
+      expect(mockLoggerInfo).toHaveBeenCalledWith(
+        expect.stringContaining('[AUDIT]')
+      );
+      expect(mockLoggerInfo).toHaveBeenCalledWith(
+        expect.stringContaining('owner: TestOwner/owner-123')
+      );
+    });
   });
 
   // ============================================
