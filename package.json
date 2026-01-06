@@ -8,7 +8,12 @@
     "dev": "cross-env NODE_ENV=development tsc && node dist/index.js",
     "deploy": "npm run build && node dist/deploy-commands.js",
     "clean-emojis": "npm run build && node dist/scripts/clean-invalid-emojis.js",
-    "migrate:transcripts": "npm run build && node dist/scripts/migrate-transcripts-to-r2.js"
+    "migrate:transcripts": "npm run build && node dist/scripts/migrate-transcripts-to-r2.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --coverage --reporter=junit --outputFile=./test-results.xml"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
@@ -52,7 +57,11 @@
     "@types/pg": "^8.15.4",
     "@types/string-similarity": "^4.0.2",
     "@types/trusted-types": "^2.0.7",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "copyfiles": "^2.4.1",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "vitest": "^4.0.16",
+    "vitest-mock-extended": "^3.1.0"
   }
 }
