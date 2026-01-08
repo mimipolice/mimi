@@ -4,10 +4,8 @@
  * 測試範圍：
  * - 純邏輯測試：顏色決定、padding 計算、時間單位決定
  * - 介面 shape 測試：OhlcData, ChartExtraInfo
- * - Chart 生成：需要整合測試（canvas + chart.js 依賴）
  *
  * Mock 策略：
- * - canvas 和 chart.js 因 native dependencies 較難完全 mock
  * - 這裡著重測試可抽取的純函數邏輯
  */
 
@@ -229,9 +227,9 @@ describe('chart-generator interfaces', () => {
         close: number;
       }): boolean => {
         return ohlc.high >= ohlc.open &&
-               ohlc.high >= ohlc.close &&
-               ohlc.low <= ohlc.open &&
-               ohlc.low <= ohlc.close;
+          ohlc.high >= ohlc.close &&
+          ohlc.low <= ohlc.open &&
+          ohlc.low <= ohlc.close;
       };
 
       // Valid OHLC
@@ -351,48 +349,10 @@ describe('chart-generator defaults', () => {
 });
 
 // ============================================
-// Data Transformation 測試
+// Data Transformation 測試 (已棄用: Takumi 不需要 Chart.js 格式轉換)
 // ============================================
 
 describe('chart-generator data transformation', () => {
-  describe('OHLC to floating bar data', () => {
-    it('should transform OHLC to chart.js floating bar format', () => {
-      const ohlcData = [
-        { timestamp: new Date('2024-01-01T00:00:00Z'), open: 100, high: 110, low: 95, close: 105, volume: 1000 },
-        { timestamp: new Date('2024-01-01T01:00:00Z'), open: 105, high: 115, low: 100, close: 110, volume: 1200 },
-      ];
-
-      const transformedData = ohlcData.map(d => ({
-        x: d.timestamp.getTime(),
-        y: [d.open, d.close],
-        high: d.high,
-        low: d.low,
-      }));
-
-      expect(transformedData[0].x).toBe(ohlcData[0].timestamp.getTime());
-      expect(transformedData[0].y).toEqual([100, 105]);
-      expect(transformedData[0].high).toBe(110);
-      expect(transformedData[0].low).toBe(95);
-    });
-  });
-
-  describe('Volume data transformation', () => {
-    it('should transform volume data for chart.js', () => {
-      const ohlcData = [
-        { timestamp: new Date('2024-01-01T00:00:00Z'), open: 100, high: 110, low: 95, close: 105, volume: 1000 },
-        { timestamp: new Date('2024-01-01T01:00:00Z'), open: 105, high: 115, low: 100, close: 110, volume: 1200 },
-      ];
-
-      const volumeData = ohlcData.map(d => ({
-        x: d.timestamp.getTime(),
-        y: d.volume,
-      }));
-
-      expect(volumeData[0].y).toBe(1000);
-      expect(volumeData[1].y).toBe(1200);
-    });
-  });
-
   describe('Color arrays for data points', () => {
     it('should generate correct color array for candlesticks', () => {
       const ohlcData = [
