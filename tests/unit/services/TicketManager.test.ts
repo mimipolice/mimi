@@ -44,6 +44,7 @@ const {
   mockLoggerError,
   mockLoggerInfo,
   mockLoggerWarn,
+  mockGenerateTranscript,
 } = vi.hoisted(() => ({
   mockGetSettings: vi.fn(),
   mockClearCache: vi.fn(),
@@ -66,6 +67,7 @@ const {
   mockLoggerError: vi.fn(),
   mockLoggerInfo: vi.fn(),
   mockLoggerWarn: vi.fn(),
+  mockGenerateTranscript: vi.fn(),
 }));
 
 // Mock SettingsManager
@@ -106,7 +108,7 @@ vi.mock('../../../src/repositories/ticket.repository.js', () => ({
 
 // Mock transcript utility
 vi.mock('../../../src/utils/transcript/transcript.js', () => ({
-  generateTranscript: vi.fn().mockResolvedValue('https://example.com/transcript.html'),
+  generateTranscript: mockGenerateTranscript,
 }));
 
 // Mock sanitize utility
@@ -183,6 +185,7 @@ describe('TicketManager', () => {
     mockCreateTicket.mockResolvedValue(undefined);
     mockSendInitialMessages.mockResolvedValue(undefined);
     mockFetchUser.mockResolvedValue(createMockUser({ id: 'owner-123' }));
+    mockGenerateTranscript.mockResolvedValue('https://example.com/transcript.html');
   });
 
   afterEach(() => {
@@ -444,6 +447,52 @@ describe('TicketManager', () => {
       expect(mockCloseTicket).toHaveBeenCalled(); // DB 已更新
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.stringContaining('issue deleting')
+      );
+    });
+
+    it('should fallback to archive when no transcript is available', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue(null); // No transcript
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockCloseTicket).toHaveBeenCalled();
+      expect(mockArchiveTicketChannel).toHaveBeenCalled();
+      expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('No transcript saved')
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('transcript not available')
+      );
+    });
+
+    it('should report error when settings is null', async () => {
+      // Arrange - settings null means configuration is missing
+      mockGetSettings.mockResolvedValue(null);
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockCloseTicket).toHaveBeenCalled();
+      expect(mockArchiveTicketChannel).not.toHaveBeenCalled();
+      expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('has no settings configured')
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('server not configured')
       );
     });
 

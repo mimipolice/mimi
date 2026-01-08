@@ -37,11 +37,16 @@ const {
   mockReaddir,
   mockRedisScan,
   mockCacheServiceInstance,
+  mockRedisClient,
+  mockEnsureRedisConnected,
 } = vi.hoisted(() => {
   const cacheInstance = {
     get: vi.fn(),
     set: vi.fn(),
     del: vi.fn(),
+  };
+  const redisClient = {
+    scan: vi.fn(),
   };
   return {
     mockLoggerInfo: vi.fn(),
@@ -55,8 +60,10 @@ const {
     mockPoolClientOn: vi.fn(),
     mockPoolClientRelease: vi.fn(),
     mockReaddir: vi.fn(),
-    mockRedisScan: vi.fn(),
+    mockRedisScan: redisClient.scan,
     mockCacheServiceInstance: cacheInstance,
+    mockRedisClient: redisClient,
+    mockEnsureRedisConnected: vi.fn(),
   };
 });
 
@@ -100,9 +107,7 @@ vi.mock('../../../src/shared/database', () => ({
 
 // Mock redis client
 vi.mock('../../../src/shared/redis', () => ({
-  default: {
-    scan: mockRedisScan,
-  },
+  ensureRedisConnected: mockEnsureRedisConnected,
 }));
 
 // Mock fs/promises
@@ -154,6 +159,7 @@ describe('CacheInvalidationService', () => {
     mockPriceAlerterCheckAlerts.mockResolvedValue(undefined);
     mockReaddir.mockResolvedValue([]);
     mockRedisScan.mockResolvedValue({ cursor: '0', keys: [] });
+    mockEnsureRedisConnected.mockResolvedValue(mockRedisClient);
 
     service = new CacheInvalidationService(mockPriceAlerter as any);
   });

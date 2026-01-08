@@ -28,25 +28,33 @@ const {
   mockLoggerError,
   mockRedisSet,
   mockRedisEval,
-  mockRedisIsReady,
+  mockRedisClient,
+  mockEnsureRedisConnected,
   mockHandleInteractionError,
   mockRecordSuccessfulCommand,
   mockWithRetry,
   mockHandleHelpInteraction,
   mockReportViewExecute,
-} = vi.hoisted(() => ({
-  mockLoggerDebug: vi.fn(),
-  mockLoggerWarn: vi.fn(),
-  mockLoggerError: vi.fn(),
-  mockRedisSet: vi.fn(),
-  mockRedisEval: vi.fn(),
-  mockRedisIsReady: true,
-  mockHandleInteractionError: vi.fn(),
-  mockRecordSuccessfulCommand: vi.fn(),
-  mockWithRetry: vi.fn().mockImplementation((fn: Function) => fn()),
-  mockHandleHelpInteraction: vi.fn(),
-  mockReportViewExecute: vi.fn(),
-}));
+} = vi.hoisted(() => {
+  const redisClient = {
+    set: vi.fn(),
+    eval: vi.fn(),
+  };
+  return {
+    mockLoggerDebug: vi.fn(),
+    mockLoggerWarn: vi.fn(),
+    mockLoggerError: vi.fn(),
+    mockRedisSet: redisClient.set,
+    mockRedisEval: redisClient.eval,
+    mockRedisClient: redisClient,
+    mockEnsureRedisConnected: vi.fn(),
+    mockHandleInteractionError: vi.fn(),
+    mockRecordSuccessfulCommand: vi.fn(),
+    mockWithRetry: vi.fn().mockImplementation((fn: Function) => fn()),
+    mockHandleHelpInteraction: vi.fn(),
+    mockReportViewExecute: vi.fn(),
+  };
+});
 
 // Mock logger
 vi.mock('../../../src/utils/logger.js', () => ({
@@ -60,13 +68,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
 
 // Mock Redis
 vi.mock('../../../src/shared/redis.js', () => ({
-  default: {
-    get isReady() {
-      return mockRedisIsReady;
-    },
-    set: mockRedisSet,
-    eval: mockRedisEval,
-  },
+  ensureRedisConnected: mockEnsureRedisConnected,
 }));
 
 // Mock errorHandler
@@ -163,6 +165,7 @@ describe('interactionCreate event', () => {
     vi.clearAllMocks();
     mockRedisSet.mockResolvedValue('OK');
     mockRedisEval.mockResolvedValue(1);
+    mockEnsureRedisConnected.mockResolvedValue(mockRedisClient);
   });
 
   afterEach(() => {
