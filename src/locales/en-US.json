@@ -217,7 +217,17 @@
             "ticket_category": "- Ticket Category:",
             "log_channel": "- Log Channel:",
             "panel_channel": "- Panel Channel:",
-            "archive_category": "- Archive Category:"
+            "archive_category": "- Archive Category:",
+            "archive_not_set": "*Not set (channel will be deleted after close)*"
+          }
+        },
+        "clear_archive": {
+          "name": "clear-archive",
+          "description": "Clear archive category (tickets will be deleted on close).",
+          "responses": {
+            "no_config": "Server is not configured. Please use `/config set` first.",
+            "already_cleared": "Archive category is already not set.",
+            "success": "Archive category cleared. Tickets will now be deleted on close (after transcript is saved)."
           }
         }
       },

@@ -97,14 +97,14 @@ export const command: Command = {
         .addChannelOption((option) =>
           option
             .setName("archive_category")
-            .setDescription("The category for archived tickets.")
+            .setDescription("The category for archived tickets (optional, if not set tickets will be deleted).")
             .setNameLocalizations({
               [Locale.ChineseTW]: "封存客服單類別",
             })
             .setDescriptionLocalizations({
-              [Locale.ChineseTW]: "已封存客服單的類別。",
+              [Locale.ChineseTW]: "已封存客服單的類別（可選，未設定則關閉後刪除頻道）。",
             })
-            .setRequired(true)
+            .setRequired(false)
         )
         .addChannelOption((option) =>
           option
@@ -124,6 +124,17 @@ export const command: Command = {
         })
         .setDescriptionLocalizations({
           [Locale.ChineseTW]: "檢視伺服器設定。",
+        })
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("clear-archive")
+        .setDescription("Clear archive category (tickets will be deleted on close).")
+        .setNameLocalizations({
+          [Locale.ChineseTW]: "清除封存類別",
+        })
+        .setDescriptionLocalizations({
+          [Locale.ChineseTW]: "清除封存類別設定（關閉後將刪除客服單頻道）。",
         })
     )
     .addSubcommandGroup((group) =>
@@ -486,15 +497,14 @@ export const command: Command = {
         staffRoleId &&
         ticketCategoryId &&
         logChannelId &&
-        panelChannelId &&
-        archiveCategoryId
+        panelChannelId
       ) {
         await settingsManager.updateSettings(interaction.guildId, {
           staffRoleId: staffRoleId,
           ticketCategoryId: ticketCategoryId,
           logChannelId: logChannelId,
           panelChannelId: panelChannelId,
-          archiveCategoryId: archiveCategoryId,
+          ...(archiveCategoryId ? { archiveCategoryId: archiveCategoryId } : {}),
         });
         responseContent += t.subcommands.set.responses.success + "\n";
         updated = true;
@@ -545,8 +555,10 @@ export const command: Command = {
         container.addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             `-# ${t.subcommands.view.responses.staff_role}\n<@&${settings.staffRoleId}>\n` +
-            `-# ${t.subcommands.view.responses.ticket_category}\n<#${settings.ticketCategoryId}>\n` +
-            `-# ${t.subcommands.view.responses.archive_category}\n<#${settings.archiveCategoryId}>`
+            `-# ${t.subcommands.view.responses.ticket_category}\n<#${settings.ticketCategoryId}>` +
+            (settings.archiveCategoryId
+              ? `\n-# ${t.subcommands.view.responses.archive_category}\n<#${settings.archiveCategoryId}>`
+              : `\n-# ${t.subcommands.view.responses.archive_category}\n${t.subcommands.view.responses.archive_not_set}`)
           )
         );
         
@@ -604,6 +616,34 @@ export const command: Command = {
       await interaction.editReply({
         components: [container],
         flags: [MessageFlags.IsComponentsV2],
+      });
+    } else if (subcommand === "clear-archive") {
+      const settings = await settingsManager.getSettings(interaction.guildId);
+
+      if (!settings) {
+        await interaction.editReply({
+          content: `<:notice:1444897740566958111> ${t.subcommands.clear_archive.responses.no_config}`,
+        });
+        return;
+      }
+
+      if (!settings.archiveCategoryId) {
+        await interaction.editReply({
+          content: `<:notice:1444897740566958111> ${t.subcommands.clear_archive.responses.already_cleared}`,
+        });
+        return;
+      }
+
+      await settingsManager.updateSettings(interaction.guildId, {
+        staffRoleId: settings.staffRoleId,
+        ticketCategoryId: settings.ticketCategoryId,
+        logChannelId: settings.logChannelId,
+        panelChannelId: settings.panelChannelId,
+        archiveCategoryId: null,
+      });
+
+      await interaction.editReply({
+        content: `<:bck:1444901131825315850> ${t.subcommands.clear_archive.responses.success}`,
       });
     }
   },

@@ -338,6 +338,33 @@ export class DiscordService {
     }
   }
 
+  async deleteTicketChannel(channel: TextChannel, owner?: User): Promise<void> {
+    try {
+      logChannelPermissions(channel, "Before Delete");
+      const channelId = channel.id;
+      const channelName = channel.name;
+      const guildId = channel.guild.id;
+
+      await channel.delete("Ticket closed - deleting ticket channel");
+
+      const ownerInfo = owner ? ` (owner: ${owner.username}/${owner.id})` : "";
+      logger.info(`[AUDIT] Deleted ticket channel #${channelName} (${channelId}) in guild ${guildId}${ownerInfo}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      // 檢查是否為權限相關錯誤
+      const isPermissionError = errorMessage.includes("Missing Permissions") ||
+        errorMessage.includes("Missing Access") ||
+        (error instanceof Error && "code" in error && (error as any).code === 50013);
+
+      if (isPermissionError) {
+        logger.error(`[PERMISSION] Bot lacks permission to delete channel ${channel.id}. Ensure bot has ManageChannels permission.`);
+      } else {
+        logger.error(`Critical error deleting channel ${channel.id}:`, error);
+      }
+      throw new Error(`Failed to delete ticket channel: ${errorMessage}`);
+    }
+  }
+
   async addUserToChannel(channel: TextChannel, user: User): Promise<void> {
     await channel.permissionOverwrites.edit(user.id, {
       ViewChannel: true,

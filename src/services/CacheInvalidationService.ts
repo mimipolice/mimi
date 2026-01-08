@@ -4,7 +4,7 @@ import { PoolClient } from "pg";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { gachaPool } from "../shared/database";
-import redisClient from "../shared/redis";
+import { ensureRedisConnected } from "../shared/redis";
 import logger from "../utils/logger";
 import { CacheService } from "./CacheService";
 import { ChartCacheService } from "./ChartCacheService";
@@ -19,7 +19,7 @@ export class CacheInvalidationService {
   private priceAlerter: PriceAlerter;
 
   constructor(priceAlerter: PriceAlerter) {
-    this.cacheService = new CacheService();
+    this.cacheService = CacheService.getInstance();
     this.chartCacheService = new ChartCacheService();
     this.priceAlerter = priceAlerter;
     logger.info("[CacheInvalidator] Service initialized.");
@@ -58,6 +58,7 @@ export class CacheInvalidationService {
 
   private async invalidateCacheForSymbol(symbol: string): Promise<void> {
     // 1. Invalidate Redis data cache
+    const redisClient = await ensureRedisConnected();
     if (redisClient) {
       const redisScanKey = `report-data:${symbol}:*`;
       let cursor = "0";

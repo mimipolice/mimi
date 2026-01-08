@@ -5,7 +5,7 @@ import { errorHandler } from "../utils/errorHandler";
 import { withRetry } from "../utils/withRetry";
 import { handleHelpInteraction } from "./handlers/helpInteractionHandler";
 import reportViewHandler from "../interactions/buttons/reportView";
-import redisClient from "../shared/redis";
+import { ensureRedisConnected } from "../shared/redis";
 
 export const name = "interactionCreate";
 
@@ -15,7 +15,8 @@ export const name = "interactionCreate";
  * false if another process already claimed it.
  */
 async function acquireInteractionLock(interactionId: string): Promise<boolean> {
-  if (!redisClient?.isReady) {
+  const client = await ensureRedisConnected();
+  if (!client) {
     // Redis not available, allow processing (single instance assumed)
     return true;
   }
@@ -24,7 +25,7 @@ async function acquireInteractionLock(interactionId: string): Promise<boolean> {
     // SET key value NX EX 30 - only set if not exists, expire in 30 seconds
     // 30 seconds allows for longer operations like transcript generation while
     // still providing eventual cleanup for orphaned locks
-    const result = await redisClient.set(
+    const result = await client.set(
       `interaction:lock:${interactionId}`,
       process.pid.toString(),
       { NX: true, EX: 30 }
@@ -42,7 +43,8 @@ async function acquireInteractionLock(interactionId: string): Promise<boolean> {
  * Uses a Lua script for atomic compare-and-delete to prevent race conditions.
  */
 async function releaseInteractionLock(interactionId: string): Promise<void> {
-  if (!redisClient?.isReady) {
+  const client = await ensureRedisConnected();
+  if (!client) {
     return;
   }
 
@@ -59,7 +61,7 @@ async function releaseInteractionLock(interactionId: string): Promise<void> {
         return 0
       end
     `;
-    await redisClient.eval(script, { keys: [key], arguments: [expectedValue] });
+    await client.eval(script, { keys: [key], arguments: [expectedValue] });
   } catch (error) {
     // Non-critical - lock will expire anyway
     logger.debug("Failed to release interaction lock:", error);

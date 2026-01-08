@@ -85,7 +85,7 @@ export const command: Command = {
       ]);
 
     // 初始化快取服務
-    const cacheService = new CacheService();
+    const cacheService = CacheService.getInstance();
     
     // Cache TTL constants (in seconds)
     const CACHE_TTL = {

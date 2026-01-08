@@ -10,7 +10,7 @@ import {
   UserTopGuild,
 } from "../../shared/database/types";
 
-const cacheService = new CacheService();
+const cacheService = CacheService.getInstance();
 
 async function fetchUserInfoFromDB(userId: string): Promise<UserInfoData> {
   try {

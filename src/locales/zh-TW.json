@@ -217,7 +217,17 @@
             "ticket_category": "- 客服單類別：",
             "log_channel": "- 日誌頻道：",
             "panel_channel": "- 面板頻道：",
-            "archive_category": "- 封存類別："
+            "archive_category": "- 封存類別：",
+            "archive_not_set": "*未設定（關閉後刪除頻道）*"
+          }
+        },
+        "clear_archive": {
+          "name": "清除封存類別",
+          "description": "清除封存類別設定（關閉後將刪除客服單頻道）。",
+          "responses": {
+            "no_config": "尚未設定伺服器。請先使用 `/config set` 進行基本設定。",
+            "already_cleared": "封存類別已經是未設定狀態。",
+            "success": "已清除封存類別設定。現在關閉客服單時將會刪除頻道（前提是已儲存 transcript）。"
           }
         }
       },

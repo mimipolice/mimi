@@ -467,11 +467,100 @@ describe('TicketManager', () => {
       expect(mockArchiveTicketChannel).toHaveBeenCalled();
       expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
       expect(mockLoggerWarn).toHaveBeenCalledWith(
-        expect.stringContaining('No transcript saved')
+        expect.stringContaining('No valid transcript saved')
       );
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.stringContaining('transcript not available')
       );
+    });
+
+    it('should fallback to archive when transcript URL is empty string', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue(''); // Empty string
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockCloseTicket).toHaveBeenCalled();
+      expect(mockArchiveTicketChannel).toHaveBeenCalled();
+      expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('No valid transcript saved')
+      );
+    });
+
+    it('should fallback to archive when transcript URL is whitespace only', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue('   '); // Whitespace only
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockArchiveTicketChannel).toHaveBeenCalled();
+      expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to archive when transcript URL lacks http prefix', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue('ftp://example.com/transcript.html'); // Invalid protocol
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockArchiveTicketChannel).toHaveBeenCalled();
+      expect(mockDeleteTicketChannel).not.toHaveBeenCalled();
+    });
+
+    it('should delete channel when transcript URL is valid https', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue('https://example.com/transcript.html');
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockDeleteTicketChannel).toHaveBeenCalled();
+      expect(mockArchiveTicketChannel).not.toHaveBeenCalled();
+    });
+
+    it('should delete channel when transcript URL is valid http', async () => {
+      // Arrange
+      const settingsWithoutArchive = createSettingsFixture({ archiveCategoryId: null });
+      mockGetSettings.mockResolvedValue(settingsWithoutArchive);
+      mockGenerateTranscript.mockResolvedValue('http://localhost:3000/transcript.html');
+      const interaction = createMockModalSubmitInteraction({
+        channelId: FIXTURE_OPEN_TICKET.channelId,
+      });
+
+      // Act
+      await ticketManager.close(interaction, 'reason');
+
+      // Assert
+      expect(mockDeleteTicketChannel).toHaveBeenCalled();
+      expect(mockArchiveTicketChannel).not.toHaveBeenCalled();
     });
 
     it('should report error when settings is null', async () => {

@@ -30,7 +30,7 @@ export class PriceAlerter {
   constructor(client: Client, localizationManager: LocalizationManager) {
     this.client = client;
     this.localizationManager = localizationManager;
-    this.cacheService = new CacheService();
+    this.cacheService = CacheService.getInstance();
   }
 
   public async checkAlerts() {

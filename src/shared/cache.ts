@@ -9,7 +9,7 @@ import {
 } from "../repositories/admin.repository";
 import { CacheService } from "../services/CacheService";
 
-const cacheService = new CacheService();
+const cacheService = CacheService.getInstance();
 
 // Define the type based on the expected structure
 export interface GachaPool {

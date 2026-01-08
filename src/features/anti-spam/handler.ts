@@ -14,7 +14,7 @@ import { getAntiSpamLogChannel } from "../../repositories/admin.repository";
 import { getAntiSpamSettingsForGuild } from "../../shared/cache";
 import { formatDistanceStrict } from "date-fns";
 
-import { CacheService } from "../../services/CacheService";
+import { cacheService } from "../../services/CacheService";
 
 interface UserMessageData {
   timestamps: { ts: number; channelId: string }[];
@@ -205,8 +205,8 @@ async function handleSpamAction(
 
 // --- 4. Main Exported Function ---
 export async function handleAntiSpam(message: Message) {
-  const cacheService = new CacheService();
-  
+  // 使用單例而非每次建立新實例
+
   // Early return checks with logging
   if (message.author.bot) {
     logger.debug(`[Anti-Spam] Skipping bot message from ${message.author.tag}`);

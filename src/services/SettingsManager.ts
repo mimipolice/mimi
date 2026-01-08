@@ -11,7 +11,7 @@ export class SettingsManager {
 
   constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
-    this.cacheService = new CacheService();
+    this.cacheService = CacheService.getInstance();
   }
 
   async getSettings(guildId: string): Promise<GuildSettings | null> {

@@ -93,7 +93,7 @@ export class TicketManager {
       }
       return interaction.editReply(
         error.message ||
-          "An unexpected error occurred while creating your ticket."
+        "An unexpected error occurred while creating your ticket."
       );
     }
   }
@@ -142,8 +142,8 @@ export class TicketManager {
         }
       }
 
-      // CRITICAL: Update database status BEFORE archiving
-      // This ensures the ticket is marked as closed even if archiving fails
+      // CRITICAL: Update database status BEFORE deleting/archiving
+      // This ensures the ticket is marked as closed even if channel operation fails
       await this.ticketRepository.closeTicket(channel.id, {
         closedById: interaction.user.id,
         closeReason: sanitizedReason,
@@ -151,18 +151,7 @@ export class TicketManager {
       });
       logger.info(`Ticket ${ticket.id} marked as closed in database`);
 
-      // Try to archive the channel
-      try {
-        await this.discordService.archiveTicketChannel(channel, owner, settings);
-      } catch (archiveError) {
-        logger.error(`Failed to archive channel ${channel.id}, but ticket is closed in database:`, archiveError);
-        // Don't throw - ticket is already closed in DB
-        return interaction.editReply(
-          "Ticket closed successfully, but there was an issue archiving the channel. Please contact an administrator if the channel is still visible."
-        );
-      }
-
-      // Send DM notification (non-critical)
+      // Send DM notification (non-critical, must be done before channel deletion)
       try {
         await this.discordService.sendDMOnClose(
           guild,
@@ -177,12 +166,47 @@ export class TicketManager {
         // Continue - DM failure is not critical
       }
 
-      return interaction.editReply("Ticket closed.");
+      // Archive or delete channel based on config
+      try {
+        if (settings?.archiveCategoryId) {
+          await this.discordService.archiveTicketChannel(channel, owner, settings);
+          return interaction.editReply("Ticket closed.");
+        } else if (settings) {
+          // Settings exist but no archiveCategoryId = intentionally delete mode
+          // Safety check: only delete if transcript was saved with a valid URL
+          const isValidTranscriptUrl = transcriptUrl &&
+            transcriptUrl.trim() !== '' &&
+            (transcriptUrl.startsWith('http://') || transcriptUrl.startsWith('https://'));
+
+          if (!isValidTranscriptUrl) {
+            logger.warn(`Ticket ${ticket.id}: No valid transcript saved (got: ${transcriptUrl || 'null'}), falling back to archive mode`);
+            await this.discordService.archiveTicketChannel(channel, owner, settings);
+            return interaction.editReply(
+              "Ticket closed. Channel archived (transcript not available, deletion skipped)."
+            );
+          }
+          await interaction.editReply("Ticket closed. Deleting channel...");
+          await this.discordService.deleteTicketChannel(channel, owner);
+          return;
+        } else {
+          // settings is null - configuration missing, fallback to safe behavior
+          logger.warn(`Ticket ${ticket.id}: Guild ${guild.id} has no settings configured, cannot archive/delete channel`);
+          return interaction.editReply(
+            "Ticket closed in database, but channel could not be archived/deleted (server not configured). Please contact an administrator."
+          );
+        }
+      } catch (channelError) {
+        const action = settings?.archiveCategoryId ? "archiving" : "deleting";
+        logger.error(`Failed to ${action} channel ${channel.id}, but ticket is closed in database:`, channelError);
+        return interaction.editReply(
+          `Ticket closed successfully, but there was an issue ${action} the channel. Please contact an administrator if the channel is still visible.`
+        );
+      }
     } catch (error: any) {
       logger.error(`Error closing ticket ${channel.id}:`, error);
       return interaction.editReply(
         error.message ||
-          "An unexpected error occurred while closing the ticket."
+        "An unexpected error occurred while closing the ticket."
       );
     }
   }

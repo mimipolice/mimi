@@ -107,7 +107,6 @@ async function main() {
   const priceAlerter = new PriceAlerter(client, localizationManager);
   const helpService = new HelpService(client);
   const forumService = new ForumService();
-  const cacheService = new CacheService();
   const storyForumService = new StoryForumService(mimiDLCDb, client);
 
   const services: Services = {
@@ -116,7 +115,7 @@ async function main() {
     localizationManager,
     helpService,
     forumService,
-    cacheService,
+    cacheService: CacheService.getInstance(),
     storyForumService,
   };
   const databases: Databases = {
@@ -275,6 +274,20 @@ async function main() {
       return;
     }
     logger.debug(`Logged in as ${client.user.tag}!`);
+
+    // Redis startup health check
+    const { ensureRedisConnected, isRedisConnected } = await import("./shared/redis.js");
+    const redis = await ensureRedisConnected();
+    if (process.env.REDIS_ENABLED === "true") {
+      if (redis && isRedisConnected()) {
+        logger.info("✅ Redis health check passed.");
+      } else {
+        logger.warn("⚠️ Redis is enabled but not available - running in degraded mode (no caching)");
+      }
+    } else {
+      logger.info("ℹ️ Redis is disabled - running without cache.");
+    }
+
     await services.helpService.initialize();
     // Start the cache invalidation listener
     const cacheInvalidator = new CacheInvalidationService(priceAlerter);

@@ -2,7 +2,7 @@ import { sql } from "kysely";
 import { CacheService } from "../../services/CacheService";
 import { gachaDB } from "../../shared/database";
 
-const cacheService = new CacheService();
+const cacheService = CacheService.getInstance();
 
 export async function updateUserBalance(
   userId: string,

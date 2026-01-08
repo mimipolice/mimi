@@ -48,12 +48,17 @@ export async function generateTranscript(channel: TextChannel): Promise<string |
             cacheControl: 'public, max-age=31536000', // 1 year
         });
 
-        if (result.success && result.url) {
+        // Validate the returned URL is actually a valid HTTP(S) URL
+        if (result.success && result.url && result.url.startsWith('http')) {
             logger.info(`Transcript uploaded to R2: ${result.url}`);
             return result.url;
         }
 
-        logger.warn(`R2 upload failed: ${result.error}. Falling back to local storage.`);
+        if (result.success && (!result.url || !result.url.startsWith('http'))) {
+            logger.warn(`R2 upload reported success but returned invalid URL: ${result.url || 'null'}`);
+        } else {
+            logger.warn(`R2 upload failed: ${result.error}. Falling back to local storage.`);
+        }
     }
 
     // Fallback to local filesystem

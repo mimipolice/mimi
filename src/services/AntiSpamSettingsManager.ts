@@ -13,7 +13,7 @@ export class AntiSpamSettingsManager {
 
   constructor(db: Kysely<MimiDLCDB>) {
     this.db = db;
-    this.cacheService = new CacheService();
+    this.cacheService = CacheService.getInstance();
   }
 
   async getAntiSpamSettings(guildId: string): Promise<AntiSpamSettings | null> {

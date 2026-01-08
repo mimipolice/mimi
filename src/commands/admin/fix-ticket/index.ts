@@ -25,7 +25,7 @@ const data = new SlashCommandBuilder()
       .setRequired(true)
       .addChoices(
         { name: "Diagnose - Show current permissions", value: "diagnose" },
-        { name: "Force Archive - Move to archive and fix permissions", value: "archive" },
+        { name: "Force Archive/Delete - Archive or delete channel based on config", value: "archive" },
         { name: "Force Close - Mark as closed in database", value: "close" }
       )
   )
@@ -94,21 +94,23 @@ async function execute(
       }
 
       case "archive": {
-        if (!settings?.archiveCategoryId) {
-          await interaction.editReply(
-            "Archive category is not configured. Please set it up first with `/config set`."
-          );
-          return;
-        }
-
         const owner = await client.users.fetch(ticket.ownerId);
         const discordService = (ticketManager as any).discordService;
+        const channelName = channel.name;
+        const channelId = channel.id;
 
-        await discordService.archiveTicketChannel(channel, owner, settings);
-
-        await interaction.editReply(
-          `Successfully archived ${channel}. Check the logs for details.`
-        );
+        if (settings?.archiveCategoryId) {
+          await discordService.archiveTicketChannel(channel, owner, settings);
+          await interaction.editReply(
+            `Successfully archived ${channel}. Check the logs for details.`
+          );
+        } else {
+          // Reply BEFORE deleting since the channel will be gone
+          await interaction.editReply(
+            `Deleting #${channelName} (${channelId})...`
+          );
+          await discordService.deleteTicketChannel(channel, owner);
+        }
         return;
       }
 
@@ -127,7 +129,7 @@ async function execute(
         });
 
         await interaction.editReply(
-          `Ticket ${channel} has been marked as closed in the database. You may want to run "Force Archive" next.`
+          `Ticket ${channel} has been marked as closed in the database. You may want to run "Force Archive/Delete" next.`
         );
         return;
       }
