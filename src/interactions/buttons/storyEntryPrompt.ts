@@ -96,7 +96,7 @@ export const button: Button = {
         }
       }
     } catch (error) {
-      logger.error("[StoryEntryPrompt] Error handling button:", error);
+      logger.error(`[StoryEntryPrompt] Error handling button (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({

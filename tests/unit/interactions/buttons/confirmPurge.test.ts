@@ -166,7 +166,7 @@ describe('confirmPurge', () => {
 
       // Assert
       expect(mockLoggerError).toHaveBeenCalledWith(
-        'Failed to purge tickets:',
+        'Failed to purge tickets (by <@admin-user-123> / admin-user-123):',
         expect.any(Error)
       );
       expect(interaction.editReply).toHaveBeenCalledWith(

@@ -259,7 +259,7 @@ export const command: Command = {
         await handlePermissions(interaction, client, services, threadInfo);
       }
     } catch (error) {
-      logger.error("[Story] Error executing command:", error);
+      logger.error(`[Story] Error executing command (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply({
         content: "❌ 執行指令時發生錯誤。",
       });

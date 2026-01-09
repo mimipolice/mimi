@@ -203,7 +203,7 @@ export class TicketManager {
         );
       }
     } catch (error: any) {
-      logger.error(`Error closing ticket ${channel.id}:`, error);
+      logger.error(`Error closing ticket ${channel.id} (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       return interaction.editReply(
         error.message ||
         "An unexpected error occurred while closing the ticket."

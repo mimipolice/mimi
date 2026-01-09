@@ -403,7 +403,7 @@ describe('stockSelect', () => {
 
       // Assert
       expect(mockLoggerError).toHaveBeenCalledWith(
-        'Error executing stock select menu:',
+        'Error executing stock select menu (by <@user123> / user123):',
         expect.any(Error)
       );
       expect(interaction.editReply).toHaveBeenCalledWith(

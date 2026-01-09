@@ -178,7 +178,7 @@ export default {
         await interaction.editReply(t.subcommands.clear.responses.success);
       }
     } catch (error) {
-      logger.error("Todo command error:", error);
+      logger.error(`Todo command error (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply(t.general_error);
     }
   },

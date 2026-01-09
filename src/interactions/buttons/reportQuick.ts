@@ -193,7 +193,7 @@ export default {
         flags: MessageFlags.IsComponentsV2,
       });
     } catch (error) {
-      logger.error("Error executing report quick button:", error);
+      logger.error(`Error executing report quick button (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply({
         content: "處理您的請求時發生了未預期的錯誤。",
       });

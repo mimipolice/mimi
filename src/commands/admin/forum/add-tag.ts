@@ -69,7 +69,7 @@ export const addTag = async (
       );
     }
   } catch (error) {
-    logger.error("Error adding tag to forum threads:", error);
+    logger.error(`Error adding tag to forum threads (by <@${message.author.id}> / ${message.author.id}):`, error);
     if (message.channel instanceof TextChannel) {
       await message.channel.send(
         "An error occurred while trying to add the tag."

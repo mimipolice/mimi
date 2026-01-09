@@ -56,7 +56,20 @@
       "createError": "❌ An error occurred while creating your ticket. Please try again.",
       "formError": "❌ An error occurred while opening the ticket form. Please try again.",
       "claimError": "❌ An error occurred while claiming the ticket. Please try again or contact an administrator.",
-      "descriptionTooLong": "❌ Issue description is too long ({length} characters). Please keep it under 1024 characters."
+      "descriptionTooLong": "❌ Issue description is too long ({length} characters). Please keep it under 1024 characters.",
+      "log": {
+        "title": "Ticket Closed",
+        "ticketId": "Ticket ID",
+        "openedBy": "Opened By",
+        "openTime": "Open Time",
+        "closedBy": "Closed By",
+        "claimedBy": "Claimed By",
+        "notClaimed": "Not claimed",
+        "reason": "Reason",
+        "noReason": "No reason specified",
+        "viewTranscript": "View Transcript",
+        "viewHistory": "View User's Ticket History"
+      }
     },
     "ticketLogMenu": {
       "error": "An error occurred while processing the menu. Please try again.",
@@ -315,7 +328,11 @@
             "channel_not_found": "The configured panel channel could not be found or is not a text channel.",
             "no_types": "No ticket types have been configured. Please add one with `/panel add` first.",
             "success": "Ticket panel has been created in {{channel}}.",
-            "error": "An error occurred while creating the panel. Please check my permissions and try again."
+            "error": "An error occurred while creating the panel. Please check my permissions and try again.",
+            "default_title": "Support Tickets",
+            "default_description": "Click the button below to open a ticket.",
+            "footer_text": "There are {{count}} ticket types available.",
+            "select_placeholder": "Select a ticket type"
           }
         },
         "add": {
@@ -461,7 +478,11 @@
           "responses": {
             "not_ticket": "This command can only be used in a ticket channel.",
             "no_staff": "No staff member has claimed this ticket yet. You can use `/ticket close` to close it directly.",
-            "request_sent": "Close request has been sent. Waiting for confirmation..."
+            "request_sent": "Close request has been sent. Waiting for confirmation...",
+            "embed_title": "🔔 Close Request",
+            "embed_description": "{{user}} has requested to close this ticket.\n\nClick a button below to respond.",
+            "button_confirm": "Confirm Close",
+            "button_cancel": "Cancel - Still Need Help"
           }
         },
         "purge": {

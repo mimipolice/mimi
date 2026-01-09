@@ -35,11 +35,16 @@ import {
   EMOJIS,
 } from "../constants";
 
+import { LocalizationManager } from "./LocalizationManager";
+import { mapLocale } from "../utils/localeHelper";
+
 export class DiscordService {
   private client: Client;
+  private localizationManager: LocalizationManager;
 
   constructor(client: Client) {
     this.client = client;
+    this.localizationManager = new LocalizationManager();
   }
 
   async createTicketChannel(
@@ -174,9 +179,8 @@ export class DiscordService {
     const container = DiscordService.buildTicketContainer(user, ticketType, issueDescription);
     const row = DiscordService.buildTicketActionRow(false);
 
-    const mentionContent = `||<@${user.id}>${
-      settings.staffRoleId ? `<@&${settings.staffRoleId}>` : ""
-    }||`;
+    const mentionContent = `||<@${user.id}>${settings.staffRoleId ? `<@&${settings.staffRoleId}>` : ""
+      }||`;
 
     try {
       await Promise.all([
@@ -206,37 +210,33 @@ export class DiscordService {
     reason: string,
     transcriptUrl: string | null
   ): Promise<string | null> {
+    const mappedLocale = mapLocale(guild.preferredLocale);
     try {
       const logChannel = (await guild.channels.fetch(
         logChannelId
       )) as TextChannel;
-      const container = this._createCloseContainer(
+      const container = this.generateTicketLog(
         guild,
         ticket,
         owner,
         closer,
         reason,
-        transcriptUrl
+        transcriptUrl,
+        mappedLocale
       );
 
       const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder>)[] = [container];
-
-      // Add transcript button if available
-      if (transcriptUrl) {
-        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setLabel("View Transcript")
-            .setStyle(ButtonStyle.Link)
-            .setURL(transcriptUrl)
-        );
-        components.push(buttonRow);
-      }
 
       // Add ticket history button
       const historyButtonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`ticket_history:${ticket.id}`)
-          .setLabel("View User's Ticket History")
+          .setLabel(
+            this.localizationManager.get(
+              "global.log.viewHistory",
+              mappedLocale
+            ) ?? "View User's Ticket History"
+          )
           .setStyle(ButtonStyle.Secondary)
           .setEmoji(EMOJIS.ID.toComponentEmoji())
       );
@@ -391,7 +391,7 @@ export class DiscordService {
     transcriptUrl: string | null
   ) {
     try {
-      const container = this._createCloseContainer(
+      const container = this.generateTicketLog(
         guild,
         ticket,
         owner,
@@ -424,14 +424,18 @@ export class DiscordService {
     return this.client.users.fetch(userId);
   }
 
-  private _createCloseContainer(
+  public generateTicketLog(
     guild: Guild,
     ticket: Ticket,
     owner: User,
     closer: User,
     reason: string,
-    transcriptUrl?: string | null
+    transcriptUrl?: string | null,
+    locale: string = "en-US"
   ): ContainerBuilder {
+    const t = (key: string) =>
+      this.localizationManager.get(`global.log.${key}`, locale) ?? key;
+
     const openTime = Math.floor(new Date(ticket.createdAt).getTime() / 1000);
 
     const container = new ContainerBuilder();
@@ -452,7 +456,7 @@ export class DiscordService {
     container.addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          (text) => text.setContent("# Ticket Closed"),
+          (text) => text.setContent(`# ${t("title")}`),
           (text) => text.setContent(`-# ${guild.name}`)
         )
         .setThumbnailAccessory(
@@ -467,9 +471,9 @@ export class DiscordService {
     // Ticket info with emojis
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `${EMOJIS.ID} **Ticket ID**\n#${ticket.guildTicketId}\n\n` +
-        `${EMOJIS.OPEN} **Opened By**\n<@${owner.id}>\n\n` +
-        `${EMOJIS.OPENTIME} **Open Time**\n<t:${openTime}:f>`
+        `${EMOJIS.ID} **${t("ticketId")}**\n#${ticket.guildTicketId}\n\n` +
+        `${EMOJIS.OPEN} **${t("openedBy")}**\n<@${owner.id}>\n\n` +
+        `${EMOJIS.OPENTIME} **${t("openTime")}**\n<t:${openTime}:f>`
       )
     );
 
@@ -479,8 +483,11 @@ export class DiscordService {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `${EMOJIS.CLOSE} **Closed By**\n<@${closer.id}>\n\n` +
-        `${EMOJIS.CLAIM} **Claimed By**\n${ticket.claimedById ? `<@${ticket.claimedById}>` : "Not claimed"}`
+        `${EMOJIS.CLOSE} **${t("closedBy")}**\n<@${closer.id}>\n\n` +
+        `${EMOJIS.CLAIM} **${t("claimedBy")}**\n${ticket.claimedById
+          ? `<@${ticket.claimedById}>`
+          : t("notClaimed")
+        }`
       )
     );
 
@@ -490,9 +497,26 @@ export class DiscordService {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `${EMOJIS.REASON} **Reason**\n${reason || "No reason specified"}`
+        `${EMOJIS.REASON} **${t("reason")}**\n${reason || t("noReason")
+        }`
       )
     );
+
+    // Add transcript button inside container if available
+    if (transcriptUrl) {
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      );
+
+      container.addActionRowComponents(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel(t("viewTranscript"))
+            .setStyle(ButtonStyle.Link)
+            .setURL(transcriptUrl)
+        )
+      );
+    }
 
     return container;
   }

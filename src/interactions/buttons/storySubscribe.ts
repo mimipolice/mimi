@@ -100,7 +100,7 @@ export const button: Button = {
         );
       });
     } catch (error) {
-      logger.error("[StorySubscribe] Error handling button:", error);
+      logger.error(`[StorySubscribe] Error handling button (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
 
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({

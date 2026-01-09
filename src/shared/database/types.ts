@@ -247,6 +247,10 @@ export interface GachaDB {
  * 所有新功能的資料表都應該新增在這裡。
  */
 export interface MimiDLCDB {
+  // Guilds table (for foreign key constraints)
+  guilds: {
+    id: string;
+  };
   guild_settings: {
     guildId: string;
     panelChannelId: string | null;

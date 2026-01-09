@@ -273,17 +273,20 @@ export const command: Command = {
           return;
         }
 
-        const footerText = `Currently supports ${ticketTypes.length} services.`;
+        const footerText = t.subcommands.setup.responses.footer_text.replace(
+          "{{count}}",
+          ticketTypes.length.toString()
+        );
         const embed = new EmbedBuilder()
           .setColor("Green")
           .setDescription(
             settings.panelDescription ||
-              "Please select a category below to open a new support ticket."
+            t.subcommands.setup.responses.default_description
           );
 
         if (settings.panelAuthorIconUrl) {
           embed.setAuthor({
-            name: settings.panelTitle || "Support",
+            name: settings.panelTitle || t.subcommands.setup.responses.default_title,
             iconURL: settings.panelAuthorIconUrl,
           });
         }
@@ -315,7 +318,7 @@ export const command: Command = {
             new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId("create_ticket_menu")
-                .setPlaceholder("Select a ticket type...")
+                .setPlaceholder(t.subcommands.setup.responses.select_placeholder)
                 .addOptions(
                   ticketTypes.map((type) => ({
                     label: type.label,
@@ -342,6 +345,13 @@ export const command: Command = {
         const label = interaction.options.getString("label", true);
         const style = interaction.options.getString("style") || "Secondary";
         const emoji = interaction.options.getString("emoji");
+
+        // Ensure guild exists in database (fk_guild constraint)
+        await mimiDLCDb
+          .insertInto("guilds")
+          .values({ id: interaction.guildId })
+          .onConflict((oc) => oc.column("id").doNothing())
+          .execute();
 
         await mimiDLCDb
           .insertInto("ticket_types")
@@ -469,7 +479,7 @@ export const command: Command = {
         await interaction.editReply(t.subcommands.customize.responses.success);
       }
     } catch (error) {
-      logger.error("Error in panel command:", error);
+      logger.error(`Error in panel command (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: t.general_error,

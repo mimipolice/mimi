@@ -237,11 +237,28 @@ describe('Panel Command', () => {
       }),
     });
 
-    // Setup default mock for insertInto
-    mockDbInsertInto.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue({}),
-      }),
+    // Setup default mock for insertInto (supports both guilds and ticket_types)
+    mockDbInsertInto.mockImplementation((table: string) => {
+      if (table === 'guilds') {
+        const conflictBuilder = {
+          column: vi.fn().mockReturnValue({
+            doNothing: vi.fn().mockReturnValue({
+              execute: vi.fn().mockResolvedValue({}),
+            }),
+          }),
+        };
+        return {
+          values: vi.fn().mockReturnValue({
+            onConflict: vi.fn().mockImplementation((cb: any) => cb(conflictBuilder)),
+          }),
+        };
+      }
+      // ticket_types or other tables
+      return {
+        values: vi.fn().mockReturnValue({
+          execute: vi.fn().mockResolvedValue({}),
+        }),
+      };
     });
 
     // Setup default mock for deleteFrom
@@ -418,6 +435,7 @@ describe('Panel Command', () => {
         databases as any
       );
 
+      expect(mockDbInsertInto).toHaveBeenCalledWith('guilds');
       expect(mockDbInsertInto).toHaveBeenCalledWith('ticket_types');
     });
   });

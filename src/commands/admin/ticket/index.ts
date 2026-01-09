@@ -115,17 +115,17 @@ export const command: Command = {
 
     const translations = getLocalizations(localizationManager, "ticket");
     const t = translations[interaction.locale] || translations["en-US"];
-    
+
     const subcommand = interaction.options.getSubcommand();
-    
+
     // Don't defer for "close" subcommand since we need to show a modal
     if (subcommand !== "close" && !interaction.deferred && !interaction.replied) {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
-    
+
     if (subcommand === "close") {
       const channel = interaction.channel;
-      
+
       if (!channel || channel.type !== ChannelType.GuildText) {
         await interaction.editReply({
           content: t.subcommands.add.responses.not_ticket,
@@ -162,7 +162,7 @@ export const command: Command = {
 
     if (subcommand === "request-close") {
       const channel = interaction.channel;
-      
+
       if (!channel || channel.type !== ChannelType.GuildText) {
         await interaction.editReply({
           content: t.subcommands.add.responses.not_ticket,
@@ -185,29 +185,32 @@ export const command: Command = {
 
       if (!targetUserId && isOwner) {
         await interaction.editReply({
-          content: "❌ No staff member has claimed this ticket yet. You can use `/ticket close` to close it directly.",
+          content: t.subcommands["request-close"].responses.no_staff,
         });
         return;
       }
 
       const targetUser = await client.users.fetch(targetUserId || ticket.ownerId);
-      
+
       const embed = new EmbedBuilder()
-        .setTitle("🔔 Close Request")
+        .setTitle(t.subcommands["request-close"].responses.embed_title)
         .setDescription(
-          `${interaction.user} has requested to close this ticket.\n\nClick a button below to respond.`
+          t.subcommands["request-close"].responses.embed_description.replace(
+            "{{user}}",
+            interaction.user.toString()
+          )
         )
         .setColor(0xFFA500)
         .setTimestamp();
 
       const confirmButton = new ButtonBuilder()
         .setCustomId(`confirm_close_request:${interaction.user.id}`)
-        .setLabel("Confirm Close")
+        .setLabel(t.subcommands["request-close"].responses.button_confirm)
         .setStyle(ButtonStyle.Danger);
 
       const cancelButton = new ButtonBuilder()
         .setCustomId(`cancel_close_request:${interaction.user.id}`)
-        .setLabel("Cancel - Still Need Help")
+        .setLabel(t.subcommands["request-close"].responses.button_cancel)
         .setStyle(ButtonStyle.Secondary);
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -222,11 +225,11 @@ export const command: Command = {
       });
 
       await interaction.editReply({
-        content: "✅ Close request has been sent. Waiting for confirmation...",
+        content: t.subcommands["request-close"].responses.request_sent,
       });
       return;
     }
-    
+
     if (subcommand === "purge") {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)

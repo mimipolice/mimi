@@ -57,7 +57,7 @@ export const cleanupTags = async (
       );
     }
   } catch (error) {
-    logger.error("Error cleaning up tags in forum threads:", error);
+    logger.error(`Error cleaning up tags in forum threads (by <@${message.author.id}> / ${message.author.id}):`, error);
     if (message.channel instanceof TextChannel) {
       await message.channel.send(
         "An error occurred while trying to clean up the tags."

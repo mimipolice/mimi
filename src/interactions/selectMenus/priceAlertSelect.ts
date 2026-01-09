@@ -93,7 +93,7 @@ export default {
         components: [], // 移除選單
       });
     } catch (error) {
-      logger.error("Error executing price alert select menu:", error);
+      logger.error(`Error executing price alert select menu (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.update({
         content: "處理您的選擇時發生了未預期的錯誤。",
         components: [],

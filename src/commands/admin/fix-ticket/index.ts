@@ -139,7 +139,7 @@ async function execute(
         return;
     }
   } catch (error: any) {
-    logger.error(`Error in fix-ticket command:`, error);
+    logger.error(`Error in fix-ticket command (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
     await interaction.editReply(
       `An error occurred: ${error.message || "Unknown error"}`
     );

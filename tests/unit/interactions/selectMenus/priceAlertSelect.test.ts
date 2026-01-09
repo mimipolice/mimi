@@ -446,7 +446,7 @@ describe('priceAlertSelect', () => {
 
       // Assert
       expect(mockLoggerError).toHaveBeenCalledWith(
-        'Error executing price alert select menu:',
+        'Error executing price alert select menu (by <@user123> / user123):',
         expect.any(Error)
       );
       expect(interaction.update).toHaveBeenCalledWith(

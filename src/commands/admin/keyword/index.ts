@@ -268,7 +268,7 @@ export default {
         });
       }
     } catch (error) {
-      logger.error("Keyword command error:", error);
+      logger.error(`Keyword command error (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply(t.general_error);
     }
   },

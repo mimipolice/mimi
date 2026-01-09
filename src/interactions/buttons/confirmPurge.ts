@@ -50,7 +50,7 @@ export default {
         components: [{ type: 1, components: [disabledButton] }],
       });
     } catch (error) {
-      logger.error("Failed to purge tickets:", error);
+      logger.error(`Failed to purge tickets (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply({
         content:
           "An error occurred while trying to purge the tickets. Please check the logs.",

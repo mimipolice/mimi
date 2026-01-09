@@ -56,7 +56,20 @@
       "createError": "❌ 建立客服單時發生錯誤，請重新嘗試。",
       "formError": "❌ 開啟客服單表單時發生錯誤，請重新嘗試。",
       "claimError": "❌ 接手客服單時發生錯誤，請重新嘗試或聯繫管理員。",
-      "descriptionTooLong": "❌ 問題描述過長（{length} 字元），請保持在 1024 字元以內。"
+      "descriptionTooLong": "❌ 問題描述過長（{length} 字元），請保持在 1024 字元以內。",
+      "log": {
+        "title": "客服單已關閉",
+        "ticketId": "客服單 ID",
+        "openedBy": "開啟者",
+        "openTime": "開啟時間",
+        "closedBy": "關閉者",
+        "claimedBy": "認領者",
+        "notClaimed": "未認領",
+        "reason": "關閉原因",
+        "noReason": "未提供原因",
+        "viewTranscript": "查看對話紀錄",
+        "viewHistory": "查看用戶歷史紀錄"
+      }
     },
     "ticketLogMenu": {
       "error": "處理選單時發生錯誤，請重新嘗試。",
@@ -461,7 +474,11 @@
           "responses": {
             "not_ticket": "❌ 此指令只能在客服單頻道中使用。",
             "no_staff": "❌ 尚無職員接手此客服單。您可以直接使用 `/ticket close` 關閉它。",
-            "request_sent": "✅ 關閉請求已發送。等待確認中..."
+            "request_sent": "✅ 關閉請求已發送。等待確認中...",
+            "embed_title": "🔔 關閉請求",
+            "embed_description": "{{user}} 請求關閉此客服單。\n\n請點擊下方按鈕進行回應。",
+            "button_confirm": "確認關閉",
+            "button_cancel": "取消 - 仍需協助"
           }
         },
         "purge": {

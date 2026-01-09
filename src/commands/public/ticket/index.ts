@@ -161,7 +161,7 @@ export const command: Command = {
         });
       }
     } catch (error) {
-      logger.error("[Ticket Command] Error:", error);
+      logger.error(`[Ticket Command] Error (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
 
       const replyContent = t("createError");
 

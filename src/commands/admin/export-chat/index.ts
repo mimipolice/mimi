@@ -125,7 +125,7 @@ export const command: Command = {
         }, 5000); // Wait 5 seconds to ensure upload is complete
       }
     } catch (error: any) {
-      logger.error("Error exporting chat history:", error);
+      logger.error(`Error exporting chat history (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       await interaction.editReply({
         content: `❌ Failed to export chat history: ${error.message}`,
       });

@@ -287,7 +287,7 @@ export default {
         }
       }
     } catch (error) {
-      logger.error("Price alert command error:", error);
+      logger.error(`Price alert command error (by <@${interaction.user.id}> / ${interaction.user.id}):`, error);
       const errorMessage = t.general_error;
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({

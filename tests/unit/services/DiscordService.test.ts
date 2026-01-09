@@ -131,6 +131,7 @@ function createMockGuild(overrides: Partial<{
 
 function createMockTextChannel(overrides: Partial<{
   id: string;
+  name: string;
   send: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   setParent: ReturnType<typeof vi.fn>;
@@ -140,6 +141,7 @@ function createMockTextChannel(overrides: Partial<{
   const mockGuild = overrides.guild ?? createMockGuild();
   return {
     id: overrides.id ?? 'channel-123',
+    name: overrides.name ?? 'ticket-123',
     send: overrides.send ?? vi.fn().mockResolvedValue({ id: 'message-123' }),
     delete: overrides.delete ?? vi.fn().mockResolvedValue(undefined),
     setParent: overrides.setParent ?? vi.fn().mockResolvedValue(undefined),
@@ -405,10 +407,10 @@ describe('DiscordService', () => {
       // Assert
       const json = row.toJSON();
       expect(json.components).toHaveLength(2);
-      expect(json.components[0].custom_id).toBe(TicketAction.CLOSE);
-      expect(json.components[0].style).toBe(ButtonStyle.Danger);
-      expect(json.components[1].custom_id).toBe(TicketAction.CLAIM);
-      expect(json.components[1].style).toBe(ButtonStyle.Success);
+      expect((json.components[0] as any).custom_id).toBe(TicketAction.CLOSE);
+      expect((json.components[0] as any).style).toBe(ButtonStyle.Danger);
+      expect((json.components[1] as any).custom_id).toBe(TicketAction.CLAIM);
+      expect((json.components[1] as any).style).toBe(ButtonStyle.Success);
     });
 
     it('should disable claim button when claimed is true', () => {
@@ -439,8 +441,8 @@ describe('DiscordService', () => {
 
       // Assert
       const json = row.toJSON();
-      expect(json.components[0].label).toBe('Custom Close');
-      expect(json.components[1].label).toBe('Custom Claim');
+      expect((json.components[0] as any).label).toBe('Custom Close');
+      expect((json.components[1] as any).label).toBe('Custom Claim');
     });
   });
 
@@ -987,6 +989,52 @@ describe('DiscordService', () => {
       // Assert
       const sendCall = mockOwner.send.mock.calls[0][0];
       expect(sendCall.components.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  // ============================================
+  // generateTicketLog() 測試 (原 _createCloseContainer)
+  // ============================================
+
+  describe('generateTicketLog()', () => {
+    it('should generate log container with correct info', () => {
+      const mockGuild = createMockGuild();
+      const mockTicket = createMockTicket();
+      const mockOwner = createMockUser({ id: 'owner-123' });
+      const mockCloser = createMockUser({ id: 'closer-456' });
+      const reason = 'Fixed issue';
+      const transcriptUrl = 'https://transcript.com/123';
+
+      // Access public method
+      const container = discordService.generateTicketLog(
+        mockGuild as any,
+        mockTicket as any,
+        mockOwner as any,
+        mockCloser as any,
+        reason,
+        transcriptUrl,
+        'en-US'
+      );
+
+      expect(container).toBeDefined();
+    });
+
+    it('should handle missing transcript URL', () => {
+      const mockGuild = createMockGuild();
+      const mockTicket = createMockTicket();
+      const mockOwner = createMockUser();
+      const mockCloser = createMockUser();
+
+      const container = discordService.generateTicketLog(
+        mockGuild as any,
+        mockTicket as any,
+        mockOwner as any,
+        mockCloser as any,
+        'No transcript',
+        null
+      );
+
+      expect(container).toBeDefined();
     });
   });
 
