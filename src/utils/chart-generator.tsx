@@ -231,7 +231,7 @@ function CandlestickChart({
                         justifyContent: "flex-end",
                     }}
                 >
-                    <span style={{ color: COLORS.textMuted, fontSize: 13, fontFamily: "monospace" }}>
+                    <span style={{ color: COLORS.textMuted, fontSize: 14, fontFamily: "monospace" }}>
                         {formatPrice(p)}
                     </span>
                 </div>
@@ -239,10 +239,10 @@ function CandlestickChart({
 
             {/* Volume Labels */}
             <div style={{ position: "absolute", left: 0, top: scaleVol(volMax) - 10, width: margin.left - 8, height: 20, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                <span style={{ color: COLORS.textMuted, fontSize: 13, fontFamily: "monospace" }}>{formatVolume(volMax)}</span>
+                <span style={{ color: COLORS.textMuted, fontSize: 14, fontFamily: "monospace" }}>{formatVolume(volMax)}</span>
             </div>
             <div style={{ position: "absolute", left: 0, top: scaleVol(0) - 10, width: margin.left - 8, height: 20, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                <span style={{ color: COLORS.textMuted, fontSize: 13, fontFamily: "monospace" }}>0</span>
+                <span style={{ color: COLORS.textMuted, fontSize: 14, fontFamily: "monospace" }}>0</span>
             </div>
 
             {/* Candles */}
