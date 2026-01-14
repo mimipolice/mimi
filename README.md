@@ -193,7 +193,6 @@
 #### 價格追蹤
 | 指令 | 說明 |
 |------|------|
-| `/pricealert set` | 設定價格提醒（高於/低於特定價格） |
 | `/pricealert list` | 查看你的價格提醒列表 |
 | `/pricealert remove` | 移除價格提醒 |
 | `/report symbol` | 產生資產價格分析報告（含 K 線圖） |
@@ -379,8 +378,7 @@ npm run clean-emojis
 ### 價格追蹤設定
 
 1. **查看可用資產**：使用 `/report list` 查看所有支援的資產
-2. **設定提醒**：使用 `/pricealert set` 設定價格提醒條件
-3. **查看報告**：使用 `/report symbol` 產生詳細的價格分析報告
+2. **查看報告**：使用 `/report symbol` 產生詳細的價格分析報告
 
 ### 反垃圾訊息設定
 
