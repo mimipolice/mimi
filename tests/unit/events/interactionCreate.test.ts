@@ -12,7 +12,6 @@
  * - Autocomplete handling
  * - Help interaction delegation
  * - Error handling
- * - Success recording
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -31,7 +30,6 @@ const {
   mockRedisClient,
   mockEnsureRedisConnected,
   mockHandleInteractionError,
-  mockRecordSuccessfulCommand,
   mockWithRetry,
   mockHandleHelpInteraction,
   mockReportViewExecute,
@@ -49,7 +47,6 @@ const {
     mockRedisClient: redisClient,
     mockEnsureRedisConnected: vi.fn(),
     mockHandleInteractionError: vi.fn(),
-    mockRecordSuccessfulCommand: vi.fn(),
     mockWithRetry: vi.fn().mockImplementation((fn: Function) => fn()),
     mockHandleHelpInteraction: vi.fn(),
     mockReportViewExecute: vi.fn(),
@@ -75,7 +72,6 @@ vi.mock('../../../src/shared/redis.js', () => ({
 vi.mock('../../../src/utils/errorHandler.js', () => ({
   errorHandler: {
     handleInteractionError: mockHandleInteractionError,
-    recordSuccessfulCommand: mockRecordSuccessfulCommand,
   },
 }));
 
@@ -312,7 +308,6 @@ describe('interactionCreate event', () => {
 
       // Assert
       expect(mockWithRetry).toHaveBeenCalled();
-      expect(mockRecordSuccessfulCommand).toHaveBeenCalled();
     });
 
     it('should return early when command is not found', async () => {
@@ -329,32 +324,8 @@ describe('interactionCreate event', () => {
       // Act
       await execute(interaction as any, client as any, services as any, databases as any);
 
-      // Assert
-      expect(mockRecordSuccessfulCommand).not.toHaveBeenCalled();
-    });
-
-    it('should record execution time for successful commands', async () => {
-      // Arrange
-      const mockCommand = { execute: vi.fn().mockResolvedValue(undefined) };
-      const client = createMockClient({
-        commands: new Map([['test-command', mockCommand]]),
-      });
-      const interaction = createMockInteraction('chatInput', {
-        commandName: 'test-command',
-      });
-      const services = createMockServices();
-      const databases = createMockDatabases();
-
-      // Act
-      await execute(interaction as any, client as any, services as any, databases as any);
-
-      // Assert
-      expect(mockRecordSuccessfulCommand).toHaveBeenCalledWith(
-        client,
-        interaction,
-        'test-command',
-        expect.any(Number)
-      );
+      // Assert - command not found means nothing was executed
+      expect(mockWithRetry).not.toHaveBeenCalled();
     });
   });
 
@@ -380,7 +351,6 @@ describe('interactionCreate event', () => {
 
       // Assert
       expect(mockCommand.execute).toHaveBeenCalled();
-      expect(mockRecordSuccessfulCommand).toHaveBeenCalled();
     });
   });
 
@@ -465,8 +435,8 @@ describe('interactionCreate event', () => {
       // Act
       await execute(interaction as any, client as any, services as any, databases as any);
 
-      // Assert
-      expect(mockRecordSuccessfulCommand).not.toHaveBeenCalled();
+      // Assert - no button handler means nothing was executed
+      expect(mockReportViewExecute).not.toHaveBeenCalled();
     });
   });
 
@@ -511,8 +481,7 @@ describe('interactionCreate event', () => {
       // Act
       await execute(interaction as any, client as any, services as any, databases as any);
 
-      // Assert
-      expect(mockRecordSuccessfulCommand).not.toHaveBeenCalled();
+      // Assert - no modal handler found, nothing executed
     });
   });
 
@@ -615,8 +584,8 @@ describe('interactionCreate event', () => {
       // Act
       await execute(interaction as any, client as any, services as any, databases as any);
 
-      // Assert
-      expect(mockRecordSuccessfulCommand).not.toHaveBeenCalled();
+      // Assert - autocomplete was handled
+      expect(mockCommand.autocomplete).toHaveBeenCalled();
     });
 
     it('should return early when command has no autocomplete handler', async () => {

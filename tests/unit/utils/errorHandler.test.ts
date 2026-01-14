@@ -6,7 +6,6 @@
  * - handleInteractionError(): 錯誤分類與處理
  * - handleClientError(): 客戶端錯誤處理
  * - handleClientWarning(): 客戶端警告處理
- * - recordSuccessfulCommand(): 記錄成功指令
  *
  * Mock 策略：
  * - Discord Interaction: mock isRepliable, replied, deferred, reply, editReply, followUp
@@ -72,17 +71,6 @@ vi.mock('../../../src/utils/interactionReply.js', () => ({
   createDiscordErrorReply: mockCreateDiscordErrorReply,
 }));
 
-// Mock database
-vi.mock('../../../src/shared/database/index.js', () => ({
-  gachaDB: {
-    insertInto: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue(undefined),
-      }),
-    }),
-  },
-}));
-
 // ============================================
 // 現在可以安全地 import
 // ============================================
@@ -92,7 +80,6 @@ import {
   handleInteractionError,
   handleClientError,
   handleClientWarning,
-  recordSuccessfulCommand,
 } from '../../../src/utils/errorHandler.js';
 import {
   BusinessError,
@@ -562,53 +549,6 @@ describe('errorHandler', () => {
       expect(mockLoggerWarn).toHaveBeenCalledWith(
         expect.stringContaining('Discord Client Warning: Rate limit approaching')
       );
-    });
-  });
-
-  // ============================================
-  // recordSuccessfulCommand() 測試
-  // ============================================
-
-  describe('recordSuccessfulCommand()', () => {
-    it('should log successful command', async () => {
-      // Arrange
-      const client = createMockClient();
-      const interaction = createMockInteraction({ commandName: 'ping' });
-
-      // Act
-      await recordSuccessfulCommand(client as any, interaction as any, 'ping');
-
-      // Assert
-      expect(mockLoggerDebug).toHaveBeenCalledWith(
-        expect.stringContaining('Successful command recorded: ping')
-      );
-    });
-
-    it('should include execution time in log', async () => {
-      // Arrange
-      const client = createMockClient();
-      const interaction = createMockInteraction({ commandName: 'ping' });
-
-      // Act
-      await recordSuccessfulCommand(client as any, interaction as any, 'ping', 150);
-
-      // Assert
-      expect(mockLoggerDebug).toHaveBeenCalledWith(
-        expect.stringContaining('(150ms)')
-      );
-    });
-
-    it('should record to database when in guild', async () => {
-      // Arrange
-      const client = createMockClient();
-      const interaction = createMockInteraction({ commandName: 'help' });
-      const { gachaDB } = await import('../../../src/shared/database/index.js');
-
-      // Act
-      await recordSuccessfulCommand(client as any, interaction as any, 'help');
-
-      // Assert
-      expect(gachaDB.insertInto).toHaveBeenCalledWith('command_usage_stats');
     });
   });
 

@@ -1,7 +1,7 @@
 import { Interaction, Client } from "discord.js";
 import { Command, Services, Databases } from "../interfaces/Command";
 import logger from "../utils/logger";
-import { errorHandler } from "../utils/errorHandler";
+import { errorHandler } from "../utils/errorHandler.js";
 import { withRetry } from "../utils/withRetry";
 import { handleHelpInteraction } from "./handlers/helpInteractionHandler";
 import reportViewHandler from "../interactions/buttons/reportView";
@@ -101,40 +101,19 @@ export async function execute(
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
-      const startTime = Date.now();
       await withRetry(
         () => command.execute(interaction, client, services, databases),
         `Command: ${interaction.commandName}`
       );
-      const executionTime = Date.now() - startTime;
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.commandName,
-        executionTime
-      );
     } else if (interaction.isContextMenuCommand()) {
       const command = client.commands.get(interaction.commandName) as Command;
       if (!command) return;
-      const startTime = Date.now();
       await command.execute(interaction, client, services, databases);
-      const executionTime = Date.now() - startTime;
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.commandName,
-        executionTime
-      );
     } else if (
       interaction.isButton() &&
       interaction.customId.startsWith("report-")
     ) {
       await reportViewHandler.execute(interaction, client, services, databases);
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.customId
-      );
     } else if (interaction.isButton()) {
       const button = client.buttons.find((b) => {
         if (typeof b.name === "string") {
@@ -146,11 +125,6 @@ export async function execute(
       });
       if (!button) return;
       await button.execute(interaction, client, services, databases);
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.customId
-      );
     } else if (interaction.isModalSubmit()) {
       const modal = client.modals.find((m) => {
         if (typeof m.name === "string") {
@@ -160,11 +134,6 @@ export async function execute(
       });
       if (!modal) return;
       await modal.execute(interaction, services, databases);
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.customId
-      );
     } else if (interaction.isStringSelectMenu()) {
       const menu = client.selectMenus.find((m) => {
         if (typeof m.name === "string") {
@@ -176,11 +145,6 @@ export async function execute(
       });
       if (!menu) return;
       await menu.execute(interaction, services, databases);
-      errorHandler.recordSuccessfulCommand(
-        client,
-        interaction,
-        interaction.customId
-      );
     } else if (interaction.isAutocomplete()) {
       const command = client.commands.get(interaction.commandName);
       if (!command || !command.autocomplete) return;
