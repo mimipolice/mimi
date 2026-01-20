@@ -495,6 +495,18 @@ export class DiscordService {
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
     );
 
+    // Open reason (issue description from ticket creation)
+    const openReasonText = ticket.openReason || t("noOpenReason");
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `${EMOJIS.NOTICE} **${t("openReason")}**\n${openReasonText}`
+      )
+    );
+
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         `${EMOJIS.REASON} **${t("reason")}**\n${reason || t("noReason")

@@ -58,14 +58,16 @@
       "claimError": "❌ An error occurred while claiming the ticket. Please try again or contact an administrator.",
       "descriptionTooLong": "❌ Issue description is too long ({length} characters). Please keep it under 1024 characters.",
       "log": {
-        "title": "Ticket Closed",
+        "title": "Ticket Log",
         "ticketId": "Ticket ID",
         "openedBy": "Opened By",
         "openTime": "Open Time",
         "closedBy": "Closed By",
         "claimedBy": "Claimed By",
         "notClaimed": "Not claimed",
-        "reason": "Reason",
+        "openReason": "Open Reason",
+        "noOpenReason": "No reason specified",
+        "reason": "Close Reason",
         "noReason": "No reason specified",
         "viewTranscript": "View Transcript",
         "viewHistory": "View User's Ticket History"

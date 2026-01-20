@@ -71,6 +71,7 @@ export class TicketManager {
         channelId: channel.id,
         ownerId: user.id,
         guildTicketId: newGuildTicketId,
+        openReason: issueDescription,
       });
 
       await this.discordService.sendInitialMessages(

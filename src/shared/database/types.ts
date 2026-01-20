@@ -280,6 +280,8 @@ export interface MimiDLCDB {
     closedAt: ColumnType<Date, string, string> | null;
     transcriptUrl: string | null;
     logMessageId: string | null;
+    // Ticket open reason (issue description from creation)
+    openReason: string | null;
     // Ticket management fields (set via log message select menu)
     category: TicketCategory | null;
     rating: number | null;

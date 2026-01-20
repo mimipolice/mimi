@@ -22,6 +22,8 @@ export interface Ticket {
   closedAt: string | null;
   feedbackRating: number | null;
   feedbackComment: string | null;
+  // Ticket open reason (issue description from creation)
+  openReason: string | null;
   // Ticket management fields (set via log message select menu)
   category: TicketCategory | null;
   rating: number | null;

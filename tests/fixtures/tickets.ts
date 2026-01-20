@@ -43,6 +43,7 @@ export const FIXTURE_OPEN_TICKET: Ticket = {
   closedAt: null,
   feedbackRating: null,
   feedbackComment: null,
+  openReason: null,
   category: null,
   rating: null,
   resolution: null,

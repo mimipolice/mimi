@@ -41,9 +41,9 @@ export class TicketRepository {
     guildId: string;
     channelId: string;
     ownerId: string;
-    guildTicketId: number; // 新增這個參數
+    guildTicketId: number;
+    openReason?: string;
   }): Promise<void> {
-    // 返回類型應為 Promise<void> 或其他適當類型
     await this.db
       .insertInto("tickets")
       .values({
