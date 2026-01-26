@@ -239,6 +239,27 @@ async function main() {
     errorHandler.handleClientWarning(client, warning);
   });
 
+  // Connection state monitoring
+  client.on("shardDisconnect", (event, shardId) => {
+    logger.warn(`[Shard ${shardId}] Disconnected. Code: ${event.code}, Reason: ${event.reason || "unknown"}`);
+  });
+
+  client.on("shardReconnecting", (shardId) => {
+    logger.info(`[Shard ${shardId}] Reconnecting...`);
+  });
+
+  client.on("shardResume", (shardId, replayedEvents) => {
+    logger.info(`[Shard ${shardId}] Resumed. Replayed ${replayedEvents} events.`);
+  });
+
+  client.on("shardError", (error, shardId) => {
+    logger.error(`[Shard ${shardId}] Error:`, error);
+  });
+
+  client.on("invalidated", () => {
+    logger.error("Session invalidated! Bot needs to re-login.");
+  });
+
   // Load Events
   const eventsPath = path.join(__dirname, "events");
   const eventFiles = fs
