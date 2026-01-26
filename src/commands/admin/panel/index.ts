@@ -346,13 +346,7 @@ export const command: Command = {
         const style = interaction.options.getString("style") || "Secondary";
         const emoji = interaction.options.getString("emoji");
 
-        // Ensure guild exists in database (fk_guild constraint)
-        await mimiDLCDb
-          .insertInto("guilds")
-          .values({ id: interaction.guildId })
-          .onConflict((oc) => oc.column("id").doNothing())
-          .execute();
-
+        // Note: ticket_types 表沒有外鍵約束，無需預先插入 guilds 表
         await mimiDLCDb
           .insertInto("ticket_types")
           .values({

@@ -435,7 +435,7 @@ describe('Panel Command', () => {
         databases as any
       );
 
-      expect(mockDbInsertInto).toHaveBeenCalledWith('guilds');
+      // Note: ticket_types 表沒有外鍵約束，不需要插入 guilds 表
       expect(mockDbInsertInto).toHaveBeenCalledWith('ticket_types');
     });
   });
