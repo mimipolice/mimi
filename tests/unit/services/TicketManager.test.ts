@@ -45,6 +45,7 @@ const {
   mockLoggerInfo,
   mockLoggerWarn,
   mockGenerateTranscript,
+  mockGetTicketTypeByTypeId,
 } = vi.hoisted(() => ({
   mockGetSettings: vi.fn(),
   mockClearCache: vi.fn(),
@@ -68,6 +69,7 @@ const {
   mockLoggerInfo: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockGenerateTranscript: vi.fn(),
+  mockGetTicketTypeByTypeId: vi.fn(),
 }));
 
 // Mock SettingsManager
@@ -104,6 +106,7 @@ vi.mock('../../../src/repositories/ticket.repository.js', () => ({
     claimTicket = mockClaimTicket;
     purgeTickets = mockPurgeTickets;
   },
+  getTicketTypeByTypeId: mockGetTicketTypeByTypeId,
 }));
 
 // Mock transcript utility
@@ -283,20 +286,30 @@ describe('TicketManager', () => {
       );
     });
 
-    it('should pass ticket type and issue description', async () => {
+    it('should pass ticket type label, emoji and issue description', async () => {
       // Arrange
-      const interaction = createMockButtonInteraction();
+      const interaction = createMockButtonInteraction({ guildId: 'guild-123' });
+      mockGetTicketTypeByTypeId.mockResolvedValue({
+        id: 1,
+        guild_id: 'guild-123',
+        type_id: 'technical',
+        label: '技術問題',
+        style: 'Primary',
+        emoji: '🔧',
+      });
 
       // Act
       await ticketManager.create(interaction, 'My issue description', 'technical');
 
       // Assert
+      expect(mockGetTicketTypeByTypeId).toHaveBeenCalledWith('guild-123', 'technical');
       expect(mockSendInitialMessages).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        'technical',
-        'My issue description'
+        '技術問題',
+        'My issue description',
+        '🔧'
       );
     });
   });

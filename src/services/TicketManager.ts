@@ -10,7 +10,7 @@ import logger from "../utils/logger";
 import { generateTranscript } from "../utils/transcript/transcript";
 import { sanitize } from "../utils/sanitize";
 import { MimiDLCDB } from "../shared/database/types";
-import { TicketRepository, Ticket } from "../repositories/ticket.repository";
+import { TicketRepository, Ticket, getTicketTypeByTypeId } from "../repositories/ticket.repository";
 import { TicketStatus } from "../types/ticket";
 import { DiscordService } from "./DiscordService";
 import {
@@ -74,12 +74,21 @@ export class TicketManager {
         openReason: issueDescription,
       });
 
+      let ticketTypeLabel: string | undefined;
+      let ticketTypeEmoji: string | null | undefined;
+      if (ticketType) {
+        const typeInfo = await getTicketTypeByTypeId(guild.id, ticketType);
+        ticketTypeLabel = typeInfo?.label;
+        ticketTypeEmoji = typeInfo?.emoji;
+      }
+
       await this.discordService.sendInitialMessages(
         channel,
         user,
         settings,
-        ticketType,
-        issueDescription
+        ticketTypeLabel,
+        issueDescription,
+        ticketTypeEmoji
       );
 
       return interaction.editReply(`Your ticket has been created: ${channel}`);

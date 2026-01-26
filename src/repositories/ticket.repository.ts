@@ -231,6 +231,18 @@ export async function getTicketTypes(guildId: string): Promise<TicketType[]> {
     .execute();
 }
 
+export async function getTicketTypeByTypeId(
+  guildId: string,
+  typeId: string
+): Promise<TicketType | undefined> {
+  return await mimiDLCDb
+    .selectFrom("ticket_types")
+    .selectAll()
+    .where("guild_id", "=", guildId)
+    .where("type_id", "=", typeId)
+    .executeTakeFirst();
+}
+
 export async function getTicketByChannelId(channelId: string): Promise<any> {
   return await mimiDLCDb
     .selectFrom("tickets")

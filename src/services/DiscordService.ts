@@ -89,7 +89,8 @@ export class DiscordService {
     user: User,
     ticketType?: string,
     issueDescription?: string,
-    claimedBy?: string
+    claimedBy?: string,
+    ticketEmoji?: string | null
   ): ContainerBuilder {
     let truncatedDescription = issueDescription || "No issue description provided.";
     if (truncatedDescription.length > 1024) {
@@ -119,10 +120,11 @@ export class DiscordService {
     );
 
     // Ticket details
+    const typeDisplay = ticketEmoji
+      ? `## ${ticketEmoji} => ${ticketType || "General"}`
+      : `## => ${ticketType || "General"}`;
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `**Type**\n${ticketType || "General"}`
-      )
+      new TextDisplayBuilder().setContent(typeDisplay)
     );
 
     container.addSeparatorComponents(
@@ -174,9 +176,10 @@ export class DiscordService {
     user: User,
     settings: GuildSettings,
     ticketType?: string,
-    issueDescription?: string
+    issueDescription?: string,
+    ticketEmoji?: string | null
   ) {
-    const container = DiscordService.buildTicketContainer(user, ticketType, issueDescription);
+    const container = DiscordService.buildTicketContainer(user, ticketType, issueDescription, undefined, ticketEmoji);
     const row = DiscordService.buildTicketActionRow(false);
 
     const mentionContent = `||<@${user.id}>${settings.staffRoleId ? `<@&${settings.staffRoleId}>` : ""
