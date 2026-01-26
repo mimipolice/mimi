@@ -247,10 +247,6 @@ export interface GachaDB {
  * 所有新功能的資料表都應該新增在這裡。
  */
 export interface MimiDLCDB {
-  // Guilds table (for foreign key constraints)
-  guilds: {
-    id: string;
-  };
   guild_settings: {
     guildId: string;
     panelChannelId: string | null;
@@ -282,6 +278,8 @@ export interface MimiDLCDB {
     logMessageId: string | null;
     // Ticket open reason (issue description from creation)
     openReason: string | null;
+    // Ticket type (references ticket_types.type_id)
+    typeId: string | null;
     // Ticket management fields (set via log message select menu)
     category: TicketCategory | null;
     rating: number | null;

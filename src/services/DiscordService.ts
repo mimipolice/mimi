@@ -211,7 +211,9 @@ export class DiscordService {
     owner: User,
     closer: User,
     reason: string,
-    transcriptUrl: string | null
+    transcriptUrl: string | null,
+    ticketTypeLabel?: string,
+    ticketTypeEmoji?: string | null
   ): Promise<string | null> {
     const mappedLocale = mapLocale(guild.preferredLocale);
     try {
@@ -225,7 +227,9 @@ export class DiscordService {
         closer,
         reason,
         transcriptUrl,
-        mappedLocale
+        mappedLocale,
+        ticketTypeLabel,
+        ticketTypeEmoji
       );
 
       const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder>)[] = [container];
@@ -391,7 +395,9 @@ export class DiscordService {
     owner: User,
     closer: User,
     reason: string,
-    transcriptUrl: string | null
+    transcriptUrl: string | null,
+    ticketTypeLabel?: string,
+    ticketTypeEmoji?: string | null
   ) {
     try {
       const container = this.generateTicketLog(
@@ -400,7 +406,10 @@ export class DiscordService {
         owner,
         closer,
         reason,
-        transcriptUrl
+        transcriptUrl,
+        undefined,
+        ticketTypeLabel,
+        ticketTypeEmoji
       );
 
       const components: (ContainerBuilder | ActionRowBuilder<ButtonBuilder>)[] = [container];
@@ -434,10 +443,12 @@ export class DiscordService {
     closer: User,
     reason: string,
     transcriptUrl?: string | null,
-    locale: string = "en-US"
+    locale: string = "en-US",
+    ticketTypeLabel?: string,
+    ticketTypeEmoji?: string | null
   ): ContainerBuilder {
     const t = (key: string) =>
-      this.localizationManager.get(`global.log.${key}`, locale) ?? key;
+      this.localizationManager.get(`global.ticket.log.${key}`, locale) ?? key;
 
     const openTime = Math.floor(new Date(ticket.createdAt).getTime() / 1000);
 
@@ -455,11 +466,18 @@ export class DiscordService {
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
     );
 
-    // Header with guild info
+    // Header with guild info - format: "客服單紀錄 Username | 🔧 技術問題"
+    let titleText = `${t("title")} ${owner.username}`;
+    if (ticketTypeLabel) {
+      const typeDisplay = ticketTypeEmoji
+        ? `${ticketTypeEmoji} ${ticketTypeLabel}`
+        : ticketTypeLabel;
+      titleText += ` | ${typeDisplay}`;
+    }
     container.addSectionComponents(
       new SectionBuilder()
         .addTextDisplayComponents(
-          (text) => text.setContent(`# ${t("title")}`),
+          (text) => text.setContent(`# ${titleText}`),
           (text) => text.setContent(`-# ${guild.name}`)
         )
         .setThumbnailAccessory(

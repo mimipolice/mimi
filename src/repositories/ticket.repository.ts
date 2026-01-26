@@ -43,6 +43,7 @@ export class TicketRepository {
     ownerId: string;
     guildTicketId: number;
     openReason?: string;
+    typeId?: string;
   }): Promise<void> {
     await this.db
       .insertInto("tickets")

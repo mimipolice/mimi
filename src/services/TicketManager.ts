@@ -72,6 +72,7 @@ export class TicketManager {
         ownerId: user.id,
         guildTicketId: newGuildTicketId,
         openReason: issueDescription,
+        typeId: ticketType,
       });
 
       let ticketTypeLabel: string | undefined;
@@ -124,6 +125,15 @@ export class TicketManager {
       const settings = await this.settingsManager.getSettings(guild.id);
       const sanitizedReason = sanitize(reason);
 
+      // Get ticket type info for log display
+      let ticketTypeLabel: string | undefined;
+      let ticketTypeEmoji: string | null | undefined;
+      if (ticket.typeId) {
+        const typeInfo = await getTicketTypeByTypeId(guild.id, ticket.typeId);
+        ticketTypeLabel = typeInfo?.label;
+        ticketTypeEmoji = typeInfo?.emoji;
+      }
+
       // Generate transcript
       const transcriptUrl = await generateTranscript(channel);
 
@@ -137,7 +147,9 @@ export class TicketManager {
             owner,
             interaction.user,
             sanitizedReason,
-            transcriptUrl
+            transcriptUrl,
+            ticketTypeLabel,
+            ticketTypeEmoji
           );
           if (logMessageId) {
             await this.db
@@ -169,7 +181,9 @@ export class TicketManager {
           owner,
           interaction.user,
           sanitizedReason,
-          transcriptUrl
+          transcriptUrl,
+          ticketTypeLabel,
+          ticketTypeEmoji
         );
       } catch (dmError) {
         logger.warn(`Failed to send DM to user ${owner.id} for ticket ${ticket.id}:`, dmError);
